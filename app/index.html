@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e11d48">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="MT FITNESS PRO">
+    <link rel="apple-touch-icon" href="logo.png">
+
+    <title>MT FITNESS PRO | Entrenamiento Personalizado Online & Nutrición IA</title>
+    
+    <!-- SEO Meta Tags -->
+    <meta name="description" content="Transforma tu físico con MT Fitness PRO. Planes de entrenamiento personalizados, nutrición inteligente con IA y seguimiento 24/7 por el Coach Mario Tenorio. ¡Empieza tu transformación hoy!">
+    <meta name="keywords" content="entrenamiento personal online, nutrición deportiva, dieta personalizada, coach fitness españa, gimnasio online, ia fitness, mario tenorio fitness">
+    <meta name="author" content="Mario Tenorio">
+    <meta name="robots" content="index, follow">
+    
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://mtfitnesspro.com/">
+    <meta property="og:title" content="MT FITNESS PRO | Entrenamiento Personalizado Online">
+    <meta property="og:description" content="Planes científicos de entrenamiento y dieta. Resultados reales garantizados con nuestra tecnología IA.">
+    <meta property="og:image" content="https://mtfitnesspro.com/assets/logo-512.png">
+
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image">
+    <meta property="twitter:url" content="https://mtfitnesspro.com/">
+    <meta property="twitter:title" content="MT FITNESS PRO | Entrenamiento Personalizado Online">
+    <meta property="twitter:description" content="Transforma tu físico con la ayuda de la ciencia y la IA.">
+    <meta property="twitter:image" content="https://mtfitnesspro.com/assets/logo-512.png">
+
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FitnessCenter",
+      "name": "MT Fitness PRO",
+      "image": "https://mtfitnesspro.com/assets/logo-512.png",
+      "description": "Entrenamiento personal online de élite y nutrición inteligente.",
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "ES"
+      },
+      "url": "https://mtfitnesspro.com",
+      "priceRange": "$$",
+      "coach": {
+        "@type": "Person",
+        "name": "Mario Tenorio"
+      }
+    }
+    </script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar" id="mainNav">
+        <div class="container nav-container">
+            <a href="#inicio" class="nav-logo">
+                <img src="logo.png" alt="MT Fitness Logo">
+                <span class="logo-font" style="font-size: 20px;">MT FITNESS <span class="text-gradient">PRO</span></span>
+            </a>
+            
+            <div class="nav-links">
+                <a href="#metodo" id="nav-metodo">Método</a>
+                <a href="#tecnologia" id="nav-tecnologia">Tecnología</a>
+                <a href="#entrenador" id="nav-entrenador">Coach</a>
+                <a href="#blog" id="nav-blog">Blog IA</a>
+                <a href="#planes" id="nav-planes">Planes</a>
+                <button id="show-login-btn" class="btn btn-secondary btn-sm" style="padding: 10px 20px;">Entrar a la App</button>
+            </div>
+            
+            <div id="mobile-toggle" class="mobile-menu-btn" style="display: block; cursor: pointer; color: white;">
+                <i data-lucide="menu"></i>
+            </div>
+        </div>
+    </nav>
+
+    <div id="mobile-menu" class="menu-mobile">
+        <div class="close-menu" id="close-mobile"><i data-lucide="x" style="width: 40px; height: 40px;"></i></div>
+        <a href="#metodo" class="nav-link-mobile" data-section="metodo">Método</a>
+        <a href="#tecnologia" class="nav-link-mobile" data-section="tecnologia">Tecnología</a>
+        <a href="#entrenador" class="nav-link-mobile" data-section="entrenador">Coach</a>
+        <a href="#blog" class="nav-link-mobile" id="mobile-nav-blog">Blog IA</a>
+        <a href="#planes" class="nav-link-mobile" data-section="planes">Planes</a>
+        <button id="mobile-login-btn" class="btn btn-primary" style="width: 80%;">Área Clientes</button>
+    </div>
+
+    <!-- MAIN VIEWS -->
+    
+    <!-- LANDING VIEW -->
+    <main id="view-landing" class="view active">
+        <!-- Hero Section -->
+        <section class="hero" id="inicio">
+            <div class="hero-bg"></div>
+            <div class="container hero-content">
+                <div class="badge-new">SISTEMA CIENTÍFICO ONLINE</div>
+                <h1 class="logo-font">Transforma tu Físico <br> Lidera tu <span class="text-gradient">Vida.</span></h1>
+                <p>Entrenamiento de élite y nutrición inteligente. Diseñado a tu medida con tecnología de vanguardia y +300 ejercicios verificados.</p>
+                <div class="hero-btns">
+                    <a href="#planes" class="btn btn-primary">Ver Planes</a>
+                    <a href="#metodo" class="btn btn-secondary">Nuestro Método</a>
+                </div>
+            </div>
+        </section>
+
+        <!-- Features / Metodo Section -->
+        <section id="metodo">
+            <div class="container">
+                <div class="section-header">
+                    <div class="badge-new">METODOLOGÍA</div>
+                    <h2>No es una rutina genérica, <span class="text-gradient">es ciencia.</span></h2>
+                    <p class="text-muted">Un sistema estructurado para eliminar la frustración y garantizar resultados reales.</p>
+                </div>
+                
+                <div class="features-grid">
+                    <div class="feature-card glass-card">
+                        <div class="feature-icon"><i data-lucide="target"></i></div>
+                        <h3>Análisis Biomecánico</h3>
+                        <p class="text-muted">Evaluamos tu punto de partida, flexibilidad y estilo de vida para crear tu base sólida.</p>
+                    </div>
+                    <div class="feature-card glass-card">
+                        <div class="feature-icon"><i data-lucide="dumbbell"></i></div>
+                        <h3>Entrenamiento PRO</h3>
+                        <p class="text-muted">Rutinas calculadas con +300 ejercicios reales, Smith Machine, Adductores y Cardio exhaustivo.</p>
+                    </div>
+                    <div class="feature-card glass-card">
+                        <div class="feature-icon"><i data-lucide="utensils"></i></div>
+                        <h3>Nutrición Flexible</h3>
+                        <p class="text-muted">Dietas inteligentes por gramos, sin restricciones absurdas, adaptadas a tu metabolismo.</p>
+                    </div>
+                    <div class="feature-card glass-card">
+                        <div class="feature-icon"><i data-lucide="line-chart"></i></div>
+                        <h3>Seguimiento 24/7</h3>
+                        <p class="text-muted">Revisión de progresos semanal y chat directo con tu coach para ajustes en tiempo real.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- App Technology Section -->
+        <section id="tecnologia" class="app-section">
+            <div class="container app-container">
+                <div class="app-content">
+                    <div class="badge-new">LA PLATAFORMA</div>
+                    <h2 class="section-header">Tu progreso en la <br><span class="text-gradient">palma de tu mano.</span></h2>
+                    <p class="text-muted">Olvídate de los PDFs. Nuestra App exclusiva integra todo lo que necesitas para ganar.</p>
+                    
+                    <ul class="plan-features" style="margin-top: 30px;">
+                        <li><i data-lucide="shield-check"></i> Registro de cargas y series efectivo.</li>
+                        <li><i data-lucide="check-circle"></i> Catálogo de +300 ejercicios guiados.</li>
+                        <li><i data-lucide="check-circle"></i> Chat encriptado directo con el coach.</li>
+                        <li><i data-lucide="check-circle"></i> Gráficos de evolución física semanal.</li>
+                    </ul>
+                    
+                    <button class="btn btn-primary" style="margin-top: 20px;" onclick="document.getElementById('show-login-btn').click()">Ver Demo App</button>
+                </div>
+                <div class="app-mockup">
+                    <div class="floating-stats">
+                        <div style="font-size: 10px; color: var(--primary); font-weight: 800; margin-bottom: 5px;">PESO DE BANCAS (+5kg)</div>
+                        <div style="font-size: 18px; font-weight: 800;">105.0 KG</div>
+                    </div>
+                    <img src="assets/mt_fitness_native_mockup_1773163876762.png" alt="App Mockup">
+                </div>
+            </div>
+        </section>
+
+        <!-- Trainer Section -->
+        <section id="entrenador">
+            <div class="container trainer-section">
+                <div class="trainer-img-wrapper" style="position: relative;">
+                    <img src="assets/trainer_portrait_1772992347575.png" alt="Coach" class="trainer-img">
+                    <div class="glass-card" style="position: absolute; bottom: 20px; right: 20px; padding: 20px; border-radius: 15px;">
+                        <h4 style="margin: 0;">Mario Tenorio</h4>
+                        <p class="text-muted" style="font-size: 12px; margin: 0;">Head Coach & Founder</p>
+                    </div>
+                </div>
+                <div class="trainer-content">
+                    <div class="badge-new">TU COACH</div>
+                    <h2 class="section-header">Mentalidad de Élite <br> <span class="text-gradient">y Resultados Reales.</span></h2>
+                    <p class="text-muted">Llevo años ayudando a transformar físicos a través de la disciplina y la ciencia del ejercicio. Mi objetivo no es solo darte una rutina, sino educarte en el proceso.</p>
+                    <p class="text-muted">Creo en el entrenamiento duro pero inteligente. Si estás dispuesto a comprometerte, yo te daré la hoja de ruta para llegar al siguiente nivel.</p>
+                    
+                    <div style="display: flex; gap: 20px; margin-top: 30px;">
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 800; color: var(--primary);">8+</div>
+                            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Años Exp.</div>
+                        </div>
+                        <div style="text-align: center;">
+                            <div style="font-size: 24px; font-weight: 800; color: var(--primary);">200+</div>
+                            <div style="font-size: 10px; color: var(--text-dim); text-transform: uppercase;">Transformaciones</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pricing Section -->
+        <section id="planes">
+            <div class="container">
+                <div class="section-header text-center" style="margin: 0 auto 60px;">
+                    <div class="badge-new">PLANES</div>
+                    <h2>Invierte en <span class="text-gradient">ti mismo.</span></h2>
+                    <p class="text-muted">Elige el nivel de soporte que necesitas para alcanzar tus metas.</p>
+                </div>
+                
+                <div class="pricing-grid">
+                    <!-- Plan 1 -->
+                    <div class="plan-card glass-card">
+                        <h4>ENTRENAMIENTO</h4>
+                        <div class="plan-price">40€<span>/mes</span></div>
+                        <ul class="plan-features">
+                            <li><i data-lucide="check"></i> Rutina adaptada a tu objetivo</li>
+                            <li><i data-lucide="check"></i> Acceso a Catálogo PRO</li>
+                            <li><i data-lucide="check"></i> Seguimiento en la App</li>
+                            <li style="opacity: 0.3;"><i data-lucide="x" style="color: var(--text-dim);"></i> Plan de Nutrición</li>
+                        </ul>
+                        <button class="btn btn-secondary btn-full">Seleccionar</button>
+                    </div>
+                    <!-- Plan 2 -->
+                    <div class="plan-card glass-card popular">
+                        <div class="plan-badge">MÁS POPULAR</div>
+                        <h4>ENTRENO + DIETA</h4>
+                        <div class="plan-price">80€<span>/mes</span></div>
+                        <ul class="plan-features">
+                            <li><i data-lucide="check"></i> Entrenamiento Hipertrofia/Fuerza</li>
+                            <li><i data-lucide="check"></i> Plan Nutricional Científico</li>
+                            <li><i data-lucide="check"></i> Chat Directo con Coach</li>
+                            <li><i data-lucide="check"></i> Revisiones Semanales</li>
+                        </ul>
+                        <button class="btn btn-primary btn-full">Empezar Ahora</button>
+                    </div>
+                    <!-- Plan 3 -->
+                    <div class="plan-card glass-card">
+                        <h4>DIETA PRO</h4>
+                        <div class="plan-price">50€<span>/mes</span></div>
+                        <ul class="plan-features">
+                            <li><i data-lucide="check"></i> Plan alimenticio a medida</li>
+                            <li><i data-lucide="check"></i> Cálculo de Macros y Kcal</li>
+                            <li><i data-lucide="check"></i> Lista de la compra intel.</li>
+                            <li><i data-lucide="check"></i> Consultas por Chat</li>
+                        </ul>
+                        <button class="btn btn-secondary btn-full">Seleccionar</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <div class="container footer-grid">
+                <div class="footer-brand">
+                    <a href="#" class="nav-logo">
+                        <img src="logo.png" alt="Logo">
+                        <span class="logo-font" style="font-size: 20px;">MT FITNESS <span class="text-gradient">PRO</span></span>
+                    </a>
+                    <p>Elevamos los estándares del entrenamiento personal online. Disciplina, ciencia y resultados.</p>
+                </div>
+                <div class="footer-links">
+                    <h4>Servicio</h4>
+                    <ul>
+                        <li><a href="#metodo">Metodología</a></li>
+                        <li><a href="#planes">Precios</a></li>
+                        <li><a href="#entrenador">Mario Tenorio</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>App</h4>
+                    <ul>
+                        <li><a href="#tecnologia">Plataforma PRO</a></li>
+                        <li><a href="#" id="footer-login">Área Cliente</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Legal</h4>
+                    <ul>
+                        <li><a href="#">Privacidad</a></li>
+                        <li><a href="#">Términos</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                &copy; 2026 MT FITNESS PRO coach. Todos los derechos reservados.
+            </div>
+        </footer>
+    </main>
+
+    <!-- BLOG VIEW -->
+    <main id="view-blog" class="view" style="padding-top: 100px; background: var(--bg-dark); min-height: 100vh;">
+        <div class="container">
+            <button class="back-to-landing btn btn-secondary btn-sm" style="margin-bottom: 30px;">← Volver</button>
+            <div class="section-header">
+                <div class="badge-new">CEREBRO IA</div>
+                <h2 class="section-header">Portal de <span class="text-gradient">IA Fitness.</span></h2>
+                <p class="text-muted">Explora los últimos conocimientos científicos generados por nuestra inteligencia artificial para optimizar cada gramo de músculo.</p>
+            </div>
+            
+            <div id="blog-grid-main" class="features-grid" style="margin-top: 50px; padding-bottom: 80px;">
+                <!-- Cargados dinámicamente -->
+                <div class="text-muted">Consultando la base de datos neuronal...</div>
+            </div>
+        </div>
+    </main>
+
+    <!-- AUTH VIEW -->
+    <div id="view-auth" class="view" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: url('assets/hero_fitness_bg_1772992068670.png') center/cover; padding: 20px;">
+        <div style="position: absolute; inset: 0; background: rgba(9, 9, 11, 0.9);"></div>
+        <div class="glass-card contact-form" style="position: relative; z-index: 2; width: 100%; max-width: 450px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <img src="logo.png" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 10px;">
+                <h2 class="logo-font" style="margin: 0; font-size: 24px;">MT FITNESS <span class="text-gradient">PRO</span></h2>
+                <p class="text-muted" style="margin-top: 5px;">Área Privada de Clientes</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required></div>
+                <div class="form-group"><label>Contraseña</label><input type="password" id="loginPassword" placeholder="••••••••" required></div>
+                <button type="submit" class="btn btn-primary btn-full">Entrar a la Plataforma</button>
+                <div style="text-align: center; margin-top: 20px; font-size: 13px;"><span class="text-muted">¿Eres nuevo?</span> <a href="#" id="goRegister" style="color: var(--primary); text-decoration: none; font-weight: 700;">Solicita tu cuenta</a></div>
+                <div style="text-align: center; margin-top: 15px;"><a href="#" class="back-to-landing" style="color: var(--text-dim); text-decoration: none; font-size: 12px;">← Volver al inicio</a></div>
+            </form>
+            <form id="registerForm" style="display: none;">
+                <div class="form-group"><label>Nombre Completo</label><input type="text" id="regName" placeholder="Tu nombre" required></div>
+                <div class="form-group"><label>Email</label><input type="email" id="regEmail" placeholder="correo@ejemplo.com" required></div>
+                <div class="form-group"><label>Nueva Contraseña</label><input type="password" id="regPassword" placeholder="Mínimo 8 caracteres" required></div>
+                <button type="submit" class="btn btn-primary btn-full">Crear Cuenta PRO</button>
+                <div style="text-align: center; margin-top: 20px; font-size: 13px;"><span class="text-muted">¿Ya tienes cuenta?</span> <a href="#" id="goLogin" style="color: var(--primary); text-decoration: none; font-weight: 700;">Inicia sesión</a></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- APP VIEWS -->
+    <div id="view-app" class="view" style="min-height: 100vh; background: var(--bg-dark);">
+        <div id="app-content-container"></div>
+    </div>
+
+    <!-- SOCIAL PROOF NOTIFICATION -->
+    <div id="social-proof" class="social-proof-toast">
+        <div class="proof-dot"></div>
+        <p id="proof-text">Alguien acaba de unirse al Plan PRO</p>
+    </div>
+
+    <!-- AI ADVISOR FLOATING BUTTON -->
+    <div id="ai-advisor-fab" class="ai-fab">
+        <div class="ai-fab-badge">Gratis</div>
+        <i data-lucide="sparkles"></i>
+        <span>IA Advisor</span>
+    </div>
+
+    <!-- AI ADVISOR MODAL -->
+    <div id="ai-modal" class="modal-overlay">
+        <div class="glass-card modal-content ai-modal-box">
+            <div class="modal-header">
+                <h3><i data-lucide="brain"></i> Asistente MT <span class="text-gradient">IA</span></h3>
+                <button id="close-ai-modal" class="btn-icon"><i data-lucide="x"></i></button>
+            </div>
+            <div id="ai-chat-body" class="ai-chat-body">
+                <div class="ai-message bot">
+                    ¡Hola! Soy el experto de MT Fitness. Cuéntame tu objetivo (perder peso, ganar músculo) y te daré un análisis inmediato gratis. 🚀
+                </div>
+            </div>
+            <div class="ai-chat-footer">
+                <input type="text" id="ai-input" placeholder="Ej: Quiero perder 5kg en un mes...">
+                <button id="send-ai-btn" class="btn btn-primary btn-icon"><i data-lucide="send"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+    <script>lucide.createIcons();</script>
+</body>
+</html>

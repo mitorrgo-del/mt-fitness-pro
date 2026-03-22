@@ -1,0 +1,8 @@
+*.zip
+*.apk
+__pycache__/
+*.db
+.env
+node_modules/
+dist/
+build/
