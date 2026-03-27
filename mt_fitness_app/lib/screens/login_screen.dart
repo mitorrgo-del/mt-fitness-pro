@@ -50,7 +50,7 @@ class _LoginScreenState extends State<LoginScreen> {
         SnackBar(content: Text('Error de conexión: $e')),
       );
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -59,112 +59,149 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: Container(
         width: double.infinity,
-        decoration: const BoxDecoration(
+        height: double.infinity,
+        decoration: BoxDecoration(
           color: AppTheme.bgColor,
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Colors.black,
+              AppTheme.primary.withOpacity(0.05),
+              Colors.black,
+            ],
+          ),
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Logo Area
-                const Center(
-                  child: Icon(
-                    LucideIcons.dumbbell,
-                    size: 64,
-                    color: AppTheme.primary,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Center(
-                  child: Text(
-                    'MT FITNESS',
-                    style: GoogleFonts.outfit(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: -0.5,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-                Center(
-                  child: Text(
-                    'entrenador personal',
-                    style: GoogleFonts.outfit(
-                      fontSize: 16,
-                      fontStyle: FontStyle.italic,
-                      color: AppTheme.primary,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 48),
-
-                // Form Area
-                Text(
-                  'Bienvenido de nuevo',
-                  style: GoogleFonts.outfit(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Inicia sesión para ver tu progreso',
-                  style: TextStyle(color: AppTheme.textMuted),
-                ),
-                const SizedBox(height: 32),
-
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    hintText: 'Correo electrónico',
-                    prefixIcon: Icon(LucideIcons.mail, size: 20),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    hintText: 'Contraseña',
-                    prefixIcon: const Icon(LucideIcons.lock, size: 20),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
-                        size: 20,
-                      ),
-                      onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-
-                ElevatedButton(
-                  onPressed: _isLoading ? null : _handleLogin,
-                  child: _isLoading 
-                    ? const SizedBox(
-                        height: 20, 
-                        width: 20, 
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)
-                      )
-                    : const Text('Entrar al Gimnasio'),
-                ),
-
-                const SizedBox(height: 24),
-                Row(
+            padding: const EdgeInsets.symmetric(horizontal: 40.0),
+            child: Center(
+              child: SingleChildScrollView(
+                physics: const BouncingScrollPhysics(),
+                child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text('¿No tienes cuenta?', style: TextStyle(color: AppTheme.textMuted)),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text('Contacta a tu Coach', style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold)),
+                    // DELUXE LOGO AREA
+                    Center(
+                      child: Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppTheme.primary.withOpacity(0.2),
+                              blurRadius: 40,
+                              spreadRadius: 2,
+                            )
+                          ],
+                        ),
+                        child: Image.network(
+                          'https://www.mtfitness.es/logo.png',
+                          height: 200,
+                          width: 200,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell, size: 120, color: AppTheme.primary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Center(
+                      child: Text(
+                        'MT FITNESS PRO',
+                        style: GoogleFonts.outfit(
+                          fontSize: 36,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 2,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 60),
+
+                    // PREMIUM INPUT FIELDS
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      ),
+                      child: Column(
+                        children: [
+                          TextField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            decoration: const InputDecoration(
+                              hintText: 'Email',
+                              prefixIcon: Icon(LucideIcons.mail, size: 20, color: AppTheme.primary),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: EdgeInsets.all(20),
+                            ),
+                          ),
+                          Divider(height: 1, color: Colors.white.withOpacity(0.05)),
+                          TextField(
+                            controller: _passwordController,
+                            obscureText: _obscurePassword,
+                            decoration: InputDecoration(
+                              hintText: 'Contraseña',
+                              prefixIcon: const Icon(LucideIcons.lock, size: 20, color: AppTheme.primary),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              contentPadding: const EdgeInsets.all(20),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
+                                  size: 20,
+                                  color: AppTheme.textMuted,
+                                ),
+                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    ElevatedButton(
+                      onPressed: _isLoading ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 20),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        backgroundColor: AppTheme.primary,
+                        elevation: 10,
+                        shadowColor: AppTheme.primary.withOpacity(0.3),
+                      ),
+                      child: _isLoading 
+                        ? const SizedBox(
+                            height: 24, 
+                            width: 24, 
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)
+                          )
+                        : const Text(
+                            'INICIAR SESIÓN',
+                            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.black),
+                          ),
+                    ),
+
+                    const SizedBox(height: 48),
+                    Center(
+                      child: Text(
+                        'DELUXE FITNESS EXPERIENCE',
+                        style: GoogleFonts.outfit(
+                          fontSize: 10,
+                          letterSpacing: 4,
+                          color: AppTheme.textMuted,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

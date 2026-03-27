@@ -121,107 +121,145 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
         ),
       ));
 
-      children.addAll(grouped[day]!.map((item) {
+      final dayItems = grouped[day]!;
+      for (int i = 0; i < dayItems.length; i++) {
+        final item = dayItems[i];
         final ex = item['data'];
         final index = item['originalIndex'];
         final isDone = _completedIndices.contains(index);
         
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 16.0),
-          child: PremiumCard(
-            padding: 0,
-            child: InkWell(
-              onTap: () => _showExerciseDetails(context, ex),
-              borderRadius: BorderRadius.circular(20),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: isDone ? Colors.green.withOpacity(0.05) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: isDone ? Colors.green.withOpacity(0.2) : AppTheme.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(14),
+        final bool isCombined = (ex['set_type'] == 'BISERIE' || ex['set_type'] == 'TRISERIE');
+        
+        // Cordon Logic: Check position in the block
+        bool nextIsSame = false;
+        bool prevIsSame = false;
+        if (isCombined) {
+          if (i + 1 < dayItems.length) nextIsSame = dayItems[i+1]['data']['set_type'] == ex['set_type'];
+          if (i > 0) prevIsSame = dayItems[i-1]['data']['set_type'] == ex['set_type'];
+        }
+
+        children.add(Container(
+          margin: EdgeInsets.symmetric(horizontal: isCombined ? 4 : 0),
+          decoration: isCombined ? BoxDecoration(
+            border: Border(
+              left: BorderSide(color: AppTheme.primary.withOpacity(0.5), width: 2),
+              right: BorderSide(color: AppTheme.primary.withOpacity(0.5), width: 2),
+              top: prevIsSame ? BorderSide.none : BorderSide(color: AppTheme.primary.withOpacity(0.5), width: 2),
+              bottom: nextIsSame ? BorderSide.none : BorderSide(color: AppTheme.primary.withOpacity(0.5), width: 2),
+            ),
+            borderRadius: BorderRadius.vertical(
+              top: prevIsSame ? Radius.zero : const Radius.circular(24),
+              bottom: nextIsSame ? Radius.zero : const Radius.circular(24),
+            ),
+            color: AppTheme.primary.withOpacity(0.02),
+          ) : null,
+          padding: isCombined ? const EdgeInsets.all(4) : EdgeInsets.zero,
+          child: Padding(
+            padding: EdgeInsets.only(bottom: nextIsSame ? 0 : 16.0),
+            child: PremiumCard(
+              padding: 0,
+              margin: EdgeInsets.zero,
+              child: InkWell(
+                onTap: () => _showExerciseDetails(context, ex),
+                borderRadius: BorderRadius.circular(20),
+                child: Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: isDone ? Colors.green.withOpacity(0.05) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: isDone ? Colors.green.withOpacity(0.2) : AppTheme.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: isDone
+                          ? const Icon(LucideIcons.check, color: Colors.green, size: 22)
+                          : Builder(
+                              builder: (context) {
+                                final imgUrl = IconMapper.getExerciseImageUrl(ex['name'] ?? '');
+                                if (imgUrl != null) {
+                                  return ClipRRect(
+                                    borderRadius: BorderRadius.circular(14),
+                                    child: Image.network(imgUrl, fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell, color: AppTheme.primary, size: 22),
+                                    ),
+                                  );
+                                }
+                                return Center(child: Text(IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']), style: const TextStyle(fontSize: 22)));
+                              },
+                            ),
                       ),
-                      child: isDone
-                        ? const Icon(LucideIcons.check, color: Colors.green, size: 22)
-                        : Builder(
-                            builder: (context) {
-                              final imgUrl = IconMapper.getExerciseImageUrl(ex['name'] ?? '');
-                              if (imgUrl != null) {
-                                return ClipRRect(
-                                  borderRadius: BorderRadius.circular(14),
-                                  child: Image.network(imgUrl, fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell, color: AppTheme.primary, size: 22),
-                                  ),
-                                );
-                              }
-                              return Center(child: Text(IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']), style: const TextStyle(fontSize: 22)));
-                            },
-                          ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  ex['name'] ?? 'Ejercicio',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold, 
-                                    fontSize: 16,
-                                    decoration: isDone ? TextDecoration.lineThrough : null,
-                                    color: isDone ? AppTheme.textMuted : Colors.white,
-                                  ),
-                                ),
-                              ),
-                              if (!isDone)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.primary.withOpacity(0.1),
-                                    borderRadius: BorderRadius.circular(6),
-                                    border: Border.all(color: AppTheme.primary.withOpacity(0.2))
-                                  ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
                                   child: Text(
-                                    (ex['muscle_group'] ?? '').toString().toUpperCase(),
-                                    style: const TextStyle(color: AppTheme.primary, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                                    ex['name'] ?? 'Ejercicio',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold, 
+                                      fontSize: 16,
+                                      decoration: isDone ? TextDecoration.lineThrough : null,
+                                      color: isDone ? AppTheme.textMuted : Colors.white,
+                                    ),
                                   ),
                                 ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              _buildInfoChip(LucideIcons.repeat, '${ex['sets']} sets'),
-                              const SizedBox(width: 12),
-                              _buildInfoChip(LucideIcons.zap, '${ex['reps']} reps'),
-                            ],
-                          ),
-                        ],
+                                if (!isDone)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primary.withOpacity(0.1),
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: AppTheme.primary.withOpacity(0.2))
+                                    ),
+                                    child: Text(
+                                      (ex['muscle_group'] ?? '').toString().toUpperCase(),
+                                      style: const TextStyle(color: AppTheme.primary, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
+                                    ),
+                                  ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                _buildInfoChip(LucideIcons.repeat, '${ex['sets']} sets'),
+                                const SizedBox(width: 12),
+                                _buildInfoChip(LucideIcons.zap, '${ex['reps']} reps'),
+                                if (ex['set_type'] != null && ex['set_type'] != 'NORMAL') ...[
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(4)),
+                                    child: Text(ex['set_type'], style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black)),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                    Checkbox(
-                      value: isDone, 
-                      onChanged: (v) => _toggleComplete(index),
-                      activeColor: Colors.green,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                    ),
-                  ],
+                      Checkbox(
+                        value: isDone, 
+                        onChanged: (v) => _toggleComplete(index),
+                        activeColor: Colors.green,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        );
-      }).toList());
+        ));
+      }
     }
     return children;
   }
@@ -280,6 +318,14 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
               ),
             const SizedBox(height: 32),
             Text(ex['name'] ?? 'Ejercicio', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
+            if (ex['set_type'] != null && ex['set_type'] != 'NORMAL') ...[
+              const SizedBox(height: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(8)),
+                child: Text(ex['set_type'], style: const TextStyle(fontWeight: FontWeight.w900, color: Colors.black)),
+              ),
+            ],
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 24),

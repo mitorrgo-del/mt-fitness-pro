@@ -2,12 +2,18 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'https://responses-michigan-buy-august.trycloudflare.com/api/';
+  static const String baseUrl = 'https://accommodate-hammer-can-impacts.trycloudflare.com/api/';
   String? _token;
   String? _role;
   String? _userId;
   String? _userName;
   String? _userEmail;
+  String? _surname;
+  int? _age;
+  double? _height;
+  double? _currentWeight;
+  String? _objective;
+  int? _daysLeft;
 
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
@@ -19,6 +25,12 @@ class ApiService {
   String? get userId => _userId;
   String? get userName => _userName;
   String? get userEmail => _userEmail;
+  String? get surname => _surname;
+  int? get age => _age;
+  double? get height => _height;
+  double? get currentWeight => _currentWeight;
+  String? get objective => _objective;
+  int? get daysLeft => _daysLeft;
 
   void logout() {
     _token = null;
@@ -60,8 +72,26 @@ class ApiService {
     if (data.containsKey('name')) {
       _userName = data['name'];
     }
+    if (data.containsKey('surname')) {
+      _surname = data['surname'];
+    }
     if (data.containsKey('email')) {
       _userEmail = data['email'];
+    }
+    if (data.containsKey('age')) {
+      _age = data['age'];
+    }
+    if (data.containsKey('height')) {
+      _height = data['height']?.toDouble();
+    }
+    if (data.containsKey('current_weight')) {
+      _currentWeight = data['current_weight']?.toDouble();
+    }
+    if (data.containsKey('objective')) {
+      _objective = data['objective'];
+    }
+    if (data.containsKey('days_left')) {
+      _daysLeft = data['days_left'];
     }
     return data;
   }
@@ -83,8 +113,8 @@ class ApiService {
   }
 
   Future<List<dynamic>> getDietPlan({String? userId}) async {
-    final uri = userId != null ? Uri.parse('${baseUrl}client/my_plan?user_id=$userId') : Uri.parse('${baseUrl}client/my_plan');
-    final response = await http.get(uri, headers: _headers);
+    final query = userId != null ? '?user_id=$userId' : '';
+    final response = await http.get(Uri.parse('${baseUrl}client/my_diet$query'), headers: _headers);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
@@ -92,8 +122,8 @@ class ApiService {
   }
 
   Future<List<dynamic>> getWorkoutPlan({String? userId}) async {
-    final uri = userId != null ? Uri.parse('${baseUrl}client/my_workout?user_id=$userId') : Uri.parse('${baseUrl}client/my_workout');
-    final response = await http.get(uri, headers: _headers);
+    final query = userId != null ? '?user_id=$userId' : '';
+    final response = await http.get(Uri.parse('${baseUrl}client/my_workout$query'), headers: _headers);
     if (response.statusCode == 200) {
       return jsonDecode(response.body);
     }
@@ -151,7 +181,25 @@ class ApiService {
     return response.statusCode == 200 ? jsonDecode(response.body) : [];
   }
 
-  Future<Map<String, dynamic>> assignExercise(String userId, int exerciseId, String day, int sets, String reps, {String rest = '', String targetMuscles = ''}) async {
+  Future<void> addToExerciseCatalog(String name, String muscleGroup) async {
+    final response = await http.post(
+      Uri.parse('${baseUrl}admin/add_exercise'),
+      headers: _headers,
+      body: jsonEncode({'name': name, 'muscle_group': muscleGroup}),
+    );
+    if (response.statusCode != 200) throw Exception('No se pudo añadir al catálogo');
+  }
+
+  Future<void> addToFoodCatalog(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('${baseUrl}admin/add_food'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (response.statusCode != 200) throw Exception('No se pudo añadir al catálogo');
+  }
+
+  Future<Map<String, dynamic>> assignExercise(String userId, int exerciseId, String day, int sets, String reps, {String rest = '', String targetMuscles = '', String setType = 'NORMAL', int? combinedWith}) async {
     final response = await http.post(
       Uri.parse('${baseUrl}admin/assign_exercise'),
       headers: _headers,
@@ -163,6 +211,8 @@ class ApiService {
         'sets': sets,
         'reps': reps,
         'rest': rest,
+        'set_type': setType,
+        'combined_with': combinedWith,
       }),
     );
     return jsonDecode(response.body);
@@ -170,6 +220,11 @@ class ApiService {
 
   Future<Map<String, dynamic>> removeFood(int id) async {
     final response = await http.delete(Uri.parse('${baseUrl}admin/remove_food/$id'), headers: _headers);
+    return jsonDecode(response.body);
+  }
+
+  Future<Map<String, dynamic>> deleteCatalogExercise(int id) async {
+    final response = await http.delete(Uri.parse('${baseUrl}admin/catalog/exercise/$id'), headers: _headers);
     return jsonDecode(response.body);
   }
 
@@ -215,5 +270,68 @@ class ApiService {
   Future<void> generateSocialProposal() async {
     final response = await http.post(Uri.parse('${baseUrl}admin/social_posts/generate'), headers: _headers);
     if (response.statusCode != 200) throw Exception('No se pudo generar la propuesta');
+  }
+
+  // --- Coach Admin Actions ---
+
+  Future<void> approveUser(String userId) async {
+    final response = await http.post(Uri.parse('${baseUrl}admin/approve/$userId'), headers: _headers);
+    if (response.statusCode != 200) throw Exception('No se pudo aprobar al usuario');
+  }
+
+  Future<void> addSubscription(String userId, int days) async {
+    final response = await http.post(
+      Uri.parse('${baseUrl}admin/add_subscription/$userId'),
+      headers: _headers,
+      body: jsonEncode({'days': days}),
+    );
+    if (response.statusCode != 200) throw Exception('No se pudo añadir la suscripción');
+  }
+
+  Future<void> updateProfile(Map<String, dynamic> data) async {
+    final response = await http.post(
+      Uri.parse('${baseUrl}profile/update'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+    if (response.statusCode == 200) {
+       _userName = data['name'];
+       _surname = data['surname'];
+       _age = data['age'];
+       _height = data['height']?.toDouble();
+       _currentWeight = data['current_weight']?.toDouble();
+       _objective = data['objective'];
+    } else {
+      throw Exception('Error al actualizar perfil');
+    }
+  }
+
+  Future<void> submitReport(String weight, String? photoFront, String? photoSide, String? photoBack) async {
+    final request = http.MultipartRequest('POST', Uri.parse('${baseUrl}reports/submit'));
+    request.headers.addAll(_headers);
+    request.fields['weight'] = weight;
+    
+    if (photoFront != null) {
+      request.files.add(await http.MultipartFile.fromPath('photo_front', photoFront));
+    }
+    if (photoSide != null) {
+      request.files.add(await http.MultipartFile.fromPath('photo_side', photoSide));
+    }
+    if (photoBack != null) {
+      request.files.add(await http.MultipartFile.fromPath('photo_back', photoBack));
+    }
+    
+    final streamedResponse = await request.send();
+    if (streamedResponse.statusCode != 200) {
+      throw Exception('Error al enviar el reporte');
+    }
+  }
+
+  Future<List<dynamic>> getReportHistory(String userId) async {
+    final response = await http.get(Uri.parse('${baseUrl}reports/history/$userId'), headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return [];
   }
 }

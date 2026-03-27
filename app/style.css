@@ -69,6 +69,7 @@ h1, h2, h3, h4, .logo-font {
 .text-gradient {
   background: var(--grad-premium);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -121,6 +122,18 @@ section { padding: 100px 0; position: relative; }
 .btn-secondary:hover {
   background: rgba(255,255,255,0.1);
   border-color: var(--primary);
+}
+
+.native-btn {
+    border: 1.5px solid var(--primary) !important;
+    background: rgba(225, 29, 72, 0.1) !important;
+    color: white !important;
+    animation: pulse-glow 2.2s infinite ease-in-out;
+}
+
+@keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 5px rgba(225, 29, 72, 0.2); }
+    50% { box-shadow: 0 0 20px var(--primary-glow); border-color: var(--primary); transform: scale(1.02); }
 }
 
 /* Glass Cards */

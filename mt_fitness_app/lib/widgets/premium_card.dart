@@ -4,12 +4,14 @@ import '../theme/app_theme.dart';
 class PremiumCard extends StatelessWidget {
   final Widget child;
   final double padding;
+  final EdgeInsetsGeometry? margin;
   final LinearGradient? gradient;
 
   const PremiumCard({
     super.key,
     required this.child,
     this.padding = 16.0,
+    this.margin,
     this.gradient,
   });
 
@@ -18,6 +20,7 @@ class PremiumCard extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.all(padding),
+      margin: margin,
       decoration: BoxDecoration(
         color: gradient == null ? AppTheme.surface : null,
         gradient: gradient,

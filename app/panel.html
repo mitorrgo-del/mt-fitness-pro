@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>COACH PANEL | MT FITNESS PRO</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Outfit:wght@800&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { background: #09090b !important; color: white !important; font-family: 'Inter', sans-serif; }
+        .admin-header { padding: 40px 0; border-bottom: 1px solid rgba(255,255,255,0.05); margin-bottom: 40px; }
+        .user-card { transition: all 0.3s ease; border: 1px solid rgba(255,255,255,0.05) !important; margin-bottom: 15px; }
+        .user-card:hover { border-color: #e11d48 !important; transform: translateX(5px); }
+        .status-badge { padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
+        .status-pending { background: #facc15; color: #000; }
+        .status-approved { background: #22c55e; color: #fff; }
+        .admin-grid { display: grid; grid-template-columns: 300px 1fr; gap: 40px; }
+        .sidebar { background: rgba(255,255,255,0.02); padding: 30px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.05); height: fit-content; position: sticky; top: 120px; }
+        .sidebar h3 { font-family: 'Outfit'; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: #e11d48; }
+        .action-btns { display: flex; gap: 10px; margin-top: 15px; }
+        .login-overlay { position: fixed; inset: 0; background: #09090b; z-index: 9999; display: flex; align-items: center; justify-content: center; }
+        .counter-box { display: flex; align-items: baseline; gap: 10px; margin-bottom: 20px; }
+        .counter-val { font-size: 32px; font-weight: 800; color: white; }
+        .counter-label { font-size: 11px; color: #71717a; text-transform: uppercase; letter-spacing: 1px; }
+    </style>
+</head>
+<body>
+    <!-- Hidden login for security -->
+    <div id="admin-login" class="login-overlay">
+        <div class="glass-card" style="width: 100%; max-width: 400px; padding: 45px; border-radius: 30px;">
+            <div style="text-align: center; margin-bottom: 30px;">
+                <img src="logo.png" style="width: 70px; margin-bottom: 15px;">
+                <h2 style="font-family: 'Outfit'; font-size: 24px; margin: 0;">MT FITNESS <span class="text-gradient">COACH</span></h2>
+                <p style="color: #71717a; font-size: 13px;">Introduce credenciales maestras</p>
+            </div>
+            <div class="form-group"><label>Email de Coach</label><input type="email" id="admin-user" style="background:#18181b;" placeholder="coach@mtfitness.es"></div>
+            <div class="form-group"><label>Contraseña Maestra</label><input type="password" id="admin-pass" style="background:#18181b;" placeholder="••••••••"></div>
+            <button onclick="loginAdmin()" class="btn btn-primary btn-full" style="height: 55px; margin-top: 10px;">ACCEDER AL PANEL</button>
+            <p id="admin-error" style="color: #e11d48; font-size: 13px; margin-top: 15px; text-align: center; display: none; font-weight: 600;"></p>
+        </div>
+    </div>
+
+    <div class="container" id="admin-content" style="display: none; padding-bottom: 120px; max-width: 1200px;">
+        <header class="admin-header">
+            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                <div>
+                    <h1 class="logo-font" style="font-size: 38px; margin: 0;">COACH <span class="text-gradient">DASHBOARD</span></h1>
+                    <p style="color: #71717a; font-size: 14px; margin-top: 5px;">Gestión de la Red mtfitnesspro 1.0</p>
+                </div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <div id="admin-name-display" style="font-size: 14px; font-weight: 600;"></div>
+                    <button onclick="logoutAdmin()" class="btn btn-secondary btn-sm" style="border-radius: 12px; font-size: 12px;">Cerrar Sesión</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="admin-grid">
+            <aside class="sidebar">
+                <h3><i data-lucide="bar-chart-3"></i> Estadísticas</h3>
+                
+                <div class="counter-box">
+                    <div id="count-total" class="counter-val">0</div>
+                    <div class="counter-label">Total</div>
+                </div>
+                
+                <div class="counter-box">
+                    <div id="count-pending" class="counter-val" style="color: #facc15;">0</div>
+                    <div class="counter-label">Pendientes</div>
+                </div>
+
+                <hr style="border: none; border-top: 1px solid rgba(255,255,255,0.05); margin: 30px 0;">
+                
+                <div style="background: rgba(225,29,72,0.05); padding: 20px; border-radius: 15px; border: 1px solid rgba(225,29,72,0.1);">
+                    <h4 style="font-size: 12px; margin-top: 0; display: flex; align-items: center; gap: 8px;"><i data-lucide="shield" style="width: 14px;"></i> Info Coach</h4>
+                    <p style="font-size: 11px; margin: 0; color: #a1a1aa; line-height: 1.5;">Los usuarios que se registren en la App Nativa aparecerán aquí como <strong>PENDING</strong>. Hasta que no los apruebes y les des días de suscripción, la App les mostrará una ventana de bloqueo.</p>
+                </div>
+            </aside>
+
+            <main>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
+                    <h2 style="font-family: 'Outfit'; font-size: 20px; margin: 0;">Gestión de Clientes</h2>
+                    <button onclick="loadUsers()" class="btn btn-secondary btn-sm" style="background: transparent;"><i data-lucide="rotate-cw" style="width: 14px;"></i></button>
+                </div>
+                
+                <div id="users-placeholder" style="display: none; text-align: center; padding: 100px 0; color: #71717a;">
+                    <i data-lucide="search" style="width: 40px; height: 40px; margin-bottom: 15px; opacity: 0.3;"></i>
+                    <p>No hay clientes registrados todavía.</p>
+                </div>
+
+                <div id="users-list">
+                    <!-- Cards here -->
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = '/api';
+        let adminToken = localStorage.getItem('mt_admin_token');
+
+        async function loginAdmin() {
+            const email = document.getElementById('admin-user').value;
+            const password = document.getElementById('admin-pass').value;
+            const errEl = document.getElementById('admin-error');
+            
+            try {
+                const res = await fetch(`${API_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+                const data = await res.json();
+                
+                if (data.role === 'ADMIN') {
+                    adminToken = data.token;
+                    localStorage.setItem('mt_admin_token', adminToken);
+                    localStorage.setItem('mt_admin_name', data.name);
+                    showDashboard();
+                } else {
+                    errEl.textContent = 'Acceso Restringido: Estas no son credenciales maestras.';
+                    errEl.style.display = 'block';
+                }
+            } catch (e) {
+                errEl.textContent = 'Error de conexión con el servidor maestro.';
+                errEl.style.display = 'block';
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('admin-login').style.display = 'none';
+            document.getElementById('admin-content').style.display = 'block';
+            document.getElementById('admin-name-display').textContent = `Conectado: ${localStorage.getItem('mt_admin_name')}`;
+            loadUsers();
+        }
+
+        if (adminToken) {
+            showDashboard();
+        }
+
+        function logoutAdmin() {
+            localStorage.removeItem('mt_admin_token');
+            location.reload();
+        }
+
+        async function loadUsers() {
+            try {
+                const res = await fetch(`${API_URL}/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+                const users = await res.json();
+                if (users.error) return logoutAdmin();
+
+                renderUsers(users);
+            } catch (e) { console.error(e); }
+        }
+
+        function renderUsers(users) {
+            const list = document.getElementById('users-list');
+            const placeholder = document.getElementById('users-placeholder');
+            
+            list.innerHTML = '';
+            
+            if (users.length === 0) {
+                placeholder.style.display = 'block';
+                return;
+            } else {
+                placeholder.style.display = 'none';
+            }
+
+            // Estadísticas
+            document.getElementById('count-total').textContent = users.length;
+            document.getElementById('count-pending').textContent = users.filter(u => u.status !== 'APPROVED').length;
+
+            users.forEach(u => {
+                const card = document.createElement('div');
+                card.className = 'user-card glass-card';
+                card.style.padding = '30px';
+                card.style.borderRadius = '24px';
+                
+                const isApproved = u.status === 'APPROVED';
+                const statusHtml = `<span class="status-badge ${isApproved ? 'status-approved' : 'status-pending'}">${u.status}</span>`;
+                
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: start;">
+                        <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 15px;">
+                                <h4 style="margin: 0; font-size: 20px; font-weight: 700;">${u.name}</h4>
+                                ${statusHtml}
+                            </div>
+                            <div style="color: #71717a; font-size: 14px; margin-top: 8px; display: flex; align-items: center; gap: 15px;">
+                                <span><i data-lucide="mail" style="width: 12px; vertical-align: middle; margin-right: 5px;"></i>${u.email}</span>
+                                <span><i data-lucide="phone" style="width: 12px; vertical-align: middle; margin-right: 5px;"></i>${u.phone || 'N/A'}</span>
+                            </div>
+                            <div style="margin-top: 25px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 15px; display: flex; gap: 40px;">
+                                <div>
+                                    <div class="counter-label">Acceso Hasta</div>
+                                    <div style="color: ${u.access_until ? '#e11d48' : '#71717a'}; font-weight: 800; font-size: 14px; margin-top: 5px;">
+                                        ${u.access_until || 'SIN SUSCRIPCIÓN'}
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="counter-label">Semanas Plan</div>
+                                    <div style="font-weight: 800; font-size: 14px; margin-top: 5px;">${u.routine_weeks}</div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="action-btns" style="flex-direction: column; align-items: flex-end;">
+                            ${!isApproved ? `<button class="btn btn-primary btn-sm" style="width: 160px;" onclick="approveUser('${u.id}')">Aprobar Acceso</button>` : `<div style="color: #22c55e; font-size: 12px; font-weight: 800; margin-bottom: 10px;"><i data-lucide="check-circle" style="width: 14px; vertical-align: middle;"></i> Activo</div>`}
+                            <button class="btn btn-secondary btn-sm" style="width: 160px;" onclick="addSubscription('${u.id}')">+30 Días Susc.</button>
+                            <button class="btn btn-secondary btn-sm" style="width: 160px;" onclick="toggleBot('${u.id}')">
+                                <i data-lucide="cpu" style="width: 14px;"></i> Reset/Toggle Bot
+                            </button>
+                        </div>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        async function approveUser(id) {
+            if (!confirm('¿Aprobar el acceso a este cliente?')) return;
+            const res = await fetch(`${API_URL}/admin/approve/${id}`, { 
+                method: 'POST', 
+                headers: { 'Authorization': `Bearer ${adminToken}` } 
+            });
+            const d = await res.json();
+            loadUsers();
+        }
+
+        async function addSubscription(id) {
+            const days = 30;
+            const res = await fetch(`${API_URL}/admin/add_subscription/${id}`, { 
+                method: 'POST', 
+                headers: { 'Authorization': `Bearer ${adminToken}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ days })
+            });
+            const d = await res.json();
+            alert(`Acceso ampliado: ${d.message}`);
+            loadUsers();
+        }
+
+        async function toggleBot(id) {
+            const res = await fetch(`${API_URL}/admin/toggle_bot/${id}`, { 
+                method: 'POST', 
+                headers: { 'Authorization': `Bearer ${adminToken}` } 
+            });
+            loadUsers();
+        }
+    </script>
+</body>
+</html>

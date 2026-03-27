@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Theme colors - Crimson Red Deluxe
-  static const Color bgColor = Color(0xFF0F1115);
-  static const Color surface = Color(0xFF1F232B);
-  static const Color primary = Color(0xFFE11D48);
-  static const Color secondary = Color(0xFFBE123C);
-  static const Color text = Color(0xFFF3F4F6);
-  static const Color textMuted = Color(0xFF9CA3AF);
-  static const Color border = Color(0xFF2D323B);
+  // Theme colors - Blue & White Professional (Modern Dark)
+  static const Color bgColor = Color(0xFF000000);
+  static const Color surface = Color(0xFF111111);
+  static const Color primary = Color(0xFF3B82F6); 
+  static const Color secondary = Color(0xFF1D4ED8); 
+  static const Color text = Color(0xFFFFFFFF);
+  static const Color textMuted = Color(0xFF888888);
+  static const Color border = Color(0xFF222222);
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primary, Color(0xFF9F1239)],
+    colors: [primary, secondary],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );

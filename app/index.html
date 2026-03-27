@@ -4,13 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     
-    <!-- PWA Settings -->
-    <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#e11d48">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="MT FITNESS PRO">
-    <link rel="apple-touch-icon" href="logo.png">
+
 
     <title>MT FITNESS PRO | Entrenamiento Personalizado Online & Nutrición IA</title>
     
@@ -22,17 +16,17 @@
     
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://mtfitnesspro.com/">
+    <meta property="og:url" content="https://www.mtfitness.es/">
     <meta property="og:title" content="MT FITNESS PRO | Entrenamiento Personalizado Online">
     <meta property="og:description" content="Planes científicos de entrenamiento y dieta. Resultados reales garantizados con nuestra tecnología IA.">
-    <meta property="og:image" content="https://mtfitnesspro.com/assets/logo-512.png">
+    <meta property="og:image" content="https://www.mtfitness.es/logo-512.png">
 
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://mtfitnesspro.com/">
+    <meta property="twitter:url" content="https://www.mtfitness.es/">
     <meta property="twitter:title" content="MT FITNESS PRO | Entrenamiento Personalizado Online">
     <meta property="twitter:description" content="Transforma tu físico con la ayuda de la ciencia y la IA.">
-    <meta property="twitter:image" content="https://mtfitnesspro.com/assets/logo-512.png">
+    <meta property="twitter:image" content="https://www.mtfitness.es/logo-512.png">
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -40,13 +34,13 @@
       "@context": "https://schema.org",
       "@type": "FitnessCenter",
       "name": "MT Fitness PRO",
-      "image": "https://mtfitnesspro.com/assets/logo-512.png",
+      "image": "https://www.mtfitness.es/logo-512.png",
       "description": "Entrenamiento personal online de élite y nutrición inteligente.",
       "address": {
         "@type": "PostalAddress",
         "addressCountry": "ES"
       },
-      "url": "https://mtfitnesspro.com",
+      "url": "https://www.mtfitness.es",
       "priceRange": "$$",
       "coach": {
         "@type": "Person",
@@ -76,7 +70,7 @@
                 <a href="#entrenador" id="nav-entrenador">Coach</a>
                 <a href="#blog" id="nav-blog">Blog IA</a>
                 <a href="#planes" id="nav-planes">Planes</a>
-                <button id="show-login-btn" class="btn btn-secondary btn-sm" style="padding: 10px 20px;">Entrar a la App</button>
+                <a href="#entrenador" class="btn btn-secondary btn-sm" style="padding: 10px 20px;">Contacto</a>
             </div>
             
             <div id="mobile-toggle" class="mobile-menu-btn" style="display: block; cursor: pointer; color: white;">
@@ -92,7 +86,7 @@
         <a href="#entrenador" class="nav-link-mobile" data-section="entrenador">Coach</a>
         <a href="#blog" class="nav-link-mobile" id="mobile-nav-blog">Blog IA</a>
         <a href="#planes" class="nav-link-mobile" data-section="planes">Planes</a>
-        <button id="mobile-login-btn" class="btn btn-primary" style="width: 80%;">Área Clientes</button>
+        <a href="mailto:info@mtfitness.es" class="btn btn-primary" style="width: 80%;">Contactar Coach</a>
     </div>
 
     <!-- MAIN VIEWS -->
@@ -108,7 +102,7 @@
                 <p>Entrenamiento de élite y nutrición inteligente. Diseñado a tu medida con tecnología de vanguardia y +300 ejercicios verificados.</p>
                 <div class="hero-btns">
                     <a href="#planes" class="btn btn-primary">Ver Planes</a>
-                    <a href="#metodo" class="btn btn-secondary">Nuestro Método</a>
+                    <a href="#metodo" class="btn btn-secondary">Conocer Método</a>
                 </div>
             </div>
         </section>
@@ -162,7 +156,12 @@
                         <li><i data-lucide="check-circle"></i> Gráficos de evolución física semanal.</li>
                     </ul>
                     
-                    <button class="btn btn-primary" style="margin-top: 20px;" onclick="document.getElementById('show-login-btn').click()">Ver Demo App</button>
+                    <div class="hero-btns" style="margin-top: 30px; justify-content: flex-start;">
+                        <a href="mtfitnesspro_1.0.apk" class="btn btn-primary native-btn" style="min-width: 260px; padding: 18px 30px;">
+                            <i data-lucide="smartphone"></i>
+                            Descarga nuestra App
+                        </a>
+                    </div>
                 </div>
                 <div class="app-mockup">
                     <div class="floating-stats">
@@ -274,10 +273,17 @@
                     </ul>
                 </div>
                 <div class="footer-links">
-                    <h4>App</h4>
+                    <h4>App mtfitnesspro 1.0</h4>
                     <ul>
-                        <li><a href="#tecnologia">Plataforma PRO</a></li>
-                        <li><a href="#" id="footer-login">Área Cliente</a></li>
+                        <li><a href="#tecnologia">Plataforma Élite</a></li>
+                        <li><a href="mtfitnesspro_1.0.apk">Descargar APK Android</a></li>
+                    </ul>
+                </div>
+                <div class="footer-links">
+                    <h4>Contacto</h4>
+                    <ul>
+                        <li><a href="mailto:info@mtfitness.es">info@mtfitness.es</a></li>
+                        <li><a href="https://instagram.com/mtfitnesspro" target="_blank">Instagram</a></li>
                     </ul>
                 </div>
                 <div class="footer-links">
@@ -311,36 +317,7 @@
         </div>
     </main>
 
-    <!-- AUTH VIEW -->
-    <div id="view-auth" class="view" style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: url('assets/hero_fitness_bg_1772992068670.png') center/cover; padding: 20px;">
-        <div style="position: absolute; inset: 0; background: rgba(9, 9, 11, 0.9);"></div>
-        <div class="glass-card contact-form" style="position: relative; z-index: 2; width: 100%; max-width: 450px;">
-            <div style="text-align: center; margin-bottom: 30px;">
-                <img src="logo.png" style="width: 80px; height: 80px; border-radius: 20px; margin-bottom: 10px;">
-                <h2 class="logo-font" style="margin: 0; font-size: 24px;">MT FITNESS <span class="text-gradient">PRO</span></h2>
-                <p class="text-muted" style="margin-top: 5px;">Área Privada de Clientes</p>
-            </div>
-            <form id="loginForm">
-                <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="correo@ejemplo.com" required></div>
-                <div class="form-group"><label>Contraseña</label><input type="password" id="loginPassword" placeholder="••••••••" required></div>
-                <button type="submit" class="btn btn-primary btn-full">Entrar a la Plataforma</button>
-                <div style="text-align: center; margin-top: 20px; font-size: 13px;"><span class="text-muted">¿Eres nuevo?</span> <a href="#" id="goRegister" style="color: var(--primary); text-decoration: none; font-weight: 700;">Solicita tu cuenta</a></div>
-                <div style="text-align: center; margin-top: 15px;"><a href="#" class="back-to-landing" style="color: var(--text-dim); text-decoration: none; font-size: 12px;">← Volver al inicio</a></div>
-            </form>
-            <form id="registerForm" style="display: none;">
-                <div class="form-group"><label>Nombre Completo</label><input type="text" id="regName" placeholder="Tu nombre" required></div>
-                <div class="form-group"><label>Email</label><input type="email" id="regEmail" placeholder="correo@ejemplo.com" required></div>
-                <div class="form-group"><label>Nueva Contraseña</label><input type="password" id="regPassword" placeholder="Mínimo 8 caracteres" required></div>
-                <button type="submit" class="btn btn-primary btn-full">Crear Cuenta PRO</button>
-                <div style="text-align: center; margin-top: 20px; font-size: 13px;"><span class="text-muted">¿Ya tienes cuenta?</span> <a href="#" id="goLogin" style="color: var(--primary); text-decoration: none; font-weight: 700;">Inicia sesión</a></div>
-            </form>
-        </div>
-    </div>
 
-    <!-- APP VIEWS -->
-    <div id="view-app" class="view" style="min-height: 100vh; background: var(--bg-dark);">
-        <div id="app-content-container"></div>
-    </div>
 
     <!-- SOCIAL PROOF NOTIFICATION -->
     <div id="social-proof" class="social-proof-toast">
@@ -374,7 +351,6 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
     <script>lucide.createIcons();</script>
 </body>
 </html>
