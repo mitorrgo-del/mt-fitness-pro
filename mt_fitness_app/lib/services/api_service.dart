@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 class ApiService {
-  static const String baseUrl = 'https://accommodate-hammer-can-impacts.trycloudflare.com/api/';
+  static const String baseUrl = 'https://mt-fitness-pro.onrender.com/api/';
   String? _token;
   String? _role;
   String? _userId;
