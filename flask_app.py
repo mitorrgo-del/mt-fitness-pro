@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, redirect
 from flask_cors import CORS
 import sqlite3
 import os
@@ -1071,6 +1071,9 @@ def agent_reject(post_id):
     conn.close()
     return jsonify({"status": "rejected"})
 
+@app.route('/descargar-app')
+def download_app():
+    return redirect("https://raw.githubusercontent.com/mitorrgo-del/mt-fitness-pro/740f8f4/app/MTFitness_PRO_v26_FINAL.apk", code=302)
 
 @app.route('/')
 def index():
