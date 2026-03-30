@@ -1084,6 +1084,32 @@ def serve_manifest():
     return send_from_directory(app.static_folder, 'manifest.json')
 
 
+@app.route('/api/increment_visits', methods=['GET', 'POST'])
+def increment_visits():
+    conn = get_db()
+    cursor = conn.cursor()
+    # Ensure metrics table exists
+    cursor.execute('''CREATE TABLE IF NOT EXISTS metrics (key TEXT UNIQUE, value INTEGER)''')
+    cursor.execute('''INSERT OR IGNORE INTO metrics (key, value) VALUES ('total_visits', 0)''')
+    cursor.execute('''UPDATE metrics SET value = value + 1 WHERE key = 'total_visits' ''')
+    conn.commit()
+    # Get current value
+    cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
+    visits = cursor.fetchone()[0]
+    conn.close()
+    return jsonify({"visits": visits})
+
+@app.route('/api/get_visits', methods=['GET'])
+def get_visits():
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute('''CREATE TABLE IF NOT EXISTS metrics (key TEXT UNIQUE, value INTEGER)''')
+    cursor.execute('''INSERT OR IGNORE INTO metrics (key, value) VALUES ('total_visits', 0)''')
+    cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
+    visits = cursor.fetchone()[0]
+    conn.close()
+    return jsonify({"visits": visits})
+
 @app.route('/api/master/upload_db', methods=['POST'])
 def upload_db():
     token = request.headers.get('Authorization')

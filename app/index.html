@@ -356,9 +356,22 @@
                 </div>
             </div>
             <div class="footer-bottom" style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding-bottom: 20px;">
-                <div class="visit-counter" style="background: rgba(45, 212, 191, 0.1); padding: 5px 15px; border-radius: 20px; border: 1px solid var(--primary-color);" title="Contador de Visitas en Vivo">
-                    <img src="https://hits.dwyl.com/mtfitness-es/mtfitness-es.svg?style=flat-square&color=29d4bf" alt="Visitas MT Fitness" style="vertical-align: middle;">
+                <div class="visit-counter" id="visitCounterBox" style="background: rgba(45, 212, 191, 0.1); padding: 8px 20px; border-radius: 20px; border: 1px solid var(--primary-color); display: flex; align-items: center; gap: 8px;" title="Contador de Visitas en Vivo">
+                    <span style="color: var(--text-dim); font-size: 12px; text-transform: uppercase; font-weight: 800;">Atletas Visitantes:</span>
+                    <span id="visitCount" style="color: var(--primary); font-weight: 800; font-size: 16px;">...</span>
                 </div>
+                
+                <script>
+                    (async function() {
+                        try {
+                            const res = await fetch('/api/increment_visits');
+                            const data = await res.json();
+                            document.getElementById('visitCount').innerText = data.visits || '0';
+                        } catch(e) {
+                            console.error('Error counting visits');
+                        }
+                    })();
+                </script>
                 <div>&copy; 2026 MT FITNESS PRO coach. Todos los derechos reservados.</div>
             </div>
         </footer>
