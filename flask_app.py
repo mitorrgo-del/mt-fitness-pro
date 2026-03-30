@@ -8,6 +8,7 @@ import werkzeug.utils
 from functools import wraps
 from ai_services import analyze_goal_with_ai, simulate_payment_and_unlock
 import openai
+import requests
 import json
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "sk-proj-YOUR_API_KEY_HERE")
