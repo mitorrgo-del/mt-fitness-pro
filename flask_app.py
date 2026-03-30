@@ -1139,17 +1139,23 @@ def get_stats():
 
 @app.route('/api/master/upload_db', methods=['POST'])
 def upload_db():
-    token = request.headers.get('Authorization')
     master_token = request.form.get('master_token')
     if master_token != "MT_MASTER_PRO_2026":
         return jsonify({"error": "Unauthorized"}), 401
         
     db_file = request.files.get('db')
     if db_file:
-        # Save the incoming DB file over the existing one
         db_file.save(DB_FILE)
         return jsonify({"status": "Database Synced Successfully"})
     return jsonify({"error": "No file"}), 400
+
+@app.route('/api/master/download_db', methods=['POST'])
+def download_db():
+    master_token = request.form.get('master_token')
+    if master_token != "MT_MASTER_PRO_2026":
+        return jsonify({"error": "Unauthorized"}), 401
+    
+    return send_from_directory(BASE_DIR, 'mtfitness.db', as_attachment=True)
 
 @app.route('/<path:path>')
 def serve_static(path):
