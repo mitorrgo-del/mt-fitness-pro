@@ -1086,29 +1086,56 @@ def serve_manifest():
 
 @app.route('/api/increment_visits', methods=['GET', 'POST'])
 def increment_visits():
+    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    # Get country info from a free API (optional, can be slow)
+    country = "Desconocido"
+    try:
+        # We handle this quickly to not slow down the page load
+        res = requests.get(f'http://ip-api.com/json/{ip}?fields=country', timeout=1)
+        if res.status_code == 200:
+            country = res.json().get('country', 'Desconocido')
+    except:
+        pass
+
     conn = get_db()
     cursor = conn.cursor()
-    # Ensure metrics table exists
+    
+    # Tables for stats
     cursor.execute('''CREATE TABLE IF NOT EXISTS metrics (key TEXT UNIQUE, value INTEGER)''')
+    cursor.execute('''CREATE TABLE IF NOT EXISTS visitor_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, 
+        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, 
+        ip TEXT, 
+        country TEXT
+    )''')
+    
+    # Increment total
     cursor.execute('''INSERT OR IGNORE INTO metrics (key, value) VALUES ('total_visits', 0)''')
     cursor.execute('''UPDATE metrics SET value = value + 1 WHERE key = 'total_visits' ''')
+    
+    # Log visit
+    cursor.execute('''INSERT INTO visitor_logs (ip, country) VALUES (?, ?)''', (ip, country))
+    
     conn.commit()
-    # Get current value
+    
+    # Get total for display
     cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
     visits = cursor.fetchone()[0]
     conn.close()
-    return jsonify({"visits": visits})
+    return jsonify({"visits": visits, "country": country})
 
-@app.route('/api/get_visits', methods=['GET'])
-def get_visits():
+@app.route('/api/get_stats', methods=['GET'])
+def get_stats():
+    # Only for the coach (no token yet, but we'll protect it later)
     conn = get_db()
     cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS metrics (key TEXT UNIQUE, value INTEGER)''')
-    cursor.execute('''INSERT OR IGNORE INTO metrics (key, value) VALUES ('total_visits', 0)''')
+    cursor.execute('''SELECT country, COUNT(*) as count FROM visitor_logs GROUP BY country ORDER BY count DESC''')
+    countries = [{"country": row[0], "count": row[1]} for row in cursor.fetchall()]
+    
     cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
-    visits = cursor.fetchone()[0]
+    total = cursor.fetchone()[0] if cursor.fetchone() else 0
     conn.close()
-    return jsonify({"visits": visits})
+    return jsonify({"total_visits": total, "countries": countries})
 
 @app.route('/api/master/upload_db', methods=['POST'])
 def upload_db():
