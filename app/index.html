@@ -256,7 +256,66 @@
             </div>
         </section>
 
-        <!-- Footer -->
+        <!-- Lead Capture Form Section -->
+        <section id="contacto" style="background: linear-gradient(180deg, var(--bg-dark) 0%, #0a0f1e 100%); padding: 100px 0;">
+            <div class="container" style="max-width: 800px;">
+                <div class="section-header text-center" style="margin-bottom: 60px;">
+                    <div class="badge-new">SOLICITAR ASESORÍA</div>
+                    <h2>¿Hablamos de tu <span class="text-gradient">transformación?</span></h2>
+                    <p class="text-muted">Cuéntame tu objetivo y diseñaré la estrategia perfecta para ti. Respuesta en menos de 24h.</p>
+                </div>
+                
+                <div class="glass-card" style="padding: 40px; border-radius: 20px; border: 1px solid rgba(45, 212, 191, 0.1);">
+                    <form id="contactForm" style="display: flex; flex-direction: column; gap: 20px;">
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                            <div class="form-group">
+                                <label style="display: block; color: var(--text-dim); margin-bottom: 8px; font-size: 14px;">Nombre Completo</label>
+                                <input type="text" id="contactName" required style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; border-radius: 8px; color: white; outline: none; font-family: inherit;" placeholder="Ej: Juan Pérez">
+                            </div>
+                            <div class="form-group">
+                                <label style="display: block; color: var(--text-dim); margin-bottom: 8px; font-size: 14px;">WhatsApp / Teléfono</label>
+                                <input type="tel" id="contactPhone" required style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; border-radius: 8px; color: white; outline: none; font-family: inherit;" placeholder="Ej: +34 600 000 000">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; color: var(--text-dim); margin-bottom: 8px; font-size: 14px;">Email</label>
+                            <input type="email" id="contactEmail" required style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; border-radius: 8px; color: white; outline: none; font-family: inherit;" placeholder="tuemail@ejemplo.com">
+                        </div>
+                        <div class="form-group">
+                            <label style="display: block; color: var(--text-dim); margin-bottom: 8px; font-size: 14px;">¿Cuál es tu objetivo físico?</label>
+                            <select id="contactGoal" style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; border-radius: 8px; color: white; outline: none; font-family: inherit;">
+                                <option value="perder_grasa">Perder Grasa / Definir</option>
+                                <option value="ganar_musculo">Ganar Músculo / Volumen</option>
+                                <option value="ambos">Recomposición Corporal</option>
+                                <option value="preparacion">Preparación para Competición</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary btn-full" style="padding: 18px; font-weight: 800; font-size: 16px; text-transform: uppercase;">EMPEZAR MI TRANSFORMACIÓN</button>
+                    </form>
+                    <div id="formSuccess" style="display: none; text-align: center; color: var(--primary); padding: 40px; border-radius: 15px; background: rgba(45, 212, 191, 0.05);">
+                        <i data-lucide="check-circle" style="width: 48px; height: 48px; margin-bottom: 15px;"></i>
+                        <h3 style="margin: 0;">¡Datos Recibidos, Atleta!</h3>
+                        <p style="color: var(--text-dim); margin-top: 10px;">Miguel Torres revisará tu perfil y te contactará en las próximas 24h.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <script>
+            document.getElementById('contactForm')?.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const btn = e.target.querySelector('button');
+                btn.innerText = 'ENVIANDO A MIGUEL...';
+                btn.disabled = true;
+                
+                // Simulación de envío exitoso
+                setTimeout(() => {
+                    e.target.style.display = 'none';
+                    document.getElementById('formSuccess').style.display = 'block';
+                    lucide.createIcons();
+                }, 1500);
+            });
+        </script>
         <footer>
             <div class="container footer-grid">
                 <div class="footer-brand">
