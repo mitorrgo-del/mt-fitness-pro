@@ -1155,7 +1155,7 @@ def upload_db():
 def serve_static(path):
     return send_from_directory(app.static_folder, path)
 
-@app.route('/api/generate_marketing', methods=['POST'])
+@app.route('/api/generate_marketing', methods=['GET', 'POST'], strict_slashes=False)
 def generate_marketing():
     data = request.json
     topic = data.get('topic')
