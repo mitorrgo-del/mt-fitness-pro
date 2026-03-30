@@ -1155,5 +1155,37 @@ def upload_db():
 def serve_static(path):
     return send_from_directory(app.static_folder, path)
 
+@app.route('/api/generate_marketing', methods=['POST'])
+def generate_marketing():
+    data = request.json
+    topic = data.get('topic')
+    type = data.get('type') # 'blog' or 'instagram'
+    
+    if not topic:
+        return jsonify({"error": "Topic required"}), 400
+    
+    # Custom prompt based on type
+    if type == 'blog':
+        prompt = f"Escribe un artículo de blog SEO de unas 300 palabras sobre '{topic}' para el entrenador Miguel Torres. Usa un tono motivador, profesional y directo. No uses la palabra 'ciencia'. Enfócate en resultados y alto rendimiento."
+    else:
+        prompt = f"Genera un post de Instagram rompedor sobre '{topic}' para Miguel Torres. Incluye un gancho inicial, 3 puntos clave, llamada a la acción y 5 hashtags virales del sector fitness (vete directamente al grano)."
+
+    try:
+        if "sk-proj" in OPENAI_API_KEY:
+            # Simple AI response if no key, but we strive for real logic if user has it
+            client = openai.OpenAI(api_key=OPENAI_API_KEY)
+            response = client.chat.completions.create(
+              model="gpt-3.5-turbo",
+              messages=[{"role": "user", "content": prompt}],
+              max_tokens=500
+            )
+            content = response.choices[0].message.content
+        else:
+            content = f"Simulación de IA para: {topic}. (Configura la clave en el servidor para resultados reales)."
+            
+        return jsonify({"content": content})
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
