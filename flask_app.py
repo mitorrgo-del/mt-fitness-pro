@@ -107,7 +107,7 @@ def init_db():
     c.execute('''CREATE TABLE IF NOT EXISTS user_foods (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, food_id INTEGER,
-        meal_name TEXT, grams REAL,
+        meal_name TEXT, grams REAL, day_name TEXT DEFAULT 'Día 1',
         added_date TEXT DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(food_id) REFERENCES foods(id)
     )''')
@@ -123,12 +123,25 @@ def init_db():
         FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(exercise_id) REFERENCES exercises(id)
     )''')
     
-    # MIGRACIÓN: Añadir columnas si no existen (SQLite solo)
-    try:
-        c.execute("ALTER TABLE user_exercises ADD COLUMN set_type TEXT DEFAULT 'NORMAL'")
-        c.execute("ALTER TABLE user_exercises ADD COLUMN combined_with INTEGER")
-    except: pass # Ya existen
+    conn_wrap.commit() # Commit the creation of tables before attempting alteration
     
+    # MIGRACIÓN: Añadir columnas si no existen
+    columns_to_add = [
+        ("user_exercises", "set_type TEXT DEFAULT 'NORMAL'"),
+        ("user_exercises", "combined_with INTEGER"),
+        ("user_exercises", "target_muscles TEXT"),
+        ("user_foods", "day_name TEXT DEFAULT 'Día 1'"),
+    ]
+    for table, coldef in columns_to_add:
+        try:
+            conn_wrap.execute(f"ALTER TABLE {table} ADD COLUMN {coldef}")
+            conn_wrap.commit()
+        except:
+            if conn_wrap.is_pg:
+                # En Postgres es necesario hacer un ROLLBACK para seguir con la transacción.
+                conn_wrap.conn.rollback()
+            pass # Ya existe la columna
+
     # PRO Meal Tracking
     c.execute('''CREATE TABLE IF NOT EXISTS meal_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
