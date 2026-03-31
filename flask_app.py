@@ -10,6 +10,9 @@ from ai_services import analyze_goal_with_ai, simulate_payment_and_unlock
 import openai
 import requests
 import json
+from dotenv import load_dotenv
+
+load_dotenv() # Carga .env de Render si existe
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "sk-proj-YOUR_API_KEY_HERE")
 
