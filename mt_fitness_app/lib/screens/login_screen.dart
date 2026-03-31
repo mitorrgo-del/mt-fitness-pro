@@ -60,21 +60,13 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           color: AppTheme.bgColor,
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.black,
-              AppTheme.primary.withOpacity(0.05),
-              Colors.black,
-            ],
-          ),
+          gradient: AppTheme.surfaceGradient,
         ),
         child: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40.0),
+            padding: const EdgeInsets.symmetric(horizontal: 32.0),
             child: Center(
               child: SingleChildScrollView(
                 physics: const BouncingScrollPhysics(),
@@ -82,119 +74,102 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // DELUXE LOGO AREA
+                    // PREMIUM LOGO AREA
                     Center(
                       child: Container(
-                        padding: const EdgeInsets.all(20),
+                        padding: const EdgeInsets.all(24),
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primary.withOpacity(0.2),
-                              blurRadius: 40,
-                              spreadRadius: 2,
+                              color: AppTheme.primary.withOpacity(0.15),
+                              blurRadius: 60,
+                              spreadRadius: 10,
                             )
                           ],
                         ),
                         child: Image.network(
                           'https://www.mtfitness.es/logo.png',
-                          height: 200,
-                          width: 200,
+                          height: 140,
+                          width: 140,
                           fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell, size: 120, color: AppTheme.primary),
+                          errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell, size: 100, color: AppTheme.primary),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 24),
                     Center(
                       child: Text(
                         'MT FITNESS PRO',
                         style: GoogleFonts.outfit(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 2,
+                          fontSize: 32,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1,
                           color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        'ELITE COACHING EXPERIENCE',
+                        style: GoogleFonts.outfit(
+                          fontSize: 12,
+                          letterSpacing: 4,
+                          color: AppTheme.primary,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     const SizedBox(height: 60),
 
                     // PREMIUM INPUT FIELDS
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppTheme.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.white.withOpacity(0.05)),
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      decoration: const InputDecoration(
+                        hintText: 'Tu Email',
+                        prefixIcon: Icon(LucideIcons.mail, size: 20, color: AppTheme.primary),
                       ),
-                      child: Column(
-                        children: [
-                          TextField(
-                            controller: _emailController,
-                            keyboardType: TextInputType.emailAddress,
-                            decoration: const InputDecoration(
-                              hintText: 'Email',
-                              prefixIcon: Icon(LucideIcons.mail, size: 20, color: AppTheme.primary),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: EdgeInsets.all(20),
-                            ),
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      decoration: InputDecoration(
+                        hintText: 'Tu Contraseña',
+                        prefixIcon: const Icon(LucideIcons.lock, size: 20, color: AppTheme.primary),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
+                            size: 20,
+                            color: AppTheme.textMuted,
                           ),
-                          Divider(height: 1, color: Colors.white.withOpacity(0.05)),
-                          TextField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            decoration: InputDecoration(
-                              hintText: 'Contraseña',
-                              prefixIcon: const Icon(LucideIcons.lock, size: 20, color: AppTheme.primary),
-                              border: InputBorder.none,
-                              enabledBorder: InputBorder.none,
-                              focusedBorder: InputBorder.none,
-                              contentPadding: const EdgeInsets.all(20),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
-                                  size: 20,
-                                  color: AppTheme.textMuted,
-                                ),
-                                onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                              ),
-                            ),
-                          ),
-                        ],
+                          onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                        ),
                       ),
                     ),
                     const SizedBox(height: 32),
 
                     ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 20),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                        backgroundColor: AppTheme.primary,
-                        elevation: 10,
-                        shadowColor: AppTheme.primary.withOpacity(0.3),
-                      ),
                       child: _isLoading 
                         ? const SizedBox(
-                            height: 24, 
-                            width: 24, 
+                            height: 20, 
+                            width: 20, 
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)
                           )
-                        : const Text(
-                            'INICIAR SESIÓN',
-                            style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.5, color: Colors.black),
-                          ),
+                        : const Text('ACCEDER AL ÁREA PRO'),
                     ),
 
                     const SizedBox(height: 48),
                     Center(
                       child: Text(
-                        'DELUXE FITNESS EXPERIENCE',
+                        'BY MT FITNESS',
                         style: GoogleFonts.outfit(
                           fontSize: 10,
-                          letterSpacing: 4,
-                          color: AppTheme.textMuted,
+                          letterSpacing: 2,
+                          color: AppTheme.textMuted.withOpacity(0.5),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
