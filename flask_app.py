@@ -12,7 +12,17 @@ import requests
 import json
 from dotenv import load_dotenv
 
-load_dotenv() # Carga .env de Render si existe
+# Buscar .env en raíz o en secrets de Render
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+if not os.path.exists(dotenv_path):
+    dotenv_path = '/etc/secrets/.env'
+
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+    print(f"DEBUG: Cargando variables desde {dotenv_path}")
+else:
+    load_dotenv() # Fallback a env vars del S.O.
+    print("DEBUG: Intentando cargar variables de entorno del sistema")
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "sk-proj-YOUR_API_KEY_HERE")
 
@@ -128,22 +138,40 @@ def init_db():
     
     conn_wrap.commit() # Commit the creation of tables before attempting alteration
     
-    # MIGRACIÓN: Añadir columnas si no existen
-    columns_to_add = [
-        ("user_exercises", "set_type TEXT DEFAULT 'NORMAL'"),
-        ("user_exercises", "combined_with INTEGER"),
-        ("user_exercises", "target_muscles TEXT"),
-        ("user_foods", "day_name TEXT DEFAULT 'Día 1'"),
-    ]
-    for table, coldef in columns_to_add:
+    # MIGRACIÓN SEGURA: Añadir columnas si no existen
+    def column_exists(table, column):
         try:
-            conn_wrap.execute(f"ALTER TABLE {table} ADD COLUMN {coldef}")
-            conn_wrap.commit()
-        except:
             if conn_wrap.is_pg:
-                # En Postgres es necesario hacer un ROLLBACK para seguir con la transacción.
-                conn_wrap.conn.rollback()
-            pass # Ya existe la columna
+                c_check = conn_wrap.cursor()
+                c_check.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column}'")
+                res = c_check.fetchone()
+                return res is not None
+            else:
+                c_check = conn_wrap.cursor()
+                c_check.execute(f"PRAGMA table_info({table})")
+                cols = c_check.fetchall()
+                return any(col['name'] == column for col in cols)
+        except Exception as e:
+            print(f"Error checking column {column} in {table}: {e}")
+            return False
+
+    columns_to_add = [
+        ("user_exercises", "set_type", "TEXT DEFAULT 'NORMAL'"),
+        ("user_exercises", "combined_with", "INTEGER"),
+        ("user_exercises", "target_muscles", "TEXT"),
+        ("user_foods", "day_name", "TEXT DEFAULT 'Día 1'"),
+    ]
+    for table, col, defn in columns_to_add:
+        if not column_exists(table, col):
+            try:
+                print(f"MIGRATION: Adding column {col} to {table}...")
+                conn_wrap.execute(f"ALTER TABLE {table} ADD COLUMN {col} {defn}")
+                conn_wrap.commit()
+            except Exception as e:
+                print(f"Failed to add {col} to {table}: {e}")
+                if conn_wrap.is_pg: conn_wrap.conn.rollback()
+        else:
+            print(f"DEBUG: Column {col} already exists in {table}")
 
     # PRO Meal Tracking
     c.execute('''CREATE TABLE IF NOT EXISTS meal_logs (

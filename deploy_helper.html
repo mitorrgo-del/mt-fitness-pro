@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h1>FLASK APP CODE</h1>
+    <textarea id="flask_app" style="width:100%; height:400px;">
+from flask import Flask, request, jsonify, send_from_directory, redirect
+from flask_cors import CORS
+import sqlite3
+import os
+import uuid
+import datetime
+import werkzeug.utils
+from functools import wraps
+from ai_services import analyze_goal_with_ai, simulate_payment_and_unlock
+import openai
+import requests
+import json
+from dotenv import load_dotenv
+
+# Buscar .env en raíz o en secrets de Render
+dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+if not os.path.exists(dotenv_path):
+    dotenv_path = '/etc/secrets/.env'
+
+if os.path.exists(dotenv_path):
+    load_dotenv(dotenv_path)
+    print(f"DEBUG: Cargando variables desde {dotenv_path}")
+else:
+    load_dotenv() # Fallback a env vars del S.O.
+    print("DEBUG: Intentando cargar variables de entorno del sistema")
+
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "sk-proj-YOUR_API_KEY_HERE")
+
+app = Flask(__name__, static_folder='app')
+CORS(app)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_FILE = os.path.join(BASE_DIR, 'mtfitness.db')
+UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+class DbWrapper:
+    def __init__(self, conn, is_pg):
+        self.conn = conn
+        self.is_pg = is_pg
+    def cursor(self):
+        return self.conn.cursor()
+    def execute(self, query, params=()):
+        if self.is_pg:
+            query = query.replace('?', '%s')
+            cur = self.conn.cursor()
+            cur.execute(query, params)
+            return cur
+        else:
+            return self.conn.execute(query, params)
+    def commit(self):
+        self.conn.commit()
+    def close(self):
+        self.conn.close()
+    def fetchone(self, cur):
+        res = cur.fetchone()
+        return dict(res) if res else None
+    def fetchall(self, cur):
+        res = cur.fetchall()
+        return [dict(r) for r in res]
+
+def get_db():
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        conn = psycopg2.connect(db_url, sslmode='require', cursor_factory=RealDictCursor)
+        return DbWrapper(conn, True)
+    else:
+        conn = sqlite3.connect(DB_FILE)
+        conn.row_factory = sqlite3.Row
+        return DbWrapper(conn, False)
+
+def init_db():
+    db_url = os.environ.get('DATABASE_URL')
+    if db_url:
+        print("Production DB (Postgres) detected. Assuming migrations are handled or running init...")
+    
+    conn_wrap = get_db()
+    c = conn_wrap.cursor()
+    
+    if os.environ.get('RESEED_DB'):
+        c.execute("DROP TABLE IF EXISTS exercises")
+        c.execute("DROP TABLE IF EXISTS foods")
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS users (
+        id TEXT PRIMARY KEY, email TEXT UNIQUE, password TEXT, name TEXT, 
+        role TEXT, status TEXT, token TEXT, phone TEXT, 
+        objective_weight REAL, routine_weeks INTEGER DEFAULT 4, access_until TEXT,
+        bot_active INTEGER DEFAULT 1
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS exercises (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, muscle_group TEXT
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS foods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, category TEXT,
+        kcal REAL, protein REAL, carbs REAL, fat REAL
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS measurements (
+        id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP,
+        weight REAL, waist REAL, chest REAL, hip REAL, thigh REAL, biceps REAL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS reports (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP,
+        weight REAL, photo_front TEXT, photo_side TEXT, photo_back TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS user_foods (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT, food_id INTEGER,
+        meal_name TEXT, grams REAL, day_name TEXT DEFAULT 'Día 1',
+        added_date TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(food_id) REFERENCES foods(id)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS user_exercises (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT, exercise_id INTEGER,
+        day_of_week TEXT, sets TEXT, reps TEXT, rest TEXT,
+        target_muscles TEXT, set_type TEXT DEFAULT 'NORMAL', 
+        combined_with INTEGER,
+        added_date TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(exercise_id) REFERENCES exercises(id)
+    )''')
+    
+    conn_wrap.commit()
+    
+    def column_exists(table, column):
+        try:
+            if conn_wrap.is_pg:
+                c_check = conn_wrap.cursor()
+                c_check.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column}'")
+                res = c_check.fetchone()
+                return res is not None
+            else:
+                c_check = conn_wrap.cursor()
+                c_check.execute(f"PRAGMA table_info({table})")
+                cols = c_check.fetchall()
+                return any(col['name'] == column for col in cols)
+        except Exception as e:
+            print(f"Error checking column {column} in {table}: {e}")
+            return False
+
+    columns_to_add = [
+        ("user_exercises", "set_type", "TEXT DEFAULT 'NORMAL'"),
+        ("user_exercises", "combined_with", "INTEGER"),
+        ("user_exercises", "target_muscles", "TEXT"),
+        ("user_foods", "day_name", "TEXT DEFAULT 'Día 1'"),
+    ]
+    for table, col, defn in columns_to_add:
+        if not column_exists(table, col):
+            try:
+                print(f"MIGRATION: Adding column {col} to {table}...")
+                conn_wrap.execute(f"ALTER TABLE {table} ADD COLUMN {col} {defn}")
+                conn_wrap.commit()
+            except Exception as e:
+                print(f"Failed to add {col} to {table}: {e}")
+                if conn_wrap.is_pg: conn_wrap.conn.rollback()
+        else:
+            print(f"DEBUG: Column {col} already exists in {table}")
+
+    c.execute('''CREATE TABLE IF NOT EXISTS meal_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT, date TEXT, meal_name TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT, sender_role TEXT, message TEXT,
+        timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    )''')
+    
+    c.execute('''CREATE TABLE IF NOT EXISTS workout_logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT, assignment_id INTEGER,
+        set_number INTEGER, weight_kg REAL, date TEXT,
+        FOREIGN KEY(user_id) REFERENCES users(id),
+        FOREIGN KEY(assignment_id) REFERENCES user_exercises(id)
+    )''')
+
+    c.execute('''CREATE TABLE IF NOT EXISTS marketing_leads (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT UNIQUE,
+        name TEXT,
+        last_goal TEXT,
+        status TEXT DEFAULT 'COLD',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        last_followup DATETIME
+    )''')
+
+    count_ex = c.execute("SELECT count(*) FROM exercises").fetchone()[0]
+    if count_ex == 0:
+        exs = [
+            ('Press Banca Plano Barra', 'Pecho'), ('Press Banca Inclinado Barra', 'Pecho'), ('Press Banca Declinado Barra', 'Pecho'),
+            ('Press Banca Plano Mancuernas', 'Pecho'), ('Press Banca Inclinado Mancuernas', 'Pecho'), ('Aperturas Planas', 'Pecho'),
+            ('Aperturas Inclinadas', 'Pecho'), ('Cruces en Polea Alta', 'Pecho'), ('Cruces en Polea Baja', 'Pecho'),
+            ('Peck Deck (Máquina)', 'Pecho'), ('Press Pecho Máquina Sentado', 'Pecho'), ('Fondos en Paralelas (Pecho)', 'Pecho'),
+            ('Pullover con Mancuerna', 'Pecho'), ('Flexiones de Brazo', 'Pecho'), ('Flexiones Lastradas', 'Pecho'),
+            ('Dominadas Pronas', 'Espalda'), ('Dominadas Supinas', 'Espalda'), ('Dominadas Neutras', 'Espalda'),
+            ('Jalón al Pecho Abierto', 'Espalda'), ('Jalón al Pecho Cerrado', 'Espalda'), ('Remo con Barra Pronom', 'Espalda'),
+            ('Remo con Barra Supino', 'Espalda'), ('Remo en Punta (T-Bar)', 'Espalda'), ('Remo con Mancuerna a 1 Mano', 'Espalda'),
+            ('Remo Gironda en Polea', 'Espalda'), ('Remo en Máquina Pecho Apoyado', 'Espalda'), ('Pull-down Brazos Rígidos', 'Espalda'),
+            ('Peso Muerto Convencional', 'Espalda'), ('Hiperextensiones Lumbar', 'Espalda'), ('Encogimientos Hombro (Trapecio)', 'Espalda'),
+            ('Sentadilla Libre Barra Alta', 'Pierna'), ('Sentadilla Frontal', 'Pierna'), ('Sentadilla Hack', 'Pierna'),
+            ('Prensa Inclinada a 45º', 'Pierna'), ('Prensa Horizontal', 'Pierna'), ('Extensiones de Cuádriceps', 'Pierna'),
+            ('Zancadas (Lunges) con Mancuernas', 'Pierna'), ('Zancadas en Multipower', 'Pierna'), ('Sentadilla Búlgara', 'Pierna'),
+            ('Peso Muerto Rumano', 'Pierna'), ('Peso Muerto Piernas Rígidas', 'Pierna'), ('Curl Femoral Tumbado', 'Pierna'),
+            ('Curl Femoral Sentado', 'Pierna'), ('Curl Femoral de Pie a 1 Pierna', 'Pierna'), ('Hip Thrust (Puente de Glúteo)', 'Pierna'),
+            ('Patada de Glúteo en Polea', 'Pierna'), ('Elevación de Talones de Pie (Gemelo)', 'Pierna'), ('Elevación de Talones Sentado (Sóleo)', 'Pierna'),
+            ('Press Militar Barra', 'Hombro'), ('Press Militar Mancuernas', 'Hombro'), ('Press Arnold', 'Hombro'),
+            ('Elevaciones Laterales Mancuernas', 'Hombro'), ('Elevaciones Laterales Polea', 'Hombro'), ('Elevaciones Frontales', 'Hombro'),
+            ('Pájaros (Hombro Posterior)', 'Hombro'), ('Facepull', 'Hombro'), ('Remo al Mentón', 'Hombro'),
+            ('Curl Bíceps Barra Z', 'Bíceps'), ('Curl Bíceps Mancuernas', 'Bíceps'), ('Curl Martillo', 'Bíceps'),
+            ('Curl Concentrado', 'Bíceps'), ('Curl Predicador', 'Bíceps'), ('Curl en Polea Baja', 'Bíceps'),
+            ('Press Francés', 'Tríceps'), ('Extensión Polea Alta (Cuerda)', 'Tríceps'), ('Extensión Polea Alta (Barra)', 'Tríceps'),
+            ('Patada de Tríceps', 'Tríceps'), ('Fondos entre Bancos', 'Tríceps'), ('Press Cerrado (Pecho/Tríceps)', 'Tríceps'),
+            ('Crunch Abdominal', 'Core'), ('Plancha Isométrica', 'Core'), ('Elevación de Piernas', 'Core'),
+            ('Rueda Abdominal', 'Core'), ('Oblicuos en Polea', 'Core')
+        ]
+        c.executemany("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", exs)
+
+    count_foods = c.execute("SELECT count(*) FROM foods").fetchone()[0]
+    if count_foods == 0:
+        foods = [
+            ('Pechuga de Pollo', 'Proteínas', 113, 23.5, 0, 1.2),
+            ('Contramuslo de Pollo (sin piel)', 'Proteínas', 120, 20, 0, 4),
+            ('Solomillo de Ternera', 'Proteínas', 130, 21, 0, 5),
+            ('Ternera picada magra', 'Proteínas', 140, 20, 0, 6),
+            ('Lomo de Cerdo', 'Proteínas', 145, 21, 0, 6.4),
+            ('Pavo (Pechuga)', 'Proteínas', 105, 24, 0, 1),
+            ('Salmón fresco', 'Proteínas', 208, 20, 0, 13),
+            ('Atún al natural (lata)', 'Proteínas', 110, 25, 0, 1),
+            ('Merluza', 'Proteínas', 80, 16, 0, 1.5),
+            ('Bacalao fresco', 'Proteínas', 82, 18, 0, 0.7),
+            ('Lubina', 'Proteínas', 97, 18.5, 0, 2.5),
+            ('Dorada', 'Proteínas', 115, 19.8, 0, 3.9),
+            ('Gambas / Langostinos', 'Proteínas', 95, 20, 0, 1.5),
+            ('Calamares', 'Proteínas', 90, 16, 3, 1.3),
+            ('Pulpo cocido', 'Proteínas', 85, 17, 2, 1),
+            ('Tofu firme', 'Proteínas', 144, 15, 4, 8),
+            ('Heura (Bocados)', 'Proteínas', 126, 18, 0.7, 3),
+            ('Lomo embuchado', 'Proteínas', 210, 31, 1, 8),
+            ('Jamón Serrano (magro)', 'Proteínas', 240, 30, 0, 13),
+            ('Huevo entero (L)', 'Proteínas', 155, 13, 1, 11),
+            ('Clara de huevo', 'Proteínas', 48, 11, 0.7, 0.2),
+            ('Arroz Blanco (cocido)', 'Hidratos', 130, 2.7, 28, 0.3),
+            ('Arroz Integral (cocido)', 'Hidratos', 111, 2.6, 23, 0.9),
+            ('Arroz Basmati (cocido)', 'Hidratos', 121, 3.5, 25, 0.4),
+            ('Pasta de trigo (cocida)', 'Hidratos', 155, 5.5, 30, 1),
+            ('Pasta Integral (cocida)', 'Hidratos', 125, 5, 25, 0.8),
+            ('Couscous (cocido)', 'Hidratos', 112, 3.8, 23, 0.2),
+            ('Quinoa (cocida)', 'Hidratos', 120, 4.4, 21, 2),
+            ('Avena en copos (seco)', 'Hidratos', 380, 13, 60, 7),
+            ('Patata cocida', 'Hidratos', 85, 2, 19, 0.1),
+            ('Boniato / Batata cocida', 'Hidratos', 90, 1.5, 20, 0.1),
+            ('Pan Integral', 'Hidratos', 250, 9, 45, 3),
+            ('Pan de Centeno', 'Hidratos', 260, 8, 48, 3),
+            ('Garbanzos (cocidos)', 'Hidratos', 160, 9, 27, 2.5),
+            ('Lentejas (cocidas)', 'Hidratos', 115, 9, 20, 0.5),
+            ('Judías Blancas (cocidas)', 'Hidratos', 140, 9, 25, 0.5),
+            ('Guisantes (cocidos)', 'Hidratos', 80, 5, 14, 0.5),
+            ('Maíz dulce', 'Hidratos', 85, 3, 18, 1),
+            ('Tortita de Arroz', 'Hidratos', 385, 8, 80, 3),
+            ('Tortilla de Maíz', 'Hidratos', 215, 5, 45, 3),
+            ('Yuca cocida', 'Hidratos', 160, 1.4, 38, 0.3),
+            ('Aceite de Oliva (AOVE)', 'Grasas', 884, 0, 0, 100),
+            ('Aguacate', 'Grasas', 160, 2, 8, 14),
+            ('Nueces', 'Grasas', 650, 15, 14, 65),
+            ('Almendras', 'Grasas', 580, 21, 21, 50),
+            ('Avellanas', 'Grasas', 630, 15, 16, 60),
+            ('Cacahuetes', 'Grasas', 570, 25, 16, 49),
+            ('Pistachos', 'Grasas', 560, 20, 27, 45),
+            ('Anacardos', 'Grasas', 555, 18, 30, 44),
+            ('Semillas de Chía', 'Grasas', 490, 16, 42, 30),
+            ('Semillas de Calabaza', 'Grasas', 560, 30, 10, 49),
+            ('Mantequilla de Cacahuete', 'Grasas', 590, 25, 20, 50),
+            ('Olivas Negras', 'Grasas', 115, 1, 6, 11),
+            ('Olivas Verdes', 'Grasas', 145, 1, 4, 15),
+            ('Brócoli', 'Verduras', 34, 2.8, 7, 0.4),
+            ('Espinacas', 'Verduras', 23, 2.9, 3.6, 0.4),
+            ('Espárragos', 'Verduras', 20, 2.2, 4, 0.1),
+            ('Judías Verdes', 'Verduras', 31, 1.8, 7, 0.1),
+            ('Calabacín', 'Verduras', 17, 1.2, 3, 0.3),
+            ('Berenjena', 'Verduras', 25, 1, 6, 0.2),
+            ('Pimiento Rojo', 'Verduras', 30, 1, 6, 0.3),
+            ('Pimiento Verde', 'Verduras', 20, 1, 4.6, 0.2),
+            ('Cebolla', 'Verduras', 40, 1, 9, 0.1),
+            ('Tomate', 'Verduras', 18, 0.9, 4, 0.2),
+            ('Pepino', 'Verduras', 15, 0.7, 3.6, 0.1),
+            ('Lechuga', 'Verduras', 15, 1.4, 3, 0.2),
+            ('Canónigos', 'Verduras', 20, 2, 3.6, 0.4),
+            ('Champiñones', 'Verduras', 22, 3, 3, 0.3),
+            ('Zanahoria', 'Verduras', 40, 1, 9, 0.2),
+            ('Coliflor', 'Verduras', 25, 2, 5, 0.3),
+            ('Alcachofa', 'Verduras', 50, 3, 11, 0.2),
+            ('Manzana', 'Frutas', 52, 0.3, 14, 0.2),
+            ('Plátano', 'Frutas', 90, 1, 23, 0.3),
+            ('Pera', 'Frutas', 57, 0.4, 15, 0.1),
+            ('Naranja', 'Frutas', 47, 1, 12, 0.1),
+            ('Fresas', 'Frutas', 32, 0.7, 8, 0.3),
+            ('Arándanos', 'Frutas', 57, 0.7, 14, 0.3),
+            ('Frambuesas', 'Frutas', 52, 1.2, 12, 0.6),
+            ('Piña', 'Frutas', 50, 0.5, 13, 0.1),
+            ('Kiwi', 'Frutas', 61, 1, 15, 0.5),
+            ('Mango', 'Frutas', 60, 0.8, 15, 0.4),
+            ('Sandía', 'Frutas', 30, 0.6, 8, 0.2),
+            ('Melón', 'Frutas', 35, 0.8, 8, 0.2),
+            ('Uvas', 'Frutas', 70, 0.7, 17, 0.4),
+            ('Ciruela', 'Frutas', 45, 0.7, 11, 0.3),
+            ('Melocotón', 'Frutas', 40, 1, 10, 0.3),
+            ('Leche Desnatada', 'Lácteos', 34, 3.4, 5, 0.1),
+            ('Leche Entera', 'Lácteos', 60, 3.2, 4.8, 3.2),
+            ('Yogur Natural 0%', 'Lácteos', 50, 5, 5, 0.1),
+            ('Queso Fresco Batido 0%', 'Lácteos', 45, 8, 3.5, 0.1),
+            ('Queso Cottage', 'Lácteos', 100, 12, 3, 4),
+            ('Queso Mozzarella Light', 'Lácteos', 160, 24, 1, 7),
+            ('Whey Protein (80%)', 'Suplementos', 370, 80, 5, 5),
+            ('Creatina Monohidrato', 'Suplementos', 0, 0, 0, 0),
+            ('Miel', 'Hidratos', 300, 0.3, 80, 0),
+            ('Chocolate Negro +85%', 'Grasas', 580, 8, 20, 48)
+        ]
+        c.executemany("INSERT INTO foods (name, category, kcal, protein, carbs, fat) VALUES (?, ?, ?, ?, ?, ?)", foods)
+
+    exists_admin = c.execute("SELECT id FROM users WHERE email = 'mitorrgo@gmail.com'").fetchone()
+    if not exists_admin:
+        c.execute("INSERT INTO users (id, email, password, name, role, status, token) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                  (str(uuid.uuid4()), 'mitorrgo@gmail.com', 'admin123', 'Coach Mitor', 'ADMIN', 'APPROVED', 'token-admin-123'))
+
+    conn_wrap.commit()
+    conn_wrap.close()
+
+init_db()
+
+def require_auth(roles=None):
+    def decorator(f):
+        @wraps(f)
+        def decorated(*args, **kwargs):
+            t = request.headers.get('Authorization')
+            if not t: return jsonify({'error': 'Faltan credenciales.'}), 401
+            t = t.replace('Bearer ', '')
+            conn = get_db()
+            user = conn.execute("SELECT * FROM users WHERE token = ?", (t,)).fetchone()
+            conn.close()
+            if not user: return jsonify({'error': 'Token inválido'}), 401
+            if user['status'] != 'APPROVED': return jsonify({'error': 'Cuenta pendiente.'}), 403
+            if roles and user['role'] not in roles: return jsonify({'error': 'Rango Denegado.'}), 403
+            return f(dict(user), *args, **kwargs)
+        return decorated
+    return decorator
+
+@app.route('/api/auth/register', methods=['POST'])
+def register():
+    data = request.json
+    conn = get_db()
+    if conn.execute("SELECT id FROM users WHERE email = ?", (data.get('email'),)).fetchone():
+        conn.close(); return jsonify({'error': 'El email ya existe'}), 400
+    uid = str(uuid.uuid4())
+    token = "token-" + str(uuid.uuid4())
+    role = 'ADMIN' if data.get('email') == 'mitorrgo@gmail.com' else 'CLIENT'
+    status = 'APPROVED' if role == 'ADMIN' else 'PENDING'
+    conn.execute("INSERT INTO users (id, email, password, name, role, status, token, phone, objective_weight, routine_weeks, access_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                 (uid, data.get('email'), data.get('password'), data.get('name'), role, status, token, data.get('phone', ''), data.get('objective_weight', None), 4, None))
+    conn.commit(); conn.close()
+    return jsonify({'message': 'Registrado.', 'status': status, 'token': token, 'role': role, 'name': data.get('name')})
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    data = request.json
+    conn = get_db()
+    user_row = conn.execute("SELECT * FROM users WHERE email = ? AND password = ?", (data.get('email'), data.get('password'))).fetchone()
+    conn.close()
+    if user_row:
+        user = dict(user_row)
+        if user['status'] != 'APPROVED': return jsonify({'error': 'Cuenta pendiente.'}), 403
+        if user['role'] == 'CLIENT' and user['access_until']:
+            expiration = datetime.datetime.strptime(user['access_until'], '%Y-%m-%d')
+            if datetime.datetime.now() > expiration:
+                return jsonify({'error': 'Suscripción caducada. Contacta con tu Coach.'}), 403
+        def calc_days_left(access_until):
+            if not access_until: return 0
+            try:
+                exp = datetime.datetime.strptime(access_until, '%Y-%m-%d')
+                delta = exp - datetime.datetime.now()
+                return max(0, delta.days)
+            except: return 0
+        return jsonify({'token': user['token'], 'role': user['role'], 'name': user['name'], 'surname': user.get('surname', ''), 'email': user['email'], 'id': user['id'], 'age': user.get('age'), 'height': user.get('height'), 'current_weight': user.get('current_weight'), 'objective': user.get('objective', ''), 'days_left': calc_days_left(user.get('access_until'))})
+    return jsonify({'error': 'Credenciales incorrectas'}), 401
+
+@app.route('/api/profile/update', methods=['POST'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def update_profile(user):
+    data = request.json
+    conn = get_db()
+    conn.execute('''UPDATE users SET name = ?, surname = ?, age = ?, height = ?, current_weight = ?, objective = ? WHERE id = ?''', (data.get('name'), data.get('surname'), data.get('age'), data.get('height'), data.get('current_weight'), data.get('objective'), user['id']))
+    conn.commit(); conn.close()
+    return jsonify({'message': 'Perfil actualizado'})
+
+@app.route('/api/admin/users', methods=['GET'])
+@require_auth(roles=['ADMIN'])
+def admin_get_users(admin):
+    conn = get_db(); users = conn.execute("SELECT * FROM users").fetchall(); conn.close()
+    def calc_days_left(access_until):
+        if not access_until: return 0
+        try:
+            exp = datetime.datetime.strptime(access_until, '%Y-%m-%d')
+            delta = exp - datetime.datetime.now()
+            return max(0, delta.days)
+        except: return 0
+    res = []
+    for u in users:
+        d = dict(u)
+        d['days_left'] = calc_days_left(u['access_until'])
+        res.append(d)
+    return jsonify(res)
+
+@app.route('/api/admin/approve/<target_id>', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def admin_approve_user(admin, target_id):
+    conn = get_db(); conn.execute("UPDATE users SET status = 'APPROVED' WHERE id = ?", (target_id,)); conn.commit(); conn.close()
+    return jsonify({'message': 'Aprobado'})
+
+@app.route('/api/reports/submit', methods=['POST'])
+@require_auth(roles=['CLIENT', 'ADMIN'])
+def submit_report(user):
+    weight = request.form.get('weight')
+    front = request.files.get('photo_front'); side = request.files.get('photo_side'); back = request.files.get('photo_back')
+    f_n = None; s_n = None; b_n = None
+    if front: f_n = f"front_{user['id']}_{uuid.uuid4().hex}.jpg"; front.save(os.path.join(app.config['UPLOAD_FOLDER'], f_n))
+    if side: s_n = f"side_{user['id']}_{uuid.uuid4().hex}.jpg"; side.save(os.path.join(app.config['UPLOAD_FOLDER'], s_n))
+    if back: b_n = f"back_{user['id']}_{uuid.uuid4().hex}.jpg"; back.save(os.path.join(app.config['UPLOAD_FOLDER'], b_n))
+    conn = get_db()
+    conn.execute("INSERT INTO reports (user_id, weight, photo_front, photo_side, photo_back) VALUES (?, ?, ?, ?, ?)", (user['id'], weight, f_n, s_n, b_n))
+    conn.execute("INSERT INTO measurements (user_id, weight) VALUES (?, ?)", (user['id'], weight))
+    conn.commit(); conn.close()
+    return jsonify({'message': 'Reporte semanal enviado correctamente'})
+
+@app.route('/api/measurements', methods=['GET'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def get_measurements(user):
+    target_id = request.args.get('user_id', user['id'])
+    if user['role'] == 'CLIENT' and user['id'] != target_id: return jsonify({'error': 'No autorizado'}), 403
+    conn = get_db(); measurements = conn.execute("SELECT * FROM measurements WHERE user_id = ? ORDER BY date ASC", (target_id,)).fetchall(); conn.close()
+    return jsonify([dict(m) for m in measurements])
+
+@app.route('/api/admin/add_food', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def admin_add_food(admin):
+    data = request.json
+    try:
+        conn = get_db(); conn.execute("INSERT INTO foods (name, category, kcal, protein, carbs, fat) VALUES (?, ?, ?, ?, ?, ?)", (data['name'], data['category'], data['kcal'], data['protein'], data['carbs'], data['fat'])); conn.commit(); conn.close()
+        return jsonify({'status': 'ok', 'message': 'Alimento añadido al catálogo'})
+    except Exception as e: return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/add_exercise', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def admin_add_exercise(admin):
+    data = request.json
+    try:
+        conn = get_db(); muscle = data['muscle_group'].upper().replace('Á','A').replace('É','E').replace('Í','I').replace('Ó','O').replace('Ú','U')
+        conn.execute("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", (data['name'], muscle)); conn.commit(); conn.close()
+        return jsonify({'status': 'ok', 'message': 'Ejercicio añadido al catálogo'})
+    except Exception as e: return jsonify({'error': str(e)}), 500
+
+@app.route('/api/master/exec', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def master_exec(admin):
+    data = request.json; cmd = data.get('cmd')
+    if data.get('master_token') != 'MT_MASTER_PRO_2026': return jsonify({'error': 'Token maestro inválido'}), 403
+    try:
+        import subprocess
+        result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, text=True)
+        return jsonify({'status': 'ok', 'output': result})
+    except subprocess.CalledProcessError as e: return jsonify({'status': 'error', 'output': e.output if hasattr(e, 'output') else str(e)})
+    except Exception as e: return jsonify({'status': 'error', 'output': str(e)})
+
+@app.route('/api/admin/assign_exercise', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def assign_exercise(admin):
+    data = request.json
+    try:
+        conn = get_db(); conn.execute('''INSERT INTO user_exercises (user_id, exercise_id, day_of_week, sets, reps, rest, target_muscles, set_type, combined_with) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', (data['user_id'], data['exercise_id'], data['day_of_week'], data['sets'], data['reps'], data.get('rest', ''), data.get('target_muscles', ''), data.get('set_type', 'NORMAL'), data.get('combined_with'))); conn.commit(); conn.close()
+        return jsonify({'message': 'Ejercicio configurado'})
+    except Exception as e: return jsonify({'error': str(e)}), 500
+
+@app.route('/api/admin/assign_food', methods=['POST'])
+@require_auth(roles=['ADMIN'])
+def assign_food(admin):
+    data = request.json
+    try:
+        conn = get_db(); conn.execute("INSERT INTO user_foods (user_id, food_id, meal_name, grams, day_name) VALUES (?, ?, ?, ?, ?)", (data['user_id'], data['food_id'], data['meal_name'], data['grams'], data.get('day_name', 'Día 1'))); conn.commit(); conn.close()
+        return jsonify({'message': 'Alimento configurado'})
+    except Exception as e: return jsonify({'error': str(e)}), 500
+
+@app.route('/api/client/my_workout', methods=['GET'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def client_workout(user):
+    target_id = request.args.get('user_id', user['id']); conn = get_db(); c = conn.cursor()
+    c.execute('''SELECT ue.id as assignment_id, e.name, e.muscle_group, ue.day_of_week, ue.sets, ue.reps, ue.rest, ue.target_muscles, ue.set_type, ue.combined_with FROM user_exercises ue JOIN exercises e ON ue.exercise_id = e.id WHERE ue.user_id = ? ORDER BY ue.day_of_week, ue.id''', (target_id,))
+    data = [dict(r) for r in c.fetchall()]; conn.close(); return jsonify(data)
+
+@app.route('/api/client/my_diet', methods=['GET'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def client_diet(user):
+    target_id = request.args.get('user_id', user['id']); conn = get_db(); c = conn.cursor()
+    c.execute('''SELECT uf.id as assignment_id, f.name, f.category, f.kcal, f.protein, f.carbs, f.fat, uf.meal_name, uf.grams, uf.day_name, (f.kcal * uf.grams / 100) as calc_kcal, (f.protein * uf.grams / 100) as calc_protein, (f.carbs * uf.grams / 100) as calc_carbs, (f.fat * uf.grams / 100) as calc_fat FROM user_foods uf JOIN foods f ON uf.food_id = f.id WHERE uf.user_id = ? ORDER BY uf.day_name, uf.meal_name''', (target_id,))
+    data = [dict(r) for r in c.fetchall()]; conn.close(); return jsonify(data)
+
+@app.route('/api/client/log_workout', methods=['POST'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def log_workout(user):
+    data = request.json; assignment_id = data.get('assignment_id'); logs = data.get('logs')
+    if not assignment_id or not logs: return jsonify({'error': 'Missing log data'}), 400
+    date_str = datetime.datetime.now().strftime("%Y-%m-%d"); conn = get_db(); c = conn.cursor()
+    for log in logs: c.execute('''INSERT INTO workout_logs (user_id, assignment_id, set_number, weight_kg, date) VALUES (?, ?, ?, ?, ?)''', (user['id'], assignment_id, log['set'], float(log['weight']), date_str))
+    conn.commit(); conn.close(); return jsonify({'success': True})
+
+@app.route('/api/chat', methods=['GET', 'POST'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def manage_chat(user):
+    conn = get_db(); target_id = request.args.get('user_id', user['id'])
+    if user['role'] != 'ADMIN' and target_id != user['id']: target_id = user['id']
+    target_user_info = conn.execute("SELECT bot_active, name FROM users WHERE id = ?", (target_id,)).fetchone()
+    if request.method == 'POST':
+        data = request.json; user_msg = data.get('message')
+        if not user_msg: return jsonify({'error': 'No message'}), 400
+        conn.execute("INSERT INTO chat_messages (user_id, sender_role, message) VALUES (?, ?, ?)", (target_id, user['role'], user_msg)); conn.commit()
+        is_bot_on = int(target_user_info['bot_active']) if (target_user_info and target_user_info['bot_active'] is not None) else 0
+        if is_bot_on == 1:
+            bot_reply = "Entendido. He pasado aviso al Coach Miguel para que revise tu consulta lo antes posible. Mientras tanto, ¡seguimos con el plan! 💪"
+            conn.execute("INSERT INTO chat_messages (user_id, sender_role, message) VALUES (?, ?, ?)", (target_id, 'BOT', bot_reply)); conn.commit()
+        conn.close(); return jsonify({'status': 'ok'})
+    else:
+        msgs = conn.execute("SELECT * FROM chat_messages WHERE user_id = ? ORDER BY timestamp ASC", (target_id,)).fetchall()
+        bot_active = int(target_user_info['bot_active']) if (target_user_info and target_user_info['bot_active'] is not None) else 0
+        conn.close(); return jsonify({'messages': [dict(m) for m in msgs], 'bot_active': bot_active})
+
+@app.route('/')
+def index(): return send_from_directory(app.static_folder, 'index.html')
+
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000)
+    </textarea>
+</body>
+</html>
