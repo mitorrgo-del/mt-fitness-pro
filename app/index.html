@@ -5,8 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="google-site-verification" content="XG5IDpFUrD0w2s-4wWTfJLnFijVArUwVhsFzjoIUnnE" />
     
-
-
     <title>MEJOR ENTRENADOR PERSONAL ONLINE | Miguel Torres - Transformación Élite</title>
     
     <!-- SEO Meta Tags -->
@@ -37,7 +35,7 @@
       "@type": "FitnessCenter",
       "name": "MT Fitness PRO",
       "image": "https://www.mtfitness.es/logo-512.png",
-      "description": "Entrenamiento personal online de élite y nutrición especializada.",
+      "description": "Entrenamiento personal online de élite and nutrición especializada.",
       "address": {
         "@type": "PostalAddress",
         "addressCountry": "ES"
@@ -56,16 +54,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="style.css">
-    <style>
-    </style>
 </head>
 <body>
-    <!-- SITIO EN CONSTRUCCIÓN -->
+    <!-- SITIO EN CONSTRUCCION -->
     <div style="position: fixed; top: 0; left: 0; width: 100%; z-index: 10001; background: #ffcc00; color: #000; font-family: 'Outfit', sans-serif; font-weight: 900; font-size: clamp(10px, 4vw, 16px); text-transform: uppercase; letter-spacing: 2px; padding: 12px 10px; text-align: center; border-bottom: 3px solid #000; box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: block;">
-        ⚠️ SITIO EN CONSTRUCCIÓN - LANZAMIENTO OFICIAL MUY PRONTO ⚠️
+        ⚠️ SITIO EN CONSTRUCCION - LANZAMIENTO OFICIAL MUY PRONTO ⚠️
     </div>
 
-    <!-- Ajuste para que el banner no tape el nav si es fixed -->
     <div style="height: 45px;"></div>
     <!-- Navbar -->
     <nav class="navbar" id="mainNav">
@@ -224,7 +219,6 @@
                 </div>
                 
                 <div class="pricing-grid">
-                    <!-- Plan 1 -->
                     <div class="plan-card glass-card">
                         <h4>ENTRENAMIENTO</h4>
                         <div class="plan-price">40€<span>/mes</span></div>
@@ -236,7 +230,6 @@
                         </ul>
                         <button class="btn btn-secondary btn-full">Seleccionar</button>
                     </div>
-                    <!-- Plan 2 -->
                     <div class="plan-card glass-card popular">
                         <div class="plan-badge">MÁS POPULAR</div>
                         <h4>ENTRENO + DIETA</h4>
@@ -249,7 +242,6 @@
                         </ul>
                         <button class="btn btn-primary btn-full">Empezar Ahora</button>
                     </div>
-                    <!-- Plan 3 -->
                     <div class="plan-card glass-card">
                         <h4>DIETA PRO</h4>
                         <div class="plan-price">50€<span>/mes</span></div>
@@ -304,7 +296,6 @@
                         <button type="submit" class="btn btn-primary btn-full" style="padding: 18px; font-weight: 800;">ENVIAR SOLICITUD</button>
                     </form>
                 </div>
-
                 <div id="formSuccess" style="display: none; text-align: center; color: var(--primary); padding: 20px;">
                     <i data-lucide="check-circle" style="width: 48px; height: 48px; margin-bottom: 15px;"></i>
                     <h3 style="margin: 0;">¡Datos Recibidos!</h3>
@@ -314,7 +305,6 @@
         </div>
 
         <script>
-            // Modal Logic
             const modal = document.getElementById('contactModal');
             document.getElementById('openContact')?.addEventListener('click', () => modal.classList.add('active'));
             document.getElementById('closeContact')?.addEventListener('click', () => modal.classList.remove('active'));
@@ -330,7 +320,6 @@
                 const email = document.getElementById('contactEmail').value;
                 const goal = document.getElementById('contactGoal').options[document.getElementById('contactGoal').selectedIndex].text;
                 
-                // Simulación de envío a IONOS / Email
                 console.log("Formulario enviado:", { name, email, goal });
                 
                 setTimeout(() => {
@@ -340,7 +329,6 @@
                     
                     setTimeout(() => {
                         modal.classList.remove('active');
-                        // Reset for next time
                         setTimeout(() => {
                             document.getElementById('modalFormContent').style.display = 'block';
                             document.getElementById('formSuccess').style.display = 'none';
@@ -391,17 +379,15 @@
                     </ul>
                 </div>
             </div>
-            <div class="footer-bottom" style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding-bottom: 20px;">
-                <!-- Visitor Counter Removed -->
+            <div class="footer-bottom">
                 <div>&copy; 2026 MT FITNESS PRO coach - v1.0.7. Todos los derechos reservados.</div>
             </div>
         </footer>
     </main>
 
-    <!-- BLOG VIEW -->
     <main id="view-blog" class="view" style="padding-top: 100px; background: var(--bg-dark); min-height: 100vh;">
         <div class="container">
-            <button class="back-to-landing btn btn-secondary btn-sm" style="margin-bottom: 30px;">← Volver</button>
+            <button class="back-to-landing btn btn-secondary btn-sm" style="margin-bottom: 30px;">&larr; Volver</button>
             <div class="section-header">
                 <div class="badge-new">PORTAL COGNITIVO</div>
                 <h2 class="section-header">Portal de <span class="text-gradient">Conocimiento PRO.</span></h2>
@@ -409,20 +395,10 @@
             </div>
             
             <div id="blog-grid-main" class="features-grid" style="margin-top: 50px; padding-bottom: 80px;">
-                <!-- Cargados dinámicamente -->
                 <div class="text-muted">Consultando la base de datos neuronal...</div>
             </div>
         </div>
     </main>
-
-
-
-    <!-- SOCIAL PROOF NOTIFICATION -->
-    <div id="social-proof" class="social-proof-toast">
-        <div class="proof-dot"></div>
-        <p id="proof-text">Alguien acaba de unirse al Plan PRO</p>
-    </div>
-
 
     <script>lucide.createIcons();</script>
 </body>
