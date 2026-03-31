@@ -562,6 +562,8 @@ def master_exec(admin):
         import subprocess
         result = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, text=True)
         return jsonify({'status': 'ok', 'output': result})
+    except subprocess.CalledProcessError as e:
+        return jsonify({'status': 'error', 'output': e.output if hasattr(e, 'output') else str(e)})
     except Exception as e:
         return jsonify({'status': 'error', 'output': str(e)})
 
