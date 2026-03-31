@@ -191,6 +191,21 @@ class ApiService {
     return jsonDecode(response.body);
   }
 
+  // --- Admin Coach Actions ---
+  Future<void> approveUser(String userId) async {
+    final response = await http.post(Uri.parse('${baseUrl}admin/approve/$userId'), headers: _headers);
+    if (response.statusCode != 200) throw Exception('No se pudo aprobar al usuario');
+  }
+
+  Future<void> addSubscription(String userId, int days) async {
+    final response = await http.post(
+      Uri.parse('${baseUrl}admin/add_subscription/$userId'),
+      headers: _headers,
+      body: jsonEncode({'days': days}),
+    );
+    if (response.statusCode != 200) throw Exception('No se pudo añadir la suscripción');
+  }
+
   // --- Measurements ---
   Future<Map<String, dynamic>> logMeasurement(Map<String, dynamic> data) async {
     final response = await http.post(Uri.parse('${baseUrl}measurements'), headers: _headers, body: jsonEncode(data));
