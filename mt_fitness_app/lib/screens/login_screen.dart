@@ -4,6 +4,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import 'dashboard_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -127,6 +128,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
                         hintText: 'Tu Email',
                         prefixIcon: Icon(LucideIcons.mail, size: 20, color: AppTheme.primary),
@@ -136,6 +138,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: 'Tu Contraseña',
                         prefixIcon: const Icon(LucideIcons.lock, size: 20, color: AppTheme.primary),
@@ -153,15 +156,50 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     ElevatedButton(
                       onPressed: _isLoading ? null : _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(20),
+                        backgroundColor: AppTheme.primary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      ),
                       child: _isLoading 
                         ? const SizedBox(
                             height: 20, 
                             width: 20, 
                             child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black)
                           )
-                        : const Text('ACCEDER AL ÁREA PRO'),
+                        : Text(
+                            'ACCEDER AL ÁREA PRO',
+                            style: GoogleFonts.outfit(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.black,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
                     ),
 
+                    const SizedBox(height: 24),
+                    Center(
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(builder: (_) => const RegisterScreen()),
+                          );
+                        },
+                        child: RichText(
+                          text: TextSpan(
+                            style: GoogleFonts.outfit(fontSize: 14, color: AppTheme.textMuted),
+                            children: const [
+                              TextSpan(text: '¿No tienes cuenta? '),
+                              TextSpan(
+                                text: 'REGÍSTRATE AQUÍ',
+                                style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 48),
                     Center(
                       child: Text(

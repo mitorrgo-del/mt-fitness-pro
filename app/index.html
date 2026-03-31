@@ -57,44 +57,16 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="style.css">
     <style>
-        /* Floating WhatsApp Button */
-        .whatsapp-float {
-            position: fixed;
-            bottom: 30px;
-            left: 30px;
-            width: 60px;
-            height: 60px;
-            background-color: #25d366;
-            color: #FFF;
-            border-radius: 50px;
-            text-align: center;
-            font-size: 30px;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        .whatsapp-float:hover {
-            transform: scale(1.1);
-            background-color: #128c7e;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
-        }
     </style>
 </head>
 <body>
-    <!-- WhatsApp Button -->
-    <a href="https://wa.me/34684360634" class="whatsapp-float" target="_blank">
-        <i data-lucide="phone"></i>
-    </a>
-    <!-- Under Construction Banner -->
-    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; display: flex; align-items: center; justify-content: center; overflow: hidden;">
-        <div style="background: rgba(255, 204, 0, 0.9); color: black; font-weight: 900; font-size: 40px; text-transform: uppercase; letter-spacing: 5px; padding: 15px 0; width: 150%; text-align: center; transform: rotate(-35deg); box-shadow: 0 0 30px rgba(0,0,0,0.8); border-top: 5px solid black; border-bottom: 5px solid black; white-space: nowrap;">
-            ⚠️ UNDER CONSTRUCTION - PRÓXIMAMENTE ⚠️ UNDER CONSTRUCTION - PRÓXIMAMENTE ⚠️
-        </div>
+    <!-- SITIO EN CONSTRUCCIÓN -->
+    <div style="position: fixed; top: 0; left: 0; width: 100%; z-index: 10001; background: #ffcc00; color: #000; font-family: 'Outfit', sans-serif; font-weight: 900; font-size: clamp(10px, 4vw, 16px); text-transform: uppercase; letter-spacing: 2px; padding: 12px 10px; text-align: center; border-bottom: 3px solid #000; box-shadow: 0 5px 20px rgba(0,0,0,0.5); display: block;">
+        ⚠️ SITIO EN CONSTRUCCIÓN - LANZAMIENTO OFICIAL MUY PRONTO ⚠️
     </div>
+
+    <!-- Ajuste para que el banner no tape el nav si es fixed -->
+    <div style="height: 45px;"></div>
     <!-- Navbar -->
     <nav class="navbar" id="mainNav">
         <div class="container nav-container">
@@ -304,15 +276,9 @@
                 
                 <div class="glass-card" style="padding: 40px; border-radius: 20px; border: 1px solid rgba(45, 212, 191, 0.1);">
                     <form id="contactForm" style="display: flex; flex-direction: column; gap: 20px;">
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                            <div class="form-group">
-                                <label style="display: block; color: var(--text-dim); margin-bottom: 8px; font-size: 14px;">Nombre Completo</label>
-                                <input type="text" id="contactName" required style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; border-radius: 8px; color: white; outline: none; font-family: inherit;" placeholder="Ej: Juan Pérez">
-                            </div>
-                            <div class="form-group">
-                                <label style="display: block; color: var(--text-dim); margin-bottom: 8px; font-size: 14px;">WhatsApp / Teléfono</label>
-                                <input type="tel" id="contactPhone" required style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; border-radius: 8px; color: white; outline: none; font-family: inherit;" placeholder="Ej: +34 600 000 000">
-                            </div>
+                        <div class="form-group">
+                            <label style="display: block; color: var(--text-dim); margin-bottom: 8px; font-size: 14px;">Nombre Completo</label>
+                            <input type="text" id="contactName" required style="width: 100%; padding: 12px; background: rgba(15, 23, 42, 0.5); border: 1px solid #1e293b; border-radius: 8px; color: white; outline: none; font-family: inherit;" placeholder="Ej: Juan Pérez">
                         </div>
                         <div class="form-group">
                             <label style="display: block; color: var(--text-dim); margin-bottom: 8px; font-size: 14px;">Email</label>
@@ -411,9 +377,9 @@
         <div class="container">
             <button class="back-to-landing btn btn-secondary btn-sm" style="margin-bottom: 30px;">← Volver</button>
             <div class="section-header">
-                <div class="badge-new">CEREBRO IA</div>
-                <h2 class="section-header">Portal de <span class="text-gradient">IA Fitness.</span></h2>
-                <p class="text-muted">Explora los últimos conocimientos científicos generados por nuestra inteligencia artificial para optimizar cada gramo de músculo.</p>
+                <div class="badge-new">PORTAL COGNITIVO</div>
+                <h2 class="section-header">Portal de <span class="text-gradient">Conocimiento PRO.</span></h2>
+                <p class="text-muted">Explora los últimos conocimientos basados en resultados reales de Miguel Torres para optimizar cada gramo de músculo.</p>
             </div>
             
             <div id="blog-grid-main" class="features-grid" style="margin-top: 50px; padding-bottom: 80px;">
@@ -431,31 +397,6 @@
         <p id="proof-text">Alguien acaba de unirse al Plan PRO</p>
     </div>
 
-    <!-- AI ADVISOR FLOATING BUTTON -->
-    <div id="ai-advisor-fab" class="ai-fab">
-        <div class="ai-fab-badge">Gratis</div>
-        <i data-lucide="sparkles"></i>
-        <span>IA Advisor</span>
-    </div>
-
-    <!-- AI ADVISOR MODAL -->
-    <div id="ai-modal" class="modal-overlay">
-        <div class="glass-card modal-content ai-modal-box">
-            <div class="modal-header">
-                <h3><i data-lucide="brain"></i> Asistente MT <span class="text-gradient">IA</span></h3>
-                <button id="close-ai-modal" class="btn-icon"><i data-lucide="x"></i></button>
-            </div>
-            <div id="ai-chat-body" class="ai-chat-body">
-                <div class="ai-message bot">
-                    ¡Hola! Soy el experto de MT Fitness. Cuéntame tu objetivo (perder peso, ganar músculo) y te daré un análisis inmediato gratis. 🚀
-                </div>
-            </div>
-            <div class="ai-chat-footer">
-                <input type="text" id="ai-input" placeholder="Ej: Quiero perder 5kg en un mes...">
-                <button id="send-ai-btn" class="btn btn-primary btn-icon"><i data-lucide="send"></i></button>
-            </div>
-        </div>
-    </div>
 
     <script>lucide.createIcons();</script>
 </body>

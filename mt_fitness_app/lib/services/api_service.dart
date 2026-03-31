@@ -79,11 +79,11 @@ class ApiService {
     return data;
   }
 
-  Future<Map<String, dynamic>> register(String name, String email, String password) async {
+  Future<Map<String, dynamic>> register(Map<String, dynamic> data) async {
     final response = await http.post(
       Uri.parse('${baseUrl}auth/register'),
       headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({'name': name, 'email': email, 'password': password}),
+      body: jsonEncode(data),
     );
     return jsonDecode(response.body);
   }

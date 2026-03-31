@@ -409,11 +409,42 @@ def register():
     role = 'ADMIN' if data.get('email') == 'mitorrgo@gmail.com' else 'CLIENT'
     status = 'APPROVED' if role == 'ADMIN' else 'PENDING'
     
-    conn.execute("INSERT INTO users (id, email, password, name, role, status, token, phone, objective_weight, routine_weeks, access_until) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                 (uid, data.get('email'), data.get('password'), data.get('name'), role, status, token, data.get('phone', ''), data.get('objective_weight', None), 4, None))
+    conn.execute("""
+        INSERT INTO users (
+            id, email, password, name, surname, role, status, token, 
+            phone, age, height, current_weight, routine_weeks
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (
+        uid, data.get('email'), data.get('password'), data.get('name'), data.get('surname', ''), 
+        role, status, token, data.get('phone', ''), data.get('age', 0), 
+        data.get('height', 0.0), data.get('current_weight', 0.0), 4
+    ))
     conn.commit()
     conn.close()
+    
+    # Notificar al Coach por Email
+    if role == 'CLIENT':
+        try:
+            send_registration_email(data.get('name', 'Nuevo Cliente'), data.get('email', ''))
+        except:
+            pass
+
     return jsonify({'message': 'Registrado.', 'status': status, 'token': token, 'role': role, 'name': data.get('name')})
+
+def send_registration_email(client_name, client_email):
+    import smtplib
+    from email.mime.text import MIMEText
+    try:
+        msg = MIMEText(f"Nuevo registro en la App MT Fitness PRO:\n\nNombre: {client_name}\nEmail: {client_email}\n\nRevisa el Panel de Administración para aprobar el acceso tras confirmar el pago.")
+        msg['Subject'] = f"NUEVO CLIENTE: {client_name}"
+        msg['From'] = "notify@mtfitness.es"
+        msg['To'] = "mitorrgo@gmail.com"
+        # Usar localhost si hay un relay o configurar SMTP real
+        s = smtplib.SMTP('localhost')
+        s.send_message(msg)
+        s.quit()
+    except Exception as e:
+        print(f"SMTP REGISTRATION ERROR: {e}")
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
@@ -987,57 +1018,32 @@ def manage_chat(user):
     conn = get_db()
     target_id = request.args.get('user_id', user['id'])
     if user['role'] != 'ADMIN' and target_id != user['id']: target_id = user['id']
-    target_user_info = conn.execute("SELECT bot_active, name FROM users WHERE id = ?", (target_id,)).fetchone()
 
     if request.method == 'POST':
         data = request.json
         user_msg = data.get('message')
         if not user_msg: return jsonify({'error': 'No message'}), 400
         
-        # 1. Insert User Message
         try:
             conn.execute("INSERT INTO chat_messages (user_id, sender_role, message) VALUES (?, ?, ?)",
                          (target_id, user['role'], user_msg))
             conn.commit()
         except Exception as e:
-            print(f"DATABASE ERROR (User Msg): {e}")
-            return jsonify({'error': 'Database insertion failed'}), 500
+            print(f"DATABASE ERROR: {e}")
+            return jsonify({'error': 'Error guardando mensaje'}), 500
 
-        # 2. Bot Response Logic (Atomic Block)
-        is_bot_on = 0
-        try:
-            is_bot_on = int(target_user_info['bot_active']) if (target_user_info and target_user_info['bot_active'] is not None) else 0
-        except: pass
-
-        if is_bot_on == 1:
-            try:
-                bot_reply = generate_bot_response(user_msg, target_user_info['name'] if target_user_info else 'Cliente')
-                conn.execute("INSERT INTO chat_messages (user_id, sender_role, message) VALUES (?, ?, ?)",
-                             (target_id, 'BOT', bot_reply))
-                conn.commit()
-                print(f"BOT SUCCESS: Replied to {target_id}")
-            except Exception as e:
-                print(f"BOT INDIVIDUAL ERROR: {e}")
-        
         conn.close()
-        return jsonify({'status': 'ok', 'message': 'Sent', 'response': 'Mensaje procesado'})
+        return jsonify({'status': 'ok', 'message': 'Mensaje enviado'})
     else:
         msgs = conn.execute("SELECT * FROM chat_messages WHERE user_id = ? ORDER BY timestamp ASC", (target_id,)).fetchall()
-        # COMPATIBILITY: Flutter expects a List, Web expects a Dict with bot_active
+        # compatibility with Flutter/Web
         is_flutter = 'flutter' in request.headers.get('User-Agent', '').lower() or request.args.get('format') == 'list'
-        
         if is_flutter:
             conn.close()
             return jsonify([dict(m) for m in msgs])
-        
-        # Original format for Web
-        try:
-            bot_active = int(target_user_info['bot_active']) if (target_user_info and target_user_info['bot_active'] is not None) else 0
-        except:
-            bot_active = 0
-            
+
         conn.close()
-        return jsonify({'messages': [dict(m) for m in msgs], 'bot_active': bot_active})
+        return jsonify({'messages': [dict(m) for m in msgs], 'bot_active': 0})
 
 @app.route('/api/chat/clear', methods=['POST'])
 @require_auth(roles=['ADMIN', 'CLIENT'])
