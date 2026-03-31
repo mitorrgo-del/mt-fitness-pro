@@ -1295,40 +1295,42 @@ def generate_marketing():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
-
+@app.route('/api/contact', methods=['POST'])
+def contact():
+        data = req
 
 @app.route('/api/contact', methods=['POST'])
 def contact():
-        data = request.json
-        name = data.get('name')
-        email = data.get('email')
-        objective = data.get('objective')
-
+    data = request.json
+    name = data.get('name')
+    email = data.get('email')
+    objective = data.get('objective')
+    
     try:
-                smtp_server = "smtp.ionos.es"
-                smtp_port = 587
-                sender_email = "info@mtfitness.es"
-                password = "mtfitness2026"
-                receiver_email = "info@mtfitness.es"
-
+        smtp_server = "smtp.ionos.es"
+        smtp_port = 587
+        sender_email = "info@mtfitness.es"
+        password = "mtfitness2026"
+        receiver_email = "info@mtfitness.es"
+        
         message = MIMEMultipart("alternative")
         message["Subject"] = f"NUEVO LEAD WEB: {name}"
         message["From"] = sender_email
         message["To"] = receiver_email
-
-        text = f"Nombre: {name}\nEmail: {email}\nObjetivo: {objective}"
-        message.attach(MIMEText(text, "plain"))
-
+        
+        text_body = f"Nombre: {name}\nEmail: {email}\nObjetivo: {objective}"
+        message.attach(MIMEText(text_body, "plain"))
+        
         server = smtplib.SMTP(smtp_server, smtp_port)
         server.starttls()
         server.login(sender_email, password)
         server.sendmail(sender_email, receiver_email, message.as_string())
         server.quit()
-
+        
         return jsonify({"status": "success", "message": "Email enviado"}), 200
-except Exception as e:
+    except Exception as e:
         print(f"Error enviando email: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
