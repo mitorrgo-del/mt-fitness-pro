@@ -56,8 +56,39 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@600;800&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lucide@latest"></script>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Floating WhatsApp Button */
+        .whatsapp-float {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            width: 60px;
+            height: 60px;
+            background-color: #25d366;
+            color: #FFF;
+            border-radius: 50px;
+            text-align: center;
+            font-size: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        .whatsapp-float:hover {
+            transform: scale(1.1);
+            background-color: #128c7e;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.6);
+        }
+    </style>
 </head>
 <body>
+    <!-- WhatsApp Button -->
+    <a href="https://wa.me/34684360634" class="whatsapp-float" target="_blank">
+        <i data-lucide="phone"></i>
+    </a>
     <!-- Under Construction Banner -->
     <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; display: flex; align-items: center; justify-content: center; overflow: hidden;">
         <div style="background: rgba(255, 204, 0, 0.9); color: black; font-weight: 900; font-size: 40px; text-transform: uppercase; letter-spacing: 5px; padding: 15px 0; width: 150%; text-align: center; transform: rotate(-35deg); box-shadow: 0 0 30px rgba(0,0,0,0.8); border-top: 5px solid black; border-bottom: 5px solid black; white-space: nowrap;">
@@ -350,7 +381,7 @@
                     <h4>App mtfitnesspro 1.0</h4>
                     <ul>
                         <li><a href="#tecnologia">Plataforma Élite</a></li>
-                        <li><a href="mtfitnesspro_1.0.apk">Descargar APK Android</a></li>
+                        <li><a href="MTFitness_PRO_FINAL.apk">Descargar APK Android (v1.0.5)</a></li>
                     </ul>
                 </div>
                 <div class="footer-links">
