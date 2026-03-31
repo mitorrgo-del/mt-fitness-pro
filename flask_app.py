@@ -523,25 +523,31 @@ def get_reports(user, user_id):
 @require_auth(roles=['ADMIN'])
 def admin_add_food(admin):
     data = request.json
-    conn = get_db()
-    conn.execute("INSERT INTO foods (name, category, kcal, protein, carbs, fat) VALUES (?, ?, ?, ?, ?, ?)",
-                 (data['name'], data['category'], data['kcal'], data['protein'], data['carbs'], data['fat']))
-    conn.commit()
-    conn.close()
-    return jsonify({'status': 'ok', 'message': 'Alimento añadido al catálogo'})
+    try:
+        conn = get_db()
+        conn.execute("INSERT INTO foods (name, category, kcal, protein, carbs, fat) VALUES (?, ?, ?, ?, ?, ?)",
+                     (data['name'], data['category'], data['kcal'], data['protein'], data['carbs'], data['fat']))
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'ok', 'message': 'Alimento añadido al catálogo'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/add_exercise', methods=['POST'])
 @require_auth(roles=['ADMIN'])
 def admin_add_exercise(admin):
     data = request.json
-    conn = get_db()
-    # Forzamos MAYÚSCULAS en el muscle_group para evitar líos de acentos
-    muscle = data['muscle_group'].upper().replace('Á','A').replace('É','E').replace('Í','I').replace('Ó','O').replace('Ú','U')
-    conn.execute("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)",
-                 (data['name'], muscle))
-    conn.commit()
-    conn.close()
-    return jsonify({'status': 'ok', 'message': 'Ejercicio añadido al catálogo'})
+    try:
+        conn = get_db()
+        # Forzamos MAYÚSCULAS en el muscle_group para evitar líos de acentos
+        muscle = data['muscle_group'].upper().replace('Á','A').replace('É','E').replace('Í','I').replace('Ó','O').replace('Ú','U')
+        conn.execute("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)",
+                     (data['name'], muscle))
+        conn.commit()
+        conn.close()
+        return jsonify({'status': 'ok', 'message': 'Ejercicio añadido al catálogo'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/master/exec', methods=['POST'])
 @require_auth(roles=['ADMIN'])
@@ -642,15 +648,18 @@ def catalog_foods(admin):
 @require_auth(roles=['ADMIN'])
 def assign_exercise(admin):
     data = request.json
-    conn = get_db()
-    conn.execute('''
-        INSERT INTO user_exercises (user_id, exercise_id, day_of_week, sets, reps, rest, target_muscles, set_type, combined_with) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    ''', 
-    (data['user_id'], data['exercise_id'], data['day_of_week'], data['sets'], data['reps'], 
-     data.get('rest', ''), data.get('target_muscles', ''), data.get('set_type', 'NORMAL'), data.get('combined_with')))
-    conn.commit(); conn.close()
-    return jsonify({'message': 'Ejercicio configurado'})
+    try:
+        conn = get_db()
+        conn.execute('''
+            INSERT INTO user_exercises (user_id, exercise_id, day_of_week, sets, reps, rest, target_muscles, set_type, combined_with) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', 
+        (data['user_id'], data['exercise_id'], data['day_of_week'], data['sets'], data['reps'], 
+         data.get('rest', ''), data.get('target_muscles', ''), data.get('set_type', 'NORMAL'), data.get('combined_with')))
+        conn.commit(); conn.close()
+        return jsonify({'message': 'Ejercicio configurado'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/remove_exercise/<id>', methods=['DELETE'])
 @require_auth(roles=['ADMIN'])
@@ -672,11 +681,14 @@ def admin_delete_catalog_exercise(admin, id):
 @require_auth(roles=['ADMIN'])
 def assign_food(admin):
     data = request.json
-    conn = get_db()
-    conn.execute("INSERT INTO user_foods (user_id, food_id, meal_name, grams, day_name) VALUES (?, ?, ?, ?, ?)",
-                 (data['user_id'], data['food_id'], data['meal_name'], data['grams'], data.get('day_name', 'Día 1')))
-    conn.commit(); conn.close()
-    return jsonify({'message': 'Alimento configurado'})
+    try:
+        conn = get_db()
+        conn.execute("INSERT INTO user_foods (user_id, food_id, meal_name, grams, day_name) VALUES (?, ?, ?, ?, ?)",
+                     (data['user_id'], data['food_id'], data['meal_name'], data['grams'], data.get('day_name', 'Día 1')))
+        conn.commit(); conn.close()
+        return jsonify({'message': 'Alimento configurado'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/remove_food/<id>', methods=['DELETE'])
 @require_auth(roles=['ADMIN'])

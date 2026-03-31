@@ -58,6 +58,12 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <!-- Under Construction Banner -->
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 9999; display: flex; align-items: center; justify-content: center; overflow: hidden;">
+        <div style="background: rgba(255, 204, 0, 0.9); color: black; font-weight: 900; font-size: 40px; text-transform: uppercase; letter-spacing: 5px; padding: 15px 0; width: 150%; text-align: center; transform: rotate(-35deg); box-shadow: 0 0 30px rgba(0,0,0,0.8); border-top: 5px solid black; border-bottom: 5px solid black; white-space: nowrap;">
+            ⚠️ UNDER CONSTRUCTION - PRÓXIMAMENTE ⚠️ UNDER CONSTRUCTION - PRÓXIMAMENTE ⚠️
+        </div>
+    </div>
     <!-- Navbar -->
     <nav class="navbar" id="mainNav">
         <div class="container nav-container">
@@ -305,15 +311,22 @@
             document.getElementById('contactForm')?.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const btn = e.target.querySelector('button');
-                btn.innerText = 'ENVIANDO A MIGUEL...';
-                btn.disabled = true;
+                btn.innerText = 'REEDIRIGIENDO A WHATSAPP...';
                 
-                // Simulación de envío exitoso
+                const name = document.getElementById('contactName').value;
+                const phone = document.getElementById('contactPhone').value;
+                const email = document.getElementById('contactEmail').value;
+                const goal = document.getElementById('contactGoal').options[document.getElementById('contactGoal').selectedIndex].text;
+                
+                const message = `¡Hola Miguel! Soy ${name}. Mi teléfono es ${phone} y mi correo ${email}.\nMi objetivo es: ${goal}.\nMe gustaría empezar mi transformación guiada contigo.`;
+                const waUrl = `https://wa.me/34600000000?text=${encodeURIComponent(message)}`;
+                window.open(waUrl, '_blank');
+                
                 setTimeout(() => {
                     e.target.style.display = 'none';
                     document.getElementById('formSuccess').style.display = 'block';
                     lucide.createIcons();
-                }, 1500);
+                }, 1000);
             });
         </script>
         <footer>
@@ -356,22 +369,7 @@
                 </div>
             </div>
             <div class="footer-bottom" style="display: flex; flex-direction: column; align-items: center; gap: 15px; padding-bottom: 20px;">
-                <div class="visit-counter" id="visitCounterBox" style="background: rgba(45, 212, 191, 0.1); padding: 8px 20px; border-radius: 20px; border: 1px solid var(--primary-color); display: flex; align-items: center; gap: 8px;" title="Contador de Visitas en Vivo">
-                    <span style="color: var(--text-dim); font-size: 12px; text-transform: uppercase; font-weight: 800;">Atletas Visitantes:</span>
-                    <span id="visitCount" style="color: var(--primary); font-weight: 800; font-size: 16px;">...</span>
-                </div>
-                
-                <script>
-                    (async function() {
-                        try {
-                            const res = await fetch('/api/increment_visits');
-                            const data = await res.json();
-                            document.getElementById('visitCount').innerText = data.visits || '0';
-                        } catch(e) {
-                            console.error('Error counting visits');
-                        }
-                    })();
-                </script>
+                <!-- Visitor Counter Removed -->
                 <div>&copy; 2026 MT FITNESS PRO coach. Todos los derechos reservados.</div>
             </div>
         </footer>
