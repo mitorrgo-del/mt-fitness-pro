@@ -310,7 +310,7 @@
             document.getElementById('closeContact')?.addEventListener('click', () => modal.classList.remove('active'));
             modal?.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('active'); });
 
-            document.getElementById('contactForm')?.addEventListener('submit', function(e) {
+            document.gdocument.gdocument.getElementById('contactForm')?.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const btn = e.target.querySelector('button');
                 btn.innerText = 'ENVIANDO...';
@@ -318,88 +318,86 @@
                 
                 const name = document.getElementById('contactName').value;
                 const email = document.getElementById('contactEmail').value;
-                const goal = document.getElementById('contactGoal').options[document.getElementById('contactGoal').selectedIndex].text;
+                const goal = document.getElementById('contactGoal'const goal = document.getElementById('contactGoal').options[document.getElementById('contactGoal').selectedIndex].text;
                 
-                console.log("Formulario enviado:", { name, email, goal });
-                
-                setTimeout(() => {
-                    document.getElementById('modalFormContent').style.display = 'none';
-                    document.getElementById('formSuccess').style.display = 'block';
-                    lucide.createIcons();
-                    
-                    setTimeout(() => {
-                        modal.classList.remove('active');
+                fetch('/api/contact', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, objective: goal })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('modalFormContent').style.display = 'none';
+                        document.getElementById('formSuccess').style.display = 'block';
+                        lucide.createIcons();
+                        
+                        const modal = document.getElementById('contactModal');
                         setTimeout(() => {
-                            document.getElementById('modalFormContent').style.display = 'block';
-                            document.getElementById('formSuccess').style.display = 'none';
-                            e.target.reset();
-                            btn.innerText = 'ENVIAR SOLICITUD';
-                            btn.disabled = false;
-                        }, 500);
-                    }, 2000);
-                }, 1500);
+                            modal.classList.remove('active');
+                            setTimeout(() => {
+                                document.getElementById('modalFormContent').style.display = 'block';
+                                document.getElementById('formSuccess').style.display = 'none';
+                                e.target.reset();
+                                btn.innerText = 'ENVIAR SOLICITUD';
+                                btn.disabled = false;
+                            }, 500);
+                        }, 2000);
+                    } else {
+                        alert('Error: ' + data.message);
+                        btn.innerText = 'ENVIAR SOLICITUD';
+                        btn.disabled = false;
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    alert('Error enviando la solicitud.');
+                    btn.innerText = 'ENVIAR SOLICITUD';
+                    btn.disabled = false;
+                });
             });
-        </script>
-        <footer>
-            <div class="container footer-grid">
-                <div class="footer-brand">
-                    <a href="#" class="nav-logo">
-                        <img src="logo.png" alt="Logo">
-                        <span class="logo-font" style="font-size: 20px;">MT FITNESS <span class="text-gradient">PRO</span></span>
-                    </a>
-                    <p>Elevamos los estándares del entrenamiento personal online. Disciplina, método y resultados.</p>
-                </div>
-                <div class="footer-links">
-                    <h4>Servicio</h4>
-                    <ul>
-                        <li><a href="#metodo">Metodología</a></li>
-                        <li><a href="#planes">Precios</a></li>
-                        <li><a href="#entrenador">Miguel Torres</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h4>App mtfitnesspro 1.1</h4>
-                    <ul>
-                        <li><a href="#tecnologia">Plataforma Élite</a></li>
-                        <li><a href="MTFitness_PRO_FINAL.apk">Descargar APK Android (v1.0.7)</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h4>Contacto</h4>
-                    <ul>
-                        <li><a href="mailto:info@mtfitness.es">info@mtfitness.es</a></li>
-                        <li><a href="https://instagram.com/mtfitnesspro" target="_blank">Instagram</a></li>
-                    </ul>
-                </div>
-                <div class="footer-links">
-                    <h4>Legal</h4>
-                    <ul>
-                        <li><a href="#">Privacidad</a></li>
-                        <li><a href="#">Términos</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <div>&copy; 2026 MT FITNESS PRO coach - v1.0.7. Todos los derechos reservados.</div>
-            </div>
-        </footer>
-    </main>
+    </script>
 
-    <main id="view-blog" class="view" style="padding-top: 100px; background: var(--bg-dark); min-height: 100vh;">
-        <div class="container">
-            <button class="back-to-landing btn btn-secondary btn-sm" style="margin-bottom: 30px;">&larr; Volver</button>
-            <div class="section-header">
-                <div class="badge-new">PORTAL COGNITIVO</div>
-                <h2 class="section-header">Portal de <span class="text-gradient">Conocimiento PRO.</span></h2>
-                <p class="text-muted">Explora los últimos conocimientos basados en resultados reales de Miguel Torres para optimizar cada gramo de músculo.</p>
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="container footer-grid">
+            <div class="footer-brand">
+                <a href="#" class="nav-logo">
+                    <img src="logo.png" alt="Logo">
+                    <span class="logo-font" style="font-size: 20px;">MT FITNESS <span class="text-gradient">PRO</span></span>
+                </a>
+                <p>Elevamos los estándares del entrenamiento personal online. Disciplina, método y resultados.</p>
+                <div class="social-links">
+                    <a href="#" class="social-link"><i data-lucide="instagram"></i></a>
+                    <a href="#" class="social-link"><i data-lucide="youtube"></i></a>
+                    <a href="#" class="social-link"><i data-lucide="twitter"></i></a>
+                </div>
             </div>
-            
-            <div id="blog-grid-main" class="features-grid" style="margin-top: 50px; padding-bottom: 80px;">
-                <div class="text-muted">Consultando la base de datos neuronal...</div>
+            <div class="footer-links">
+                <h4>Navegación</h4>
+                <ul>
+                    <li><a href="#home">Inicio</a></li>
+                    <li><a href="#experiencia">Experiencia</a></li>
+                    <li><a href="#servicios">Servicios</a></li>
+                    <li><a href="#metodo">Método</a></li>
+                </ul>
+            </div>
+            <div class="footer-links">
+                <h4>Legal</h4>
+                <ul>
+                    <li><a href="#">Privacidad</a></li>
+                    <li><a href="#">Términos</a></li>
+                    <li><a href="#">Cookies</a></li>
+                </ul>
             </div>
         </div>
-    </main>
+        <div class="footer-bottom">
+            <p>&copy; 2026 MT Fitness PRO - Todos los derechos reservados</p>
+        </div>
+    </footer>
 
-    <script>lucide.createIcons();</script>
+    <script>
+        lucide.createIcons();
+    </script>
 </body>
 </html>
