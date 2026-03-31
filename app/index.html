@@ -10,7 +10,7 @@
     <title>MEJOR ENTRENADOR PERSONAL ONLINE | Miguel Torres - Transformación Élite</title>
     
     <!-- SEO Meta Tags -->
-    <meta name="description" content="¿Buscas al mejor entrenador personal online? Miguel Torres te ofrece planes de entrenamiento personalizados, nutrición avanzada con IA y seguimiento real 24/7. Transforma tu físico hoy.">
+    <meta name="description" content="¿Buscas al mejor entrenador personal online? Miguel Torres te ofrece planes de entrenamiento personalizados, nutrición avanzada y seguimiento real 24/7. Transforma tu físico hoy.">
     <meta name="keywords" content="mejor entrenador personal online, miguel torres coach, entrenamiento inteligente, transformación física online, dieta personalizada, preparación culturismo natural, asesoría fitness pro, ganar masa muscular rápido, perder grasa abdominal, coach nutrición online">
     <meta name="author" content="Miguel Torres">
     <meta name="robots" content="index, follow">
@@ -27,7 +27,7 @@
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://www.mtfitness.es/">
     <meta property="twitter:title" content="MT FITNESS PRO | Entrenamiento Personalizado Online">
-    <meta property="twitter:description" content="Transforma tu físico con la ayuda de nuestra tecnología y la IA.">
+    <meta property="twitter:description" content="Transforma tu físico con la ayuda de nuestra tecnología de élite.">
     <meta property="twitter:image" content="https://www.mtfitness.es/logo-512.png">
 
     <!-- JSON-LD Structured Data -->
@@ -37,7 +37,7 @@
       "@type": "FitnessCenter",
       "name": "MT Fitness PRO",
       "image": "https://www.mtfitness.es/logo-512.png",
-      "description": "Entrenamiento personal online de élite y nutrición inteligente.",
+      "description": "Entrenamiento personal online de élite y nutrición especializada.",
       "address": {
         "@type": "PostalAddress",
         "addressCountry": "ES"
@@ -79,7 +79,7 @@
                 <a href="#metodo" id="nav-metodo">Método</a>
                 <a href="#tecnologia" id="nav-tecnologia">Tecnología</a>
                 <a href="#entrenador" id="nav-entrenador">Coach</a>
-                <a href="#blog" id="nav-blog">Blog IA</a>
+                <a href="#blog" id="nav-blog">Portal PRO</a>
                 <a href="#planes" id="nav-planes">Planes</a>
                 <a href="#entrenador" class="btn btn-secondary btn-sm" style="padding: 10px 20px;">Contacto</a>
             </div>
@@ -95,7 +95,7 @@
         <a href="#metodo" class="nav-link-mobile" data-section="metodo">Método</a>
         <a href="#tecnologia" class="nav-link-mobile" data-section="tecnologia">Tecnología</a>
         <a href="#entrenador" class="nav-link-mobile" data-section="entrenador">Coach</a>
-        <a href="#blog" class="nav-link-mobile" id="mobile-nav-blog">Blog IA</a>
+        <a href="#blog" class="nav-link-mobile" id="mobile-nav-blog">Portal PRO</a>
         <a href="#planes" class="nav-link-mobile" data-section="planes">Planes</a>
         <a href="mailto:info@mtfitness.es" class="btn btn-primary" style="width: 80%;">Contactar Coach</a>
     </div>
@@ -110,7 +110,7 @@
             <div class="container hero-content">
                 <div class="badge-new">SISTEMA DE ALTO RENDIMIENTO ONLINE</div>
                 <h1 class="logo-font">Entrenador Personal Online: <br> Transforma tu Físico y tu <span class="text-gradient">Vida.</span></h1>
-                <p>Tu entrenador personal online para resultados reales. Planificación de élite y nutrición inteligente con IA.</p>
+                <p>Tu entrenador personal online para resultados reales. Planificación de élite y nutrición avanzada.</p>
                 <div class="hero-btns">
                     <a href="#planes" class="btn btn-primary">Ver Planes</a>
                     <a href="#metodo" class="btn btn-secondary">Conocer Método</a>
@@ -308,22 +308,21 @@
             document.getElementById('contactForm')?.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const btn = e.target.querySelector('button');
-                btn.innerText = 'REEDIRIGIENDO A WHATSAPP...';
+                btn.innerText = 'ENVIANDO SOLICITUD...';
+                btn.disabled = true;
                 
                 const name = document.getElementById('contactName').value;
-                const phone = document.getElementById('contactPhone').value;
                 const email = document.getElementById('contactEmail').value;
                 const goal = document.getElementById('contactGoal').options[document.getElementById('contactGoal').selectedIndex].text;
                 
-                const message = `¡Hola Miguel! Soy ${name}. Mi teléfono es ${phone} y mi correo ${email}.\nMi objetivo es: ${goal}.\nMe gustaría empezar mi transformación guiada contigo.`;
-                const waUrl = `https://wa.me/34600000000?text=${encodeURIComponent(message)}`;
-                window.open(waUrl, '_blank');
+                // Simulación de envío al backend o simplemente mostrar éxito
+                console.log("Contacto:", { name, email, goal });
                 
                 setTimeout(() => {
                     e.target.style.display = 'none';
                     document.getElementById('formSuccess').style.display = 'block';
                     lucide.createIcons();
-                }, 1000);
+                }, 1500);
             });
         </script>
         <footer>
