@@ -95,7 +95,7 @@ class _ChatScreenState extends State<ChatScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Coach Privado AI'),
+        title: const Text('Coach Miguel Torres'),
         leading: Navigator.of(context).canPop() 
            ? IconButton(
               icon: const Icon(LucideIcons.chevronLeft),
@@ -125,7 +125,7 @@ class _ChatScreenState extends State<ChatScreen> {
                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                child: Row(
                  children: [
-                   const Text('Coach escribiendo...', style: TextStyle(color: AppTheme.textMuted, fontSize: 12, fontStyle: FontStyle.italic)),
+                   const Text('Miguel Torres está escribiendo...', style: TextStyle(color: AppTheme.textMuted, fontSize: 12, fontStyle: FontStyle.italic)),
                    const SizedBox(width: 8),
                    SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2, color: AppTheme.primary.withOpacity(0.5))),
                  ],
