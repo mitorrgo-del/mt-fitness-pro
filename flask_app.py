@@ -1132,7 +1132,7 @@ def agent_reject(post_id):
 
 @app.route('/descargar-app')
 def download_app():
-    return redirect("https://raw.githubusercontent.com/mitorrgo-del/mt-fitness-pro/740f8f4/app/MTFitness_PRO_v26_FINAL.apk", code=302)
+    return redirect("https://raw.githubusercontent.com/mitorrgo-del/mt-fitness-pro/main/app/MTFitness_PRO_FINAL.apk", code=302)
 
 @app.route('/')
 def index():
