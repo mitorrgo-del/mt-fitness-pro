@@ -52,7 +52,7 @@ def get_db():
     if db_url:
         import psycopg2
         from psycopg2.extras import RealDictCursor
-        conn = psycopg2.connect(db_url, sslmode='require')
+        conn = psycopg2.connect(db_url, sslmode='require', cursor_factory=RealDictCursor)
         return DbWrapper(conn, True)
     else:
         conn = sqlite3.connect(DB_FILE)
