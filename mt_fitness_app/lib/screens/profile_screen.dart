@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_theme.dart';
 import '../services/api_service.dart';
 import '../widgets/premium_card.dart';
@@ -23,6 +25,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   
   bool _isLoading = false;
   List<dynamic> _measurements = [];
+  File? _imageFile;
+  final ImagePicker _picker = ImagePicker();
 
   @override
   void initState() {
@@ -37,21 +41,38 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _pickImage() async {
+    final XFile? selected = await _picker.pickImage(source: ImageSource.gallery, imageQuality: 50);
+    if (selected != null) {
+      setState(() => _imageFile = File(selected.path));
+    }
+  }
+
   Future<void> _handleSave() async {
     setState(() => _isLoading = true);
     try {
-      await ApiService().updateProfile({
+      final payload = {
         'name': _nameController.text,
         'surname': _surnameController.text,
         'age': int.tryParse(_ageController.text),
         'height': double.tryParse(_heightController.text),
         'current_weight': double.tryParse(_weightController.text),
         'objective': _selectedObjective,
-      });
+      };
+
+      await ApiService().updateProfile(payload, imagePath: _imageFile?.path);
+      
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Perfil actualizado correctamente')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Perfil actualizado correctamente'),
+          backgroundColor: Colors.green.shade800,
+        ),
+      );
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red.shade800),
+      );
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -76,34 +97,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Center(
-              child: Stack(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: AppTheme.primary.withOpacity(0.1),
-                    child: const Icon(LucideIcons.user, size: 40, color: AppTheme.primary),
-                  ),
-                  Positioned(
-                    bottom: 0, right: 0,
-                    child: Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: const BoxDecoration(color: AppTheme.primary, shape: BoxShape.circle),
-                      child: const Icon(LucideIcons.camera, color: Colors.white, size: 16),
+              child: GestureDetector(
+                onTap: _pickImage,
+                child: Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 54,
+                      backgroundColor: AppTheme.primary,
+                      child: CircleAvatar(
+                        radius: 52,
+                        backgroundColor: AppTheme.surface,
+                        backgroundImage: _imageFile != null 
+                            ? FileImage(_imageFile!) 
+                            : (ApiService().profileImage != null 
+                                ? NetworkImage('${ApiService.uploadsUrl}${ApiService().profileImage}') 
+                                : null) as ImageProvider?,
+                        child: (_imageFile == null && ApiService().profileImage == null)
+                            ? const Icon(LucideIcons.user, size: 40, color: AppTheme.primary)
+                            : null,
+                      ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      bottom: 0, right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primary, 
+                          shape: BoxShape.circle,
+                          border: Border.all(color: AppTheme.bgColor, width: 2),
+                        ),
+                        child: const Icon(LucideIcons.camera, color: Colors.black, size: 16),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 32),
             
             if (_measurements.length >= 2) ...[
-               const Text('EVOLUCIÓN DE PESO', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+               const Text('EVOLUCIÓN DE PESO', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 12, letterSpacing: 1.2)),
                const SizedBox(height: 16),
                _buildChart(),
                const SizedBox(height: 32),
             ],
 
-            const Text('DATOS PERSONALES', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+            const Text('DATOS PERSONALES', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 12, letterSpacing: 1.2)),
             const SizedBox(height: 16),
             PremiumCard(
               padding: 24,
@@ -123,12 +162,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                    const SizedBox(height: 16),
                    TextField(controller: _weightController, decoration: const InputDecoration(labelText: 'Peso Inicial (kg)'), keyboardType: TextInputType.number),
                    const SizedBox(height: 24),
-                   const Align(alignment: Alignment.centerLeft, child: Text('Objetivo', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
+                   const Align(alignment: Alignment.centerLeft, child: Text('Objetivo Actual', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
+                   const SizedBox(height: 8),
                    DropdownButton<String>(
                      value: _selectedObjective,
                      isExpanded: true,
                      dropdownColor: AppTheme.surface,
                      underline: Container(height: 1, color: AppTheme.border),
+                     style: const TextStyle(color: Colors.white, fontSize: 16),
                      items: ['Bajar grasa', 'Subir masa muscular', 'Mantenimiento']
                         .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
                      onChanged: (v) => setState(() => _selectedObjective = v!),
@@ -145,13 +186,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: const Icon(LucideIcons.logOut),
               label: const Text('Cerrar Sesión'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.withOpacity(0.1),
-                foregroundColor: Colors.red,
-                side: const BorderSide(color: Colors.red, width: 0.5),
+                backgroundColor: Colors.red.withOpacity(0.05),
+                foregroundColor: Colors.redAccent,
+                elevation: 0,
+                side: BorderSide(color: Colors.redAccent.withOpacity(0.3), width: 1),
                 minimumSize: const Size(double.infinity, 54),
               ),
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 80), // More padding at bottom
           ],
         ),
       ),

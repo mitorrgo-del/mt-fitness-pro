@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String baseUrl = 'https://mt-fitness-pro.onrender.com/api/';
+  static const String uploadsUrl = 'https://mt-fitness-pro.onrender.com/uploads/';
+  
   String? _token;
   String? _role;
   String? _userId;
@@ -14,6 +16,7 @@ class ApiService {
   double? _currentWeight;
   String? _objective;
   int? _daysLeft;
+  String? _profileImage;
 
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
@@ -31,6 +34,7 @@ class ApiService {
   double? get currentWeight => _currentWeight;
   String? get objective => _objective;
   int? get daysLeft => _daysLeft;
+  String? get profileImage => _profileImage;
 
   void logout() {
     _token = null;
@@ -54,45 +58,24 @@ class ApiService {
       body: jsonEncode({'email': email, 'password': password}),
     );
     
-    // Log for debugging if it's not JSON
     if (!response.headers['content-type']!.contains('application/json')) {
-      return {'error': 'El servidor no respondió con JSON. Verifica la ruta.'};
+      return {'error': 'El servidor no respondió con JSON.'};
     }
     
     final data = jsonDecode(response.body);
-    if (data.containsKey('token')) {
-      _token = data['token'];
-    }
-    if (data.containsKey('role')) {
-      _role = data['role'];
-    }
-    if (data.containsKey('id')) {
-      _userId = data['id'];
-    }
-    if (data.containsKey('name')) {
-      _userName = data['name'];
-    }
-    if (data.containsKey('surname')) {
-      _surname = data['surname'];
-    }
-    if (data.containsKey('email')) {
-      _userEmail = data['email'];
-    }
-    if (data.containsKey('age')) {
-      _age = data['age'];
-    }
-    if (data.containsKey('height')) {
-      _height = data['height']?.toDouble();
-    }
-    if (data.containsKey('current_weight')) {
-      _currentWeight = data['current_weight']?.toDouble();
-    }
-    if (data.containsKey('objective')) {
-      _objective = data['objective'];
-    }
-    if (data.containsKey('days_left')) {
-      _daysLeft = data['days_left'];
-    }
+    if (data.containsKey('token')) _token = data['token'];
+    if (data.containsKey('role')) _role = data['role'];
+    if (data.containsKey('id')) _userId = data['id'];
+    if (data.containsKey('name')) _userName = data['name'];
+    if (data.containsKey('surname')) _surname = data['surname'];
+    if (data.containsKey('email')) _userEmail = data['email'];
+    if (data.containsKey('age')) _age = data['age'];
+    if (data.containsKey('height')) _height = data['height']?.toDouble();
+    if (data.containsKey('current_weight')) _currentWeight = data['current_weight']?.toDouble();
+    if (data.containsKey('objective')) _objective = data['objective'];
+    if (data.containsKey('days_left')) _daysLeft = data['days_left'];
+    if (data.containsKey('profile_image')) _profileImage = data['profile_image'];
+    
     return data;
   }
 
@@ -102,48 +85,29 @@ class ApiService {
       headers: {'Content-Type': 'application/json'},
       body: jsonEncode({'name': name, 'email': email, 'password': password}),
     );
-    if (!response.headers['content-type']!.contains('application/json')) {
-      return {'error': 'Error de servidor (HTML)'};
-    }
-    final data = jsonDecode(response.body);
-    if (data.containsKey('id')) {
-      _userId = data['id'];
-    }
-    return data;
+    return jsonDecode(response.body);
   }
 
   Future<List<dynamic>> getDietPlan({String? userId}) async {
     final query = userId != null ? '?user_id=$userId' : '';
     final response = await http.get(Uri.parse('${baseUrl}client/my_diet$query'), headers: _headers);
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw Exception('Error al cargar plan nutricional');
+    return response.statusCode == 200 ? jsonDecode(response.body) : [];
   }
 
   Future<List<dynamic>> getWorkoutPlan({String? userId}) async {
     final query = userId != null ? '?user_id=$userId' : '';
     final response = await http.get(Uri.parse('${baseUrl}client/my_workout$query'), headers: _headers);
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    throw Exception('Error al cargar rutina');
+    return response.statusCode == 200 ? jsonDecode(response.body) : [];
   }
 
   Future<List<dynamic>> getChatMessages() async {
     final response = await http.get(Uri.parse('${baseUrl}chat'), headers: _headers);
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    return [];
+    return response.statusCode == 200 ? jsonDecode(response.body) : [];
   }
 
   Future<List<dynamic>> getAllUsers() async {
     final response = await http.get(Uri.parse('${baseUrl}admin/users'), headers: _headers);
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    return [];
+    return response.statusCode == 200 ? jsonDecode(response.body) : [];
   }
 
   Future<Map<String, dynamic>> sendChatMessage(String message) async {
@@ -182,21 +146,15 @@ class ApiService {
   }
 
   Future<void> addToExerciseCatalog(String name, String muscleGroup) async {
-    final response = await http.post(
+    await http.post(
       Uri.parse('${baseUrl}admin/add_exercise'),
       headers: _headers,
       body: jsonEncode({'name': name, 'muscle_group': muscleGroup}),
     );
-    if (response.statusCode != 200) throw Exception('No se pudo añadir al catálogo');
   }
 
   Future<void> addToFoodCatalog(Map<String, dynamic> data) async {
-    final response = await http.post(
-      Uri.parse('${baseUrl}admin/add_food'),
-      headers: _headers,
-      body: jsonEncode(data),
-    );
-    if (response.statusCode != 200) throw Exception('No se pudo añadir al catálogo');
+    await http.post(Uri.parse('${baseUrl}admin/add_food'), headers: _headers, body: jsonEncode(data));
   }
 
   Future<Map<String, dynamic>> assignExercise(String userId, int exerciseId, String day, int sets, String reps, {String rest = '', String targetMuscles = '', String setType = 'NORMAL', int? combinedWith}) async {
@@ -235,19 +193,12 @@ class ApiService {
 
   // --- Measurements ---
   Future<Map<String, dynamic>> logMeasurement(Map<String, dynamic> data) async {
-    final response = await http.post(
-      Uri.parse('${baseUrl}measurements'),
-      headers: _headers,
-      body: jsonEncode(data),
-    );
+    final response = await http.post(Uri.parse('${baseUrl}measurements'), headers: _headers, body: jsonEncode(data));
     return jsonDecode(response.body);
   }
 
   Future<List<dynamic>> getMeasurements(String userId) async {
-    final response = await http.get(
-      Uri.parse('${baseUrl}measurements?user_id=$userId'),
-      headers: _headers,
-    );
+    final response = await http.get(Uri.parse('${baseUrl}measurements?user_id=$userId'), headers: _headers);
     return response.statusCode == 200 ? jsonDecode(response.body) : [];
   }
 
@@ -258,80 +209,76 @@ class ApiService {
   }
 
   Future<void> approveSocialPost(int id) async {
-    final response = await http.post(Uri.parse('${baseUrl}admin/social_posts/approve/$id'), headers: _headers);
-    if (response.statusCode != 200) throw Exception('No se pudo aprobar el post');
+    await http.post(Uri.parse('${baseUrl}admin/social_posts/approve/$id'), headers: _headers);
   }
 
   Future<void> rejectSocialPost(int id) async {
-    final response = await http.post(Uri.parse('${baseUrl}admin/social_posts/reject/$id'), headers: _headers);
-    if (response.statusCode != 200) throw Exception('No se pudo rechazar el post');
+    await http.post(Uri.parse('${baseUrl}admin/social_posts/reject/$id'), headers: _headers);
   }
 
   Future<void> generateSocialProposal() async {
-    final response = await http.post(Uri.parse('${baseUrl}admin/social_posts/generate'), headers: _headers);
-    if (response.statusCode != 200) throw Exception('No se pudo generar la propuesta');
+    await http.post(Uri.parse('${baseUrl}admin/social_posts/generate'), headers: _headers);
   }
 
-  // --- Coach Admin Actions ---
-
-  Future<void> approveUser(String userId) async {
-    final response = await http.post(Uri.parse('${baseUrl}admin/approve/$userId'), headers: _headers);
-    if (response.statusCode != 200) throw Exception('No se pudo aprobar al usuario');
-  }
-
-  Future<void> addSubscription(String userId, int days) async {
-    final response = await http.post(
-      Uri.parse('${baseUrl}admin/add_subscription/$userId'),
-      headers: _headers,
-      body: jsonEncode({'days': days}),
-    );
-    if (response.statusCode != 200) throw Exception('No se pudo añadir la suscripción');
-  }
-
-  Future<void> updateProfile(Map<String, dynamic> data) async {
-    final response = await http.post(
-      Uri.parse('${baseUrl}profile/update'),
-      headers: _headers,
-      body: jsonEncode(data),
-    );
-    if (response.statusCode == 200) {
-       _userName = data['name'];
-       _surname = data['surname'];
-       _age = data['age'];
-       _height = data['height']?.toDouble();
-       _currentWeight = data['current_weight']?.toDouble();
-       _objective = data['objective'];
+  // --- Profile update with Image support ---
+  Future<void> updateProfile(Map<String, dynamic> data, {String? imagePath}) async {
+    final url = Uri.parse('${baseUrl}profile/update');
+    
+    if (imagePath != null) {
+      final request = http.MultipartRequest('POST', url);
+      request.headers.addAll({
+        if (_token != null) 'Authorization': 'Bearer $_token',
+      });
+      
+      request.fields['name'] = data['name'] ?? '';
+      request.fields['surname'] = data['surname'] ?? '';
+      request.fields['age'] = (data['age'] ?? '').toString();
+      request.fields['height'] = (data['height'] ?? '').toString();
+      request.fields['current_weight'] = (data['current_weight'] ?? '').toString();
+      request.fields['objective'] = data['objective'] ?? '';
+      
+      request.files.add(await http.MultipartFile.fromPath('profile_image', imagePath));
+      
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        final resData = jsonDecode(response.body);
+        _profileImage = resData['profile_image'];
+      } else {
+        throw Exception('Error al actualizar con imagen: ${response.body}');
+      }
     } else {
-      throw Exception('Error al actualizar perfil');
+      final response = await http.post(url, headers: _headers, body: jsonEncode(data));
+      if (response.statusCode != 200) throw Exception('Error al actualizar perfil');
     }
+    
+    // Sync local state
+    _userName = data['name'];
+    _surname = data['surname'];
+    _age = data['age'];
+    _height = data['height']?.toDouble();
+    _currentWeight = data['current_weight']?.toDouble();
+    _objective = data['objective'];
   }
 
   Future<void> submitReport(String weight, String? photoFront, String? photoSide, String? photoBack) async {
     final request = http.MultipartRequest('POST', Uri.parse('${baseUrl}reports/submit'));
-    request.headers.addAll(_headers);
+    request.headers.addAll({
+      if (_token != null) 'Authorization': 'Bearer $_token',
+    });
     request.fields['weight'] = weight;
     
-    if (photoFront != null) {
-      request.files.add(await http.MultipartFile.fromPath('photo_front', photoFront));
-    }
-    if (photoSide != null) {
-      request.files.add(await http.MultipartFile.fromPath('photo_side', photoSide));
-    }
-    if (photoBack != null) {
-      request.files.add(await http.MultipartFile.fromPath('photo_back', photoBack));
-    }
+    if (photoFront != null) request.files.add(await http.MultipartFile.fromPath('photo_front', photoFront));
+    if (photoSide != null) request.files.add(await http.MultipartFile.fromPath('photo_side', photoSide));
+    if (photoBack != null) request.files.add(await http.MultipartFile.fromPath('photo_back', photoBack));
     
     final streamedResponse = await request.send();
-    if (streamedResponse.statusCode != 200) {
-      throw Exception('Error al enviar el reporte');
-    }
+    if (streamedResponse.statusCode != 200) throw Exception('Error al enviar el reporte');
   }
 
   Future<List<dynamic>> getReportHistory(String userId) async {
     final response = await http.get(Uri.parse('${baseUrl}reports/history/$userId'), headers: _headers);
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    }
-    return [];
+    return response.statusCode == 200 ? jsonDecode(response.body) : [];
   }
 }

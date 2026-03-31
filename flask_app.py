@@ -160,6 +160,12 @@ def init_db():
         ("user_exercises", "combined_with", "INTEGER"),
         ("user_exercises", "target_muscles", "TEXT"),
         ("user_foods", "day_name", "TEXT DEFAULT 'Día 1'"),
+        ("users", "surname", "TEXT"),
+        ("users", "age", "INTEGER"),
+        ("users", "height", "REAL"),
+        ("users", "current_weight", "REAL"),
+        ("users", "objective", "TEXT"),
+        ("users", "profile_image", "TEXT"),
     ]
     for table, col, defn in columns_to_add:
         if not column_exists(table, col):
@@ -451,16 +457,40 @@ def login():
 @app.route('/api/profile/update', methods=['POST'])
 @require_auth(roles=['ADMIN', 'CLIENT'])
 def update_profile(user):
-    data = request.json
-    conn = get_db()
-    conn.execute('''UPDATE users SET 
-        name = ?, surname = ?, age = ?, height = ?, current_weight = ?, objective = ? 
-        WHERE id = ?''', 
-        (data.get('name'), data.get('surname'), data.get('age'), data.get('height'), 
-         data.get('current_weight'), data.get('objective'), user['id']))
-    conn.commit()
-    conn.close()
-    return jsonify({'message': 'Perfil actualizado'})
+    # Support both JSON and Multipart (for images)
+    if request.is_json:
+        data = request.json
+    else:
+        data = request.form
+        
+    image = request.files.get('profile_image')
+    image_filename = None
+    
+    if image:
+        image_filename = f"profile_{user['id']}_{uuid.uuid4().hex}.jpg"
+        image.save(os.path.join(app.config['UPLOAD_FOLDER'], image_filename))
+        
+    try:
+        conn = get_db()
+        # Si se subió imagen, la actualizamos. Si no, dejamos la que estaba.
+        if image_filename:
+            conn.execute('''UPDATE users SET 
+                name = ?, surname = ?, age = ?, height = ?, current_weight = ?, objective = ?, profile_image = ? 
+                WHERE id = ?''', 
+                (data.get('name'), data.get('surname'), data.get('age'), data.get('height'), 
+                 data.get('current_weight'), data.get('objective'), image_filename, user['id']))
+        else:
+            conn.execute('''UPDATE users SET 
+                name = ?, surname = ?, age = ?, height = ?, current_weight = ?, objective = ? 
+                WHERE id = ?''', 
+                (data.get('name'), data.get('surname'), data.get('age'), data.get('height'), 
+                 data.get('current_weight'), data.get('objective'), user['id']))
+            
+        conn.commit()
+        conn.close()
+        return jsonify({'message': 'Perfil actualizado', 'profile_image': image_filename})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/api/admin/users', methods=['GET'])
 @require_auth(roles=['ADMIN'])
@@ -1219,6 +1249,10 @@ def download_db():
 @app.route('/<path:path>')
 def serve_static(path):
     return send_from_directory(app.static_folder, path)
+
+@app.route('/uploads/<filename>')
+def serve_uploads(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/api/generate_marketing', methods=['GET', 'POST'], strict_slashes=False)
 def generate_marketing():
