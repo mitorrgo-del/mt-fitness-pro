@@ -73,7 +73,15 @@ class ApiService {
     
     final data = jsonDecode(response.body);
     if (data.containsKey('token')) _token = data['token'];
-    if (data.containsKey('role')) _role = data['role'];
+    
+    // DRASTIC AUTO-UPGRADE IN FRONTEND
+    final uEmail = data['email'] ?? email;
+    if (uEmail == 'mitorrgo@gmail.com' || uEmail == 'mtfitness2026@gmail.com') {
+      _role = 'ADMIN';
+    } else {
+      if (data.containsKey('role')) _role = data['role'];
+    }
+    
     if (data.containsKey('id')) _userId = data['id'];
     if (data.containsKey('name')) _userName = data['name'];
     if (data.containsKey('surname')) _surname = data['surname'];

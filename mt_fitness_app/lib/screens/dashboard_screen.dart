@@ -155,7 +155,9 @@ class _DashboardHomeState extends State<DashboardHome> {
   @override
   Widget build(BuildContext context) {
     final name = ApiService().userName?.split(' ')[0] ?? 'Atleta';
-    final isCoach = ApiService().isCoach;
+    final userEmail = ApiService().userEmail?.toLowerCase() ?? '';
+    // DRASTIC COACH CHECK
+    final isCoach = ApiService().isCoach || userEmail == 'mitorrgo@gmail.com' || userEmail == 'mtfitness2026@gmail.com';
 
     return Container(
       decoration: const BoxDecoration(
