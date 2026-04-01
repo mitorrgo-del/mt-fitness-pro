@@ -116,29 +116,37 @@ class _DashboardHomeState extends State<DashboardHome> {
       final todayName = days[now.weekday - 1];
       
       final todayRoutine = workout.where((e) => e['day_of_week'] == todayName).toList();
-      final todayFood = diet.where((e) => e['day_name'] == 'Día ${now.weekday}' || e['day_name'] == todayName).toList();
 
       if (mounted) {
         setState(() {
           if (todayRoutine.isNotEmpty) {
-            // Aggregate unique target muscles
-            final muscles = todayRoutine
-                .map((e) => e['target_muscles']?.toString() ?? 'Gral')
-                .where((m) => m != 'Gral')
-                .toSet()
-                .toList();
-            _todayRoutine = muscles.isNotEmpty ? muscles.join(' - ') : 'Entrenamiento';
+            final Set<String> muscles = {};
+            for (var e in todayRoutine) {
+                final tm = e['target_muscles']?.toString();
+                if (tm != null && tm.isNotEmpty && tm != 'Gral') {
+                    muscles.add(tm);
+                } else {
+                    final mg = e['muscle_group']?.toString();
+                    if (mg != null && mg.isNotEmpty) muscles.add(mg);
+                }
+            }
+            _todayRoutine = muscles.isNotEmpty ? muscles.take(2).join(' - ') : 'Entrenamiento';
             _exerciseCount = todayRoutine.length;
           } else {
-            _todayRoutine = 'Descanso';
+            _todayRoutine = 'Día de Descanso';
             _exerciseCount = 0;
           }
           
-          if (todayFood.isNotEmpty) {
-            _todayDiet = '${todayFood.length} alimentos hoy';
-            _foodCount = todayFood.length;
+          final foodForToday = diet.where((f) => 
+            f['day_name'] == todayName || 
+            f['day_name'] == 'Día ${now.weekday}'
+          ).toList();
+
+          if (foodForToday.isNotEmpty) {
+            _todayDiet = '${foodForToday.length} alimentos hoy';
+            _foodCount = foodForToday.length;
           } else {
-            _todayDiet = 'Pendiente';
+            _todayDiet = 'Sin dieta hoy';
             _foodCount = 0;
           }
           
@@ -157,7 +165,6 @@ class _DashboardHomeState extends State<DashboardHome> {
   Widget build(BuildContext context) {
     final name = ApiService().userName?.split(' ')[0] ?? 'Atleta';
     final userEmail = ApiService().userEmail?.toLowerCase() ?? '';
-    // DRASTIC COACH CHECK
     final isCoach = ApiService().isCoach || userEmail == 'mitorrgo@gmail.com' || userEmail == 'mtfitness2026@gmail.com';
 
     return Container(
@@ -165,101 +172,101 @@ class _DashboardHomeState extends State<DashboardHome> {
         gradient: AppTheme.surfaceGradient,
       ),
       child: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              _buildHeader(name, isCoach),
-              const SizedBox(height: 32),
+        child: RefreshIndicator(
+          onRefresh: _loadAll,
+          color: AppTheme.primary,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            physics: const AlwaysScrollableScrollPhysics(), // Important for RefreshIndicator
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(name, isCoach),
+                const SizedBox(height: 32),
 
-              if (isCoach) ...[
-                _buildSectionTitle('ZONA COACH'),
+                if (isCoach) ...[
+                  _buildSectionTitle('ZONA COACH'),
+                  const SizedBox(height: 16),
+                  _buildOptionCard(
+                    title: 'GESTIONAR MI PLAN PERSONAL',
+                    subtitle: 'Diseñar mi rutina y dieta propia',
+                    icon: LucideIcons.userCheck,
+                    color: AppTheme.primary,
+                    onTap: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => AdminPlanEditor(userId: ApiService().userId!, userName: 'MI PLAN PERSONAL')
+                      )).then((_) => _loadAll());
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _buildOptionCard(
+                    title: 'PANEL DE CONTROL ATLETAS',
+                    subtitle: 'Gestionar clientes y aprobaciones',
+                    icon: LucideIcons.shieldCheck,
+                    color: AppTheme.accent,
+                    onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminUsersScreen())).then((_) => _loadAll()),
+                  ),
+                  const SizedBox(height: 32),
+                ],
+
+                // Main Status Card
+                _buildStatusCard(),
+                const SizedBox(height: 32),
+
+                _buildSectionTitle('MI PLAN DE HOY'),
                 const SizedBox(height: 16),
+                
                 _buildOptionCard(
-                  title: 'GESTIONAR MI PLAN PERSONAL',
-                  subtitle: 'Diseñar mi rutina y dieta propia',
-                  icon: LucideIcons.userCheck,
+                  title: 'RUTINA DE HOY',
+                  subtitle: _exerciseCount > 0 ? _todayRoutine.toUpperCase() : 'Día de recuperación',
+                  icon: LucideIcons.dumbbell,
                   color: AppTheme.primary,
-                  onTap: () {
-                    Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => AdminPlanEditor(userId: ApiService().userId!, userName: 'MI PLAN PERSONAL')
-                    ));
-                  },
+                  subtitleBold: true,
+                  onTap: () => widget.onTabChange(2),
                 ),
                 const SizedBox(height: 12),
                 _buildOptionCard(
-                  title: 'PANEL DE CONTROL ATLETAS',
-                  subtitle: 'Gestionar clientes y aprobaciones',
-                  icon: LucideIcons.shieldCheck,
-                  color: AppTheme.accent,
-                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminUsersScreen())),
+                  title: 'PLAN NUTRICIONAL',
+                  subtitle: _foodCount > 0 ? 'Ver mis $_foodCount alimentos de hoy' : 'Ver dieta completa y macros',
+                  icon: LucideIcons.utensils,
+                  color: Colors.orangeAccent,
+                  onTap: () => widget.onTabChange(3),
                 ),
+
                 const SizedBox(height: 32),
-              ],
-
-              // Main Status Card
-              _buildStatusCard(),
-              const SizedBox(height: 32),
-
-              // Quick Actions
-              _buildSectionTitle('MI PLAN DE HOY'),
-              const SizedBox(height: 16),
-              
-              _buildOptionCard(
-                title: 'RUTINA DE HOY',
-                subtitle: _exerciseCount > 0 ? _todayRoutine.toUpperCase() : 'Día de recuperación',
-                icon: LucideIcons.dumbbell,
-                color: AppTheme.primary,
-                subtitleBold: true,
-                onTap: () => widget.onTabChange(2),
-              ),
-              const SizedBox(height: 12),
-              _buildOptionCard(
-                title: 'PLAN NUTRICIONAL',
-                subtitle: _foodCount > 0 ? 'Ver mis $_foodCount alimentos de hoy' : 'Ver dieta completa y macros',
-                icon: LucideIcons.utensils,
-                color: Colors.orangeAccent,
-                onTap: () => widget.onTabChange(3),
-              ),
-
-              const SizedBox(height: 32),
-              _buildSectionTitle('PROGRESO Y MÉTRICAS'),
-              const SizedBox(height: 16),
-              
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildMetricMiniCard(
-                      label: 'Peso Actual',
-                      value: '${_lastWeight?['weight'] ?? '--'} kg',
-                      icon: LucideIcons.scale,
+                _buildSectionTitle('PROGRESO Y MÉTRICAS'),
+                const SizedBox(height: 16),
+                
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildMetricMiniCard(
+                        label: 'Peso Actual',
+                        value: '${_lastWeight?['weight'] ?? '--'} kg',
+                        icon: LucideIcons.scale,
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildMetricMiniCard(
-                      label: 'Check-in',
-                      value: 'Viernes',
-                      icon: LucideIcons.camera,
-                      onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportScreen())),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: _buildMetricMiniCard(
+                        label: 'Check-in',
+                        value: 'Viernes',
+                        icon: LucideIcons.camera,
+                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportScreen())).then((_) => _loadAll()),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-              
-              // Diagnostic Info (Hidden but present for troubleshooting)
-              Center(
-                child: Text(
-                  'ID: ${ApiService().userId} | Role: ${ApiService().role}',
-                  style: const TextStyle(color: Colors.white10, fontSize: 10),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 20),
-            ],
+                const SizedBox(height: 40),
+                Center(
+                  child: Text(
+                    'MT FITNESS PRO v1.0.8 | ID: ${ApiService().userId}',
+                    style: TextStyle(color: Colors.white.withOpacity(0.05), fontSize: 10),
+                  ),
+                ),
+                const SizedBox(height: 20),
+              ],
+            ),
           ),
         ),
       ),

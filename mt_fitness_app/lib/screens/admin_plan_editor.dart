@@ -509,29 +509,34 @@ class _AdminPlanEditorState extends State<AdminPlanEditor> with SingleTickerProv
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
             ElevatedButton(
               onPressed: () async {
-                // Primary Exercise
-                await ApiService().assignExercise(
-                  widget.userId, exercise['id'], selectedDay, int.parse(setsController.text), repsController.text,
-                  targetMuscles: musclesController.text, setType: selectedSetType,
-                );
-                
-                // Combined Exercises
-                if (combinedExercises.containsKey(1)) {
+                try {
+                  // Primary Exercise
                   await ApiService().assignExercise(
-                    widget.userId, combinedExercises[1]['id'], selectedDay, int.parse(setsController.text), repsController.text,
+                    widget.userId, exercise['id'], selectedDay, int.parse(setsController.text), repsController.text,
                     targetMuscles: musclesController.text, setType: selectedSetType,
                   );
+                  
+                  // Combined Exercises
+                  if (combinedExercises.containsKey(1)) {
+                    await ApiService().assignExercise(
+                      widget.userId, combinedExercises[1]['id'], selectedDay, int.parse(setsController.text), repsController.text,
+                      targetMuscles: musclesController.text, setType: selectedSetType,
+                    );
+                  }
+                  if (selectedSetType == 'TRISERIE' && combinedExercises.containsKey(2)) {
+                    await ApiService().assignExercise(
+                      widget.userId, combinedExercises[2]['id'], selectedDay, int.parse(setsController.text), repsController.text,
+                      targetMuscles: musclesController.text, setType: selectedSetType,
+                    );
+                  }
+                  
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Bloque de ejercicios asignado con éxito')));
+                  Navigator.pop(context);
+                  _loadAll();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error al asignar: $e')));
                 }
-                if (selectedSetType == 'TRISERIE' && combinedExercises.containsKey(2)) {
-                  await ApiService().assignExercise(
-                    widget.userId, combinedExercises[2]['id'], selectedDay, int.parse(setsController.text), repsController.text,
-                    targetMuscles: musclesController.text, setType: selectedSetType,
-                  );
-                }
-                
-                if (!context.mounted) return;
-                Navigator.pop(context);
-                _loadAll();
               },
               child: const Text('Asignar Bloque'),
             ),
@@ -573,15 +578,21 @@ class _AdminPlanEditorState extends State<AdminPlanEditor> with SingleTickerProv
             TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
             ElevatedButton(
               onPressed: () async {
-                await ApiService().assignFood(
-                  widget.userId,
-                  food['id'],
-                  selectedDay,
-                  mealController.text,
-                  double.parse(gramsController.text),
-                );
-                Navigator.pop(context);
-                _loadAll();
+                try {
+                  await ApiService().assignFood(
+                    widget.userId,
+                    food['id'],
+                    selectedDay,
+                    mealController.text,
+                    double.parse(gramsController.text),
+                  );
+                  if (!context.mounted) return;
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Alimento asignado con éxito')));
+                  Navigator.pop(context);
+                  _loadAll();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+                }
               },
               child: const Text('Asignar'),
             ),

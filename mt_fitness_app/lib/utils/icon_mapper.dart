@@ -5,109 +5,75 @@ class IconMapper {
     final lower = name.toLowerCase();
     
     // PECHO
-    if (lower.contains('press banca plano con barra')) return '$_baseUrl/Barbell_Bench_Press/0.jpg';
-    if (lower.contains('press banca inclinado con barra')) return '$_baseUrl/Barbell_Incline_Bench_Press/0.jpg';
-    if (lower.contains('press banca declinado con barra')) return '$_baseUrl/Barbell_Decline_Bench_Press/0.jpg';
-    if (lower.contains('press banca plano con mancuernas')) return '$_baseUrl/Dumbbell_Bench_Press/0.jpg';
-    if (lower.contains('press banca inclinado con mancuernas')) return '$_baseUrl/Dumbbell_Incline_Bench_Press/0.jpg';
-    if (lower.contains('press banca declinado con mancuernas')) return '$_baseUrl/Dumbbell_Decline_Bench_Press/0.jpg';
-    if (lower.contains('aperturas planas con mancuernas') || lower.contains('aperturas planas')) return '$_baseUrl/Dumbbell_Fly/0.jpg';
-    if (lower.contains('aperturas inclinadas')) return '$_baseUrl/Dumbbell_Incline_Fly/0.jpg';
-    if (lower.contains('cruces en polea alta')) return '$_baseUrl/Cable_Crossover/0.jpg';
-    if (lower.contains('cruces en polea baja')) return '$_baseUrl/Low_Cable_Crossover/0.jpg';
-    if (lower.contains('peck deck') || lower.contains('maquina convergente')) return '$_baseUrl/Butterfly/0.jpg';
-    if (lower.contains('flexiones inclinadas')) return '$_baseUrl/Incline_Push-up/0.jpg';
-    if (lower.contains('flexiones declinadas')) return '$_baseUrl/Decline_Push-Up/0.jpg';
-    if (lower.contains('flexiones') || lower.contains('pushup')) return '$_baseUrl/Push-up/0.jpg';
+    if (lower.contains('banca') && lower.contains('plano') && lower.contains('barra')) return '$_baseUrl/Barbell_Bench_Press/0.jpg';
+    if (lower.contains('banca') && lower.contains('inclinado') && lower.contains('barra')) return '$_baseUrl/Barbell_Incline_Bench_Press/0.jpg';
+    if (lower.contains('banca') && lower.contains('plano') && lower.contains('mancuerna')) return '$_baseUrl/Dumbbell_Bench_Press/0.jpg';
+    if (lower.contains('banca') && lower.contains('inclinado') && lower.contains('mancuerna')) return '$_baseUrl/Dumbbell_Incline_Bench_Press/0.jpg';
+    if (lower.contains('apertura')) return '$_baseUrl/Dumbbell_Fly/0.jpg';
+    if (lower.contains('cruce') && lower.contains('polea')) return '$_baseUrl/Cable_Crossover/0.jpg';
+    if (lower.contains('peck') || lower.contains('deck') || lower.contains('mariposa')) return '$_baseUrl/Butterfly/0.jpg';
+    if (lower.contains('flexion') || lower.contains('pushup')) return '$_baseUrl/Push-up/0.jpg';
+    if (lower.contains('fondos') && lower.contains('paralela')) return '$_baseUrl/Chest_Dip/0.jpg';
     if (lower.contains('pullover')) return '$_baseUrl/Dumbbell_Pullover/0.jpg';
 
     // ESPALDA
-    if (lower.contains('dominadas supinas') || lower.contains('chin-up')) return '$_baseUrl/Chin-up/0.jpg';
-    if (lower.contains('dominadas') || lower.contains('pull-up')) return '$_baseUrl/Pull-up/0.jpg';
-    if (lower.contains('jalón al pecho') || lower.contains('jalon al pecho')) return '$_baseUrl/Cable_Pulldown/0.jpg';
-    if (lower.contains('jalón tras nuca')) return '$_baseUrl/Cable_Rear_Pulldown/0.jpg';
-    if (lower.contains('remo con barra')) return '$_baseUrl/Barbell_Bent_Over_Row/0.jpg';
-    if (lower.contains('remo con mancuerna')) return '$_baseUrl/Dumbbell_One_Arm_Row/0.jpg';
-    if (lower.contains('remo gironda') || lower.contains('polea baja')) return '$_baseUrl/Cable_Seated_Row/0.jpg';
-    if (lower.contains('remo en punta') || lower.contains('barra t')) return '$_baseUrl/T-Bar_Row/0.jpg';
-    if (lower.contains('peso muerto convencional')) return '$_baseUrl/Barbell_Deadlift/0.jpg';
-    if (lower.contains('peso muerto sumo')) return '$_baseUrl/Sumo_Deadlift/0.jpg';
-    if (lower.contains('hiperextensiones')) return '$_baseUrl/Hyperextension/0.jpg';
+    if (lower.contains('dominada')) return '$_baseUrl/Pull-up/0.jpg';
+    if (lower.contains('jalon') && lower.contains('pecho')) return '$_baseUrl/Cable_Pulldown/0.jpg';
+    if (lower.contains('remo') && lower.contains('barra')) return '$_baseUrl/Barbell_Bent_Over_Row/0.jpg';
+    if (lower.contains('remo') && lower.contains('mancuerna')) return '$_baseUrl/Dumbbell_One_Arm_Row/0.jpg';
+    if (lower.contains('gironda') || (lower.contains('remo') && lower.contains('polea'))) return '$_baseUrl/Cable_Seated_Row/0.jpg';
+    if (lower.contains('punta') || lower.contains('barra t')) return '$_baseUrl/T-Bar_Row/0.jpg';
+    if (lower.contains('peso muerto') && !lower.contains('rumano')) return '$_baseUrl/Barbell_Deadlift/0.jpg';
+    if (lower.contains('hiperextension')) return '$_baseUrl/Hyperextension/0.jpg';
 
     // PIERNA
-    if (lower.contains('sentadilla frontal')) return '$_baseUrl/Barbell_Front_Squat/0.jpg';
-    if (lower.contains('sentadilla hack')) return '$_baseUrl/Hack_Squat/0.jpg';
-    if (lower.contains('sentadilla búlgara') || lower.contains('bulgara')) return '$_baseUrl/Bulgarian_Split_Squat/0.jpg';
-    if (lower.contains('sentadilla goblet')) return '$_baseUrl/Goblet_Squat/0.jpg';
-    if (lower.contains('sentadilla') || lower.contains('squat')) return '$_baseUrl/Barbell_Squat/0.jpg';
+    if (lower.contains('sentadilla') && lower.contains('frontal')) return '$_baseUrl/Barbell_Front_Squat/0.jpg';
+    if (lower.contains('sentadilla') && lower.contains('hack')) return '$_baseUrl/Hack_Squat/0.jpg';
+    if (lower.contains('bulgara')) return '$_baseUrl/Bulgarian_Split_Squat/0.jpg';
+    if (lower.contains('sentadilla')) return '$_baseUrl/Barbell_Squat/0.jpg';
     if (lower.contains('prensa')) return '$_baseUrl/Leg_Press/0.jpg';
-    if (lower.contains('extensiones de cuádriceps') || lower.contains('extensiones de cuadriceps')) return '$_baseUrl/Leg_Extension/0.jpg';
-    if (lower.contains('curl femoral tumbado')) return '$_baseUrl/Lying_Leg_Curl/0.jpg';
-    if (lower.contains('curl femoral sentado')) return '$_baseUrl/Seated_Leg_Curl/0.jpg';
+    if (lower.contains('extension') && lower.contains('cuad')) return '$_baseUrl/Leg_Extension/0.jpg';
+    if (lower.contains('curl femoral')) return '$_baseUrl/Lying_Leg_Curl/0.jpg';
     if (lower.contains('peso muerto rumano')) return '$_baseUrl/Romanian_Deadlift/0.jpg';
     if (lower.contains('zancada') || lower.contains('lunge')) return '$_baseUrl/Barbell_Lunge/0.jpg';
-    if (lower.contains('hip thrust') || lower.contains('puente')) return '$_baseUrl/Barbell_Glute_Bridge/0.jpg';
-    if (lower.contains('gemelos') || lower.contains('talones')) return '$_baseUrl/Standing_Calf_Raise/0.jpg';
+    if (lower.contains('thrust') || lower.contains('puente')) return '$_baseUrl/Barbell_Glute_Bridge/0.jpg';
+    if (lower.contains('gemelo') || lower.contains('talon')) return '$_baseUrl/Standing_Calf_Raise/0.jpg';
 
     // HOMBRO
-    if (lower.contains('press militar con mancuernas')) return '$_baseUrl/Dumbbell_Seated_Shoulder_Press/0.jpg';
-    if (lower.contains('press militar') || lower.contains('press de hombros')) return '$_baseUrl/Barbell_Shoulder_Press/0.jpg';
-    if (lower.contains('press arnold')) return '$_baseUrl/Arnold_Press/0.jpg';
-    if (lower.contains('elevaciones laterales en polea')) return '$_baseUrl/Cable_Lateral_Raise/0.jpg';
-    if (lower.contains('elevaciones laterales')) return '$_baseUrl/Dumbbell_Lateral_Raise/0.jpg';
-    if (lower.contains('elevaciones frontales')) return '$_baseUrl/Dumbbell_Front_Raise/0.jpg';
-    if (lower.contains('pájaros') || lower.contains('posterior')) return '$_baseUrl/Dumbbell_Reverse_Fly/0.jpg';
-    if (lower.contains('remo al mentón') || lower.contains('remo al menton')) return '$_baseUrl/Barbell_Upright_Row/0.jpg';
-    if (lower.contains('encogimientos')) return '$_baseUrl/Barbell_Shrug/0.jpg';
+    if (lower.contains('press militar') || lower.contains('press hombro')) return '$_baseUrl/Barbell_Shoulder_Press/0.jpg';
+    if (lower.contains('arnold')) return '$_baseUrl/Arnold_Press/0.jpg';
+    if (lower.contains('lateral')) return '$_baseUrl/Dumbbell_Lateral_Raise/0.jpg';
+    if (lower.contains('frontal')) return '$_baseUrl/Dumbbell_Front_Raise/0.jpg';
+    if (lower.contains('pajaro') || lower.contains('posterior')) return '$_baseUrl/Dumbbell_Reverse_Fly/0.jpg';
+    if (lower.contains('menton')) return '$_baseUrl/Barbell_Upright_Row/0.jpg';
+    if (lower.contains('face')) return '$_baseUrl/Face_Pull/0.jpg';
+    if (lower.contains('encogimiento')) return '$_baseUrl/Barbell_Shrug/0.jpg';
 
     // BICEPS
-    if (lower.contains('curl de bíceps con barra') || lower.contains('curl con barra')) return '$_baseUrl/Barbell_Curl/0.jpg';
-    if (lower.contains('curl martillo')) return '$_baseUrl/Dumbbell_Hammer_Curl/0.jpg';
-    if (lower.contains('curl predicador') || lower.contains('banco scott')) return '$_baseUrl/Barbell_Preacher_Curl/0.jpg';
-    if (lower.contains('curl concentrado')) return '$_baseUrl/Dumbbell_Concentration_Curl/0.jpg';
-    if (lower.contains('curl en polea')) return '$_baseUrl/Cable_Curl/0.jpg';
-    if (lower.contains('curl de bíceps con mancuerna') || lower.contains('curl con mancuerna')) return '$_baseUrl/Dumbbell_Bicep_Curl/0.jpg';
+    if (lower.contains('curl') && lower.contains('barra')) return '$_baseUrl/Barbell_Curl/0.jpg';
+    if (lower.contains('martillo')) return '$_baseUrl/Dumbbell_Hammer_Curl/0.jpg';
+    if (lower.contains('predicador') || lower.contains('scott')) return '$_baseUrl/Barbell_Preacher_Curl/0.jpg';
+    if (lower.contains('concentrado')) return '$_baseUrl/Dumbbell_Concentration_Curl/0.jpg';
+    if (lower.contains('curl') && lower.contains('mancuerna')) return '$_baseUrl/Dumbbell_Bicep_Curl/0.jpg';
+    if (lower.contains('curl') && lower.contains('polea')) return '$_baseUrl/Cable_Curl/0.jpg';
 
     // TRICEPS
-    if (lower.contains('press francés') || lower.contains('press frances') || lower.contains('skullcrusher')) return '$_baseUrl/Barbell_Lying_Triceps_Extension/0.jpg';
-    if (lower.contains('extensión de tríceps tras nuca') || lower.contains('extension tras nuca')) return '$_baseUrl/Dumbbell_Seated_Triceps_Extension/0.jpg';
-    if (lower.contains('extensiones en polea') || lower.contains('tríceps en polea')) return '$_baseUrl/Cable_Triceps_Pushdown/0.jpg';
-    if (lower.contains('patada de tríceps') || lower.contains('patada de triceps')) return '$_baseUrl/Dumbbell_Triceps_Kickback/0.jpg';
-    if (lower.contains('fondos en paralelas')) return '$_baseUrl/Triceps_Dip/0.jpg';
-    if (lower.contains('fondos entre bancos')) return '$_baseUrl/Bench_Dip/0.jpg';
+    if (lower.contains('frances') || lower.contains('skull')) return '$_baseUrl/Barbell_Lying_Triceps_Extension/0.jpg';
+    if (lower.contains('polea') && lower.contains('tricep')) return '$_baseUrl/Cable_Triceps_Pushdown/0.jpg';
+    if (lower.contains('patada')) return '$_baseUrl/Dumbbell_Triceps_Kickback/0.jpg';
+    if (lower.contains('fondos') && lower.contains('banco')) return '$_baseUrl/Bench_Dip/0.jpg';
+    if (lower.contains('press') && lower.contains('cerrado')) return '$_baseUrl/Close-Grip_Barbell_Bench_Press/0.jpg';
 
     // CORE
     if (lower.contains('crunch')) return '$_baseUrl/Crunch/0.jpg';
-    if (lower.contains('elevación de piernas') || lower.contains('leg raise')) return '$_baseUrl/Hanging_Leg_Raise/0.jpg';
+    if (lower.contains('pierna') && lower.contains('eleva')) return '$_baseUrl/Hanging_Leg_Raise/0.jpg';
     if (lower.contains('plancha') || lower.contains('plank')) return '$_baseUrl/Front_Plank/0.jpg';
-    if (lower.contains('rueda abdominal') || lower.contains('ab wheel')) return '$_baseUrl/Ab_Roller/0.jpg';
-    if (lower.contains('russian twist')) return '$_baseUrl/Russian_Twist/0.jpg';
-
-    // GENERIC FALLBACKS
-    if (lower.contains('remo')) return '$_baseUrl/Barbell_Bent_Over_Row/0.jpg';
-    if (lower.contains('curl')) return '$_baseUrl/Dumbbell_Bicep_Curl/0.jpg';
+    if (lower.contains('rueda')) return '$_baseUrl/Ab_Roller/0.jpg';
     
-    return null; // Return null if no specific image is found, so we show the emoji fallback
+    return null; 
   }
 
   static String getExerciseDrawing(String name, String? muscleGroup) {
-    if (getExerciseImageUrl(name) != null) {
-        return '🖼️'; // Just a marker, won't be used if URL is prioritized in UI
-    }
-
-    final lower = name.toLowerCase();
-    if (lower.contains('sentadilla') || lower.contains('squat') || lower.contains('zancada')) return '🦵';
-    if (lower.contains('press banca') || lower.contains('press de pecho') || lower.contains('flexion')) return '🛏️💪';
-    if (lower.contains('dominadas') || lower.contains('pull') || lower.contains('jalón')) return '🧗‍♂️';
-    if (lower.contains('peso muerto') || lower.contains('deadlift')) return '🏋️‍♂️';
-    if (lower.contains('curl')) return '💪';
-    if (lower.contains('plancha') || lower.contains('plank') || lower.contains('core') || lower.contains('abdominal') || lower.contains('crunch')) return '🧘‍♂️';
-    if (lower.contains('remo')) return '🚣‍♂️';
-    if (lower.contains('fondos') || lower.contains('tríceps') || lower.contains('extensión')) return '🦾';
-    if (lower.contains('hombro') || lower.contains('militar') || lower.contains('elevaciones') || lower.contains('vuelos')) return '🦅';
-    if (lower.contains('prensa')) return '💺🦵';
-    if (lower.contains('gemelo') || lower.contains('talon')) return '🦶';
-    
     if (muscleGroup != null) {
         final mg = muscleGroup.toLowerCase();
         if (mg == 'pecho') return '🦍';
