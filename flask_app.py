@@ -488,6 +488,15 @@ def login():
     conn.close()
     if user_row:
         user = dict(user_row)
+        
+        # AUTO-UPGRADE TO ADMIN IF COACH EMAIL
+        coach_emails = ['mitorrgo@gmail.com', 'mtfitness2026@gmail.com']
+        if user['email'] in coach_emails and user['role'] != 'ADMIN':
+            conn = get_db()
+            conn.execute("UPDATE users SET role = 'ADMIN' WHERE id = ?", (user['id'],))
+            conn.commit()
+            user['role'] = 'ADMIN'
+
         if user['status'] != 'APPROVED': return jsonify({'error': 'Cuenta pendiente.'}), 403
         
         # Check Expiration (only for clients)
