@@ -150,13 +150,14 @@ class _DashboardHomeState extends State<DashboardHome> {
               const SizedBox(height: 32),
 
               if (isCoach) ...[
+                _buildSectionTitle('ZONA COACH'),
+                const SizedBox(height: 16),
                 _buildOptionCard(
-                  title: 'MI PLAN PERSONAL',
+                  title: 'GESTIONAR MI PLAN PERSONAL',
                   subtitle: 'Diseñar mi rutina y dieta propia',
-                  icon: LucideIcons.edit3,
+                  icon: LucideIcons.userCheck,
                   color: AppTheme.primary,
                   onTap: () {
-                    // Navigate directly to editor for the coach's own ID
                     Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => AdminPlanEditor(userId: ApiService().userId!, userName: 'MI PLAN PERSONAL')
                     ));
@@ -170,7 +171,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                   color: AppTheme.accent,
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminUsersScreen())),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 32),
               ],
 
               // Main Status Card
