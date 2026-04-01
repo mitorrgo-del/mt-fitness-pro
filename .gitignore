@@ -1,5 +1,4 @@
 *.zip
-*.apk
 __pycache__/
 *.db
 .env
