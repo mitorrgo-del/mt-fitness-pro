@@ -104,7 +104,7 @@
             <div class="hero-bg"></div>
             <div class="container hero-content">
                 <div class="badge-new">SISTEMA DE ALTO RENDIMIENTO ONLINE</div>
-                <h1 class="logo-font">Entrenador Personal Online: <br> Transforma tu Físico y tu <span class="text-gradient">Vida.</span></h1>
+                <h1 class="logo-font">Entrenador Personal Online: <br> Transforma tu Físico y tu <span class="text-gradient">Vida.</span> <sub style="font-size: 10px; color: var(--primary);">V1.0.8 ACTUALIZADA</sub></h1>
                 <p>Tu entrenador personal online para resultados reales. Planificación de élite y nutrición avanzada.</p>
                 <div class="hero-btns">
                     <a href="#planes" class="btn btn-primary">Ver Planes</a>
@@ -311,7 +311,7 @@
             document.getElementById('closeContact')?.addEventListener('click', () => modal.classList.remove('active'));
             modal?.addEventListener('click', (e) => { if(e.target === modal) modal.classList.remove('active'); });
 
-            document.gdocument.gdocument.getElementById('contactForm')?.addEventListener('submit', function(e) {
+            document.getElementById('contactForm')?.addEventListener('submit', function(e) {
                 e.preventDefault();
                 const btn = e.target.querySelector('button');
                 btn.innerText = 'ENVIANDO...';
@@ -319,7 +319,7 @@
                 
                 const name = document.getElementById('contactName').value;
                 const email = document.getElementById('contactEmail').value;
-                const goal = document.getElementById('contactGoal'const goal = document.getElementById('contactGoal').options[document.getElementById('contactGoal').selectedIndex].text;
+                const goal = document.getElementById('contactGoal').options[document.getElementById('contactGoal').selectedIndex].text;
                 
                 fetch('/api/contact', {
                     method: 'POST',
