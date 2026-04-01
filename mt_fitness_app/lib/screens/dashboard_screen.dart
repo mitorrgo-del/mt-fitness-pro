@@ -10,6 +10,7 @@ import 'profile_screen.dart';
 import 'admin_users_screen.dart';
 import '../services/api_service.dart';
 import 'report_screen.dart';
+import 'admin_plan_editor.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -365,10 +366,13 @@ class _DashboardHomeState extends State<DashboardHome> {
 
   Widget _buildOptionCard({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap, bool subtitleBold = false}) {
     return PremiumCard(
-      padding: 16,
+      padding: 0,
       child: InkWell(
         onTap: onTap,
-        child: Row(
+        borderRadius: BorderRadius.circular(24),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
@@ -400,26 +404,31 @@ class _DashboardHomeState extends State<DashboardHome> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMetricMiniCard({required String label, required String value, required IconData icon, VoidCallback? onTap}) {
     return PremiumCard(
-      padding: 20,
+      padding: 0,
       child: InkWell(
         onTap: onTap,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, color: AppTheme.primary, size: 24),
-            const SizedBox(height: 16),
-            Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ],
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon, color: AppTheme.primary, size: 24),
+              const SizedBox(height: 16),
+              Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
         ),
       ),
     );

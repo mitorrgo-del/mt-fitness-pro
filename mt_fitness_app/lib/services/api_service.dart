@@ -31,8 +31,19 @@ class ApiService {
   void setRole(String role) => _role = role;
   String? get role => _role;
   String? get userId => _userId;
-  String? get userName => _userName;
   String? get userEmail => _userEmail;
+
+  String getExerciseImage(String name) {
+    final slug = name.toLowerCase().trim().replaceAll(' ', '-').replaceAll('(', '').replaceAll(')', '');
+    // Using a reliable public fitness image placeholder or a mapping
+    // This is a placeholder logic, in a real app we'd have a full mapping or DB
+    if (slug.contains('banca') || slug.contains('chest')) return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&q=80&w=200';
+    if (slug.contains('sentadilla') || slug.contains('squat')) return 'https://images.unsplash.com/photo-1574673139082-c3b52fca511f?auto=format&fit=crop&q=80&w=200';
+    if (slug.contains('mancuerna') || slug.contains('dumbell')) return 'https://images.unsplash.com/photo-1583454110551-21f2fa2ae617?auto=format&fit=crop&q=80&w=200';
+    if (slug.contains('espalda') || slug.contains('back')) return 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?auto=format&fit=crop&q=80&w=200';
+    return 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=200'; // Default gym
+  }
+  String? get userName => _userName;
   String? get surname => _surname;
   int? get age => _age;
   double? get height => _height;
