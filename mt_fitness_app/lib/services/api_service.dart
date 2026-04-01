@@ -29,6 +29,7 @@ class ApiService {
 
   void setToken(String token) => _token = token;
   void setRole(String role) => _role = role;
+  String? get role => _role;
   String? get userId => _userId;
   String? get userName => _userName;
   String? get userEmail => _userEmail;

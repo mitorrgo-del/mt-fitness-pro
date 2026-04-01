@@ -21,13 +21,21 @@ class DashboardScreen extends StatefulWidget {
 class _DashboardScreenState extends State<DashboardScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = [
-    const DashboardHome(),
-    const ChatScreen(),
-    const WorkoutScreen(),
-    const DietScreen(),
-    const ProfileScreen(),
-  ];
+  final List<Widget> _pages;
+  
+  _DashboardScreenState() : _pages = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _pages.addAll([
+      DashboardHome(onTabChange: _onTabTapped),
+      const ChatScreen(),
+      const WorkoutScreen(),
+      const DietScreen(),
+      const ProfileScreen(),
+    ]);
+  }
 
   void _onTabTapped(int index) {
     setState(() => _currentIndex = index);
@@ -75,7 +83,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
 }
 
 class DashboardHome extends StatefulWidget {
-  const DashboardHome({super.key});
+  final Function(int) onTabChange;
+  const DashboardHome({super.key, required this.onTabChange});
 
   @override
   State<DashboardHome> createState() => _DashboardHomeState();
@@ -187,12 +196,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                 subtitle: _exerciseCount > 0 ? '$_exerciseCount ejercicios hoy' : 'Día de recuperación',
                 icon: LucideIcons.dumbbell,
                 color: AppTheme.primary,
-                onTap: () {
-                  // Access parent's _onTabTapped via a callback if needed, 
-                  // but simple context.findAncestorStateOfType is easier if we have that
-                  // For now, let's assume the user can just use the bottom nav, 
-                  // but I'll make it as useful as possible.
-                },
+                onTap: () => widget.onTabChange(2),
               ),
               const SizedBox(height: 12),
               _buildOptionCard(
@@ -200,7 +204,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                 subtitle: _foodCount > 0 ? '$_foodCount alimentos hoy' : 'Ver mis comidas y macros',
                 icon: LucideIcons.utensils,
                 color: Colors.orangeAccent,
-                onTap: () { },
+                onTap: () => widget.onTabChange(3),
               ),
 
               const SizedBox(height: 32),
@@ -228,6 +232,15 @@ class _DashboardHomeState extends State<DashboardHome> {
                 ],
               ),
               const SizedBox(height: 40),
+              
+              // Diagnostic Info (Hidden but present for troubleshooting)
+              Center(
+                child: Text(
+                  'ID: ${ApiService().userId} | Role: ${ApiService().role}',
+                  style: const TextStyle(color: Colors.white10, fontSize: 10),
+                ),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
