@@ -120,13 +120,27 @@ class _DashboardHomeState extends State<DashboardHome> {
       if (mounted) {
         setState(() {
           if (todayRoutine.isNotEmpty) {
-            _todayRoutine = todayRoutine.first['target_muscles'] ?? 'Entrenamiento';
+            // Aggregate unique target muscles
+            final muscles = todayRoutine
+                .map((e) => e['target_muscles']?.toString() ?? 'Gral')
+                .where((m) => m != 'Gral')
+                .toSet()
+                .toList();
+            _todayRoutine = muscles.isNotEmpty ? muscles.join(' - ') : 'Entrenamiento';
             _exerciseCount = todayRoutine.length;
+          } else {
+            _todayRoutine = 'Descanso';
+            _exerciseCount = 0;
           }
+          
           if (todayFood.isNotEmpty) {
-            _todayDiet = '${todayFood.length} comidas hoy';
+            _todayDiet = '${todayFood.length} alimentos hoy';
             _foodCount = todayFood.length;
+          } else {
+            _todayDiet = 'Pendiente';
+            _foodCount = 0;
           }
+          
           if (measurements.isNotEmpty) {
             _lastWeight = measurements.last;
           }
@@ -192,16 +206,17 @@ class _DashboardHomeState extends State<DashboardHome> {
               const SizedBox(height: 16),
               
               _buildOptionCard(
-                title: 'Rutina: $_todayRoutine',
-                subtitle: _exerciseCount > 0 ? '$_exerciseCount ejercicios hoy' : 'Día de recuperación',
+                title: 'RUTINA DE HOY',
+                subtitle: _exerciseCount > 0 ? _todayRoutine.toUpperCase() : 'Día de recuperación',
                 icon: LucideIcons.dumbbell,
                 color: AppTheme.primary,
+                subtitleBold: true,
                 onTap: () => widget.onTabChange(2),
               ),
               const SizedBox(height: 12),
               _buildOptionCard(
-                title: 'Plan Nutricional',
-                subtitle: _foodCount > 0 ? '$_foodCount alimentos hoy' : 'Ver mis comidas y macros',
+                title: 'PLAN NUTRICIONAL',
+                subtitle: _foodCount > 0 ? 'Ver mis $_foodCount alimentos de hoy' : 'Ver dieta completa y macros',
                 icon: LucideIcons.utensils,
                 color: Colors.orangeAccent,
                 onTap: () => widget.onTabChange(3),
@@ -346,7 +361,7 @@ class _DashboardHomeState extends State<DashboardHome> {
     );
   }
 
-  Widget _buildOptionCard({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap}) {
+  Widget _buildOptionCard({required String title, required String subtitle, required IconData icon, required Color color, required VoidCallback onTap, bool subtitleBold = false}) {
     return PremiumCard(
       padding: 16,
       child: InkWell(
@@ -366,8 +381,16 @@ class _DashboardHomeState extends State<DashboardHome> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  Text(subtitle, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
+                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, letterSpacing: 1.2, color: AppTheme.textMuted)),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle, 
+                    style: TextStyle(
+                      color: subtitleBold ? Colors.white : AppTheme.textMuted, 
+                      fontSize: 16, 
+                      fontWeight: subtitleBold ? FontWeight.w900 : FontWeight.normal
+                    )
+                  ),
                 ],
               ),
             ),
