@@ -169,6 +169,14 @@ def init_db():
         ("users", "current_weight", "REAL"),
         ("users", "objective", "TEXT"),
         ("users", "profile_image", "TEXT"),
+        ("users", "biceps", "REAL"),
+        ("users", "thigh", "REAL"),
+        ("users", "hip", "REAL"),
+        ("users", "waist", "REAL"),
+        ("reports", "biceps", "REAL"),
+        ("reports", "thigh", "REAL"),
+        ("reports", "hip", "REAL"),
+        ("reports", "waist", "REAL"),
     ]
     for table, col, defn in columns_to_add:
         if not column_exists(table, col):
@@ -434,20 +442,43 @@ def register():
 
     return jsonify({'message': 'Registrado.', 'status': status, 'token': token, 'role': role, 'name': data.get('name')})
 
-def send_registration_email(client_name, client_email):
+def send_admin_notification(subject, body):
     import smtplib
     from email.mime.text import MIMEText
     try:
-        msg = MIMEText(f"Nuevo registro en la App MT Fitness PRO:\n\nNombre: {client_name}\nEmail: {client_email}\n\nRevisa el Panel de Administración para aprobar el acceso tras confirmar el pago.")
-        msg['Subject'] = f"NUEVO CLIENTE: {client_name}"
-        msg['From'] = "notify@mtfitness.es"
-        msg['To'] = "mitorrgo@gmail.com"
-        # Usar localhost si hay un relay o configurar SMTP real
-        s = smtplib.SMTP('localhost')
+        msg = MIMEText(body)
+        msg['Subject'] = subject
+        msg['From'] = "info@mtfitness.es"
+        msg['To'] = "info@mtfitness.es"
+        
+        # Real Ionos SMTP
+        s = smtplib.SMTP('smtp.ionos.es', 587)
+        s.set_debuglevel(1) # Para ver qué pasa en logs
+        s.starttls()
+        s.login("info@mtfitness.es", "mtfitness2026")
         s.send_message(msg)
         s.quit()
+        print(f"DEBUG: Email sent successfully: {subject}")
     except Exception as e:
-        print(f"SMTP REGISTRATION ERROR: {e}")
+        print(f"SMTP NOTIFICATION ERROR: {e}")
+
+def send_registration_email(client_name, client_email):
+    subject = f"NUEVO CLIENTE APP: {client_name}"
+    body = f"Nuevo registro en la App MT Fitness PRO:\n\nNombre: {client_name}\nEmail: {client_email}\n\nRevisa el Panel de Administración para aprobar el acceso tras confirmar el pago."
+    send_admin_notification(subject, body)
+
+@app.route('/api/contact', methods=['POST'])
+def handle_web_contact():
+    data = request.json
+    name = data.get('name')
+    email = data.get('email', 'No email')
+    goal = data.get('goal', 'No goal')
+    
+    subject = f"NUEVO LEAD WEB: {name}"
+    body = f"Has recibido una nueva solicitud de asesoría desde la web:\n\nNombre: {name}\nEmail: {email}\nObjetivo: {goal}\n\nContacta con el cliente desde Ionos."
+    
+    send_admin_notification(subject, body)
+    return jsonify({'status': 'ok', 'message': 'Email enviado a Ionos'})
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
@@ -484,7 +515,11 @@ def login():
             'height': user.get('height'),
             'current_weight': user.get('current_weight'),
             'objective': user.get('objective', ''),
-            'days_left': calc_days_left(user.get('access_until'))
+            'days_left': calc_days_left(user.get('access_until')),
+            'biceps': user.get('biceps'),
+            'thigh': user.get('thigh'),
+            'hip': user.get('hip'),
+            'waist': user.get('waist'),
         })
     return jsonify({'error': 'Credenciales incorrectas'}), 401
 
@@ -509,16 +544,22 @@ def update_profile(user):
         # Si se subió imagen, la actualizamos. Si no, dejamos la que estaba.
         if image_filename:
             conn.execute('''UPDATE users SET 
-                name = ?, surname = ?, age = ?, height = ?, current_weight = ?, objective = ?, profile_image = ? 
+                name = ?, surname = ?, age = ?, height = ?, current_weight = ?, objective = ?, profile_image = ?,
+                biceps = ?, thigh = ?, hip = ?, waist = ?
                 WHERE id = ?''', 
                 (data.get('name'), data.get('surname'), data.get('age'), data.get('height'), 
-                 data.get('current_weight'), data.get('objective'), image_filename, user['id']))
+                 data.get('current_weight'), data.get('objective'), image_filename,
+                 data.get('biceps'), data.get('thigh'), data.get('hip'), data.get('waist'),
+                 user['id']))
         else:
             conn.execute('''UPDATE users SET 
-                name = ?, surname = ?, age = ?, height = ?, current_weight = ?, objective = ? 
+                name = ?, surname = ?, age = ?, height = ?, current_weight = ?, objective = ?,
+                biceps = ?, thigh = ?, hip = ?, waist = ?
                 WHERE id = ?''', 
                 (data.get('name'), data.get('surname'), data.get('age'), data.get('height'), 
-                 data.get('current_weight'), data.get('objective'), user['id']))
+                 data.get('current_weight'), data.get('objective'),
+                 data.get('biceps'), data.get('thigh'), data.get('hip'), data.get('waist'),
+                 user['id']))
             
         conn.commit()
         conn.close()
@@ -560,7 +601,25 @@ def admin_approve_user(admin, target_id):
 @app.route('/api/reports/submit', methods=['POST'])
 @require_auth(roles=['CLIENT', 'ADMIN'])
 def submit_report(user):
+    # --- REGLA DE VIERNES ---
+    now = datetime.datetime.now()
+    if now.weekday() != 4: # 4 es Viernes
+        return jsonify({'error': 'Los reportes solo pueden enviarse los Viernes (00:00 - 23:59).'}), 403
+    
+    # --- REGLA DE 1 VEZ POR SEMANA ---
+    conn = get_db()
+    today_str = now.strftime('%Y-%m-%d')
+    existing = conn.execute("SELECT id FROM reports WHERE user_id = ? AND date(date) = ?", (user['id'], today_str)).fetchone()
+    if existing:
+        conn.close()
+        return jsonify({'error': 'Ya has enviado tu recorte de esta semana.'}), 403
+
     weight = request.form.get('weight')
+    biceps = request.form.get('biceps')
+    thigh = request.form.get('thigh')
+    hip = request.form.get('hip')
+    waist = request.form.get('waist')
+    
     front = request.files.get('photo_front')
     side = request.files.get('photo_side')
     back = request.files.get('photo_back')
@@ -580,14 +639,20 @@ def submit_report(user):
         back_filename = f"back_{user['id']}_{uuid.uuid4().hex}.jpg"
         back.save(os.path.join(app.config['UPLOAD_FOLDER'], back_filename))
         
-    conn = get_db()
-    conn.execute("INSERT INTO reports (user_id, weight, photo_front, photo_side, photo_back) VALUES (?, ?, ?, ?, ?)",
-                 (user['id'], weight, front_filename, side_filename, back_filename))
-    # Also log weight to measurements for graphing
-    conn.execute("INSERT INTO measurements (user_id, weight) VALUES (?, ?)", (user['id'], weight))
+    conn.execute("""
+        INSERT INTO reports (user_id, weight, biceps, thigh, hip, waist, photo_front, photo_side, photo_back) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """, (user['id'], weight, biceps, thigh, hip, waist, front_filename, side_filename, back_filename))
+    
+    # Log detailed measurements
+    conn.execute("""
+        INSERT INTO measurements (user_id, weight, biceps, thigh, hip, waist) 
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (user['id'], weight, biceps, thigh, hip, waist))
+    
     conn.commit()
     conn.close()
-    return jsonify({'message': 'Reporte semanal enviado correctamente'})
+    return jsonify({'message': 'Reporte semanal enviado correctamente. ¡Buen trabajo, sigues en el camino PRO!'})
 
 @app.route('/api/measurements', methods=['GET'])
 @require_auth(roles=['ADMIN', 'CLIENT'])
@@ -773,6 +838,31 @@ def admin_delete_catalog_exercise(admin, id):
     conn.commit()
     conn.close()
     return jsonify({'success': True, 'message': 'Ejercicio eliminado del catálogo'})
+
+@app.route('/api/admin/update_exercise/<int:assignment_id>', methods=['PUT', 'POST'])
+@require_auth(roles=['ADMIN'])
+def admin_update_exercise(admin, assignment_id):
+    data = request.json
+    conn = get_db()
+    conn.execute('''
+        UPDATE user_exercises SET sets = ?, reps = ?, rest = ?, target_muscles = ?, set_type = ?, combined_with = ?
+        WHERE id = ?
+    ''', (data['sets'], data['reps'], data.get('rest', ''), data.get('target_muscles', ''), 
+          data.get('set_type', 'NORMAL'), data.get('combined_with'), assignment_id))
+    conn.commit(); conn.close()
+    return jsonify({'message': 'Asignación de ejercicio actualizada'})
+
+@app.route('/api/admin/update_food/<int:assignment_id>', methods=['PUT', 'POST'])
+@require_auth(roles=['ADMIN'])
+def admin_update_food(admin, assignment_id):
+    data = request.json
+    conn = get_db()
+    conn.execute('''
+        UPDATE user_foods SET grams = ?, meal_name = ?, day_name = ?
+        WHERE id = ?
+    ''', (data['grams'], data['meal_name'], data.get('day_name', 'Día 1'), assignment_id))
+    conn.commit(); conn.close()
+    return jsonify({'message': 'Asignación de comida actualizada'})
 
 @app.route('/api/admin/assign_food', methods=['POST'])
 @require_auth(roles=['ADMIN'])
@@ -966,18 +1056,9 @@ def save_marketing_lead():
     return jsonify({'message': 'Lead saved'})
 
 def send_coach_email_alert(client_name):
-    import smtplib
-    from email.mime.text import MIMEText
-    try:
-        msg = MIMEText(f"El cliente {client_name} ha realizado una consulta que el Bot no puede resolver de forma automatizada. Entra a la App MT Fitness para tomar el control del chat.")
-        msg['Subject'] = f"ALERTA MT FITNESS: {client_name} necesita un Coach Humano"
-        msg['From'] = "notify@mtfitness.com"
-        msg['To'] = "mitorrgo@gmail.com"
-        s = smtplib.SMTP('localhost')
-        s.send_message(msg)
-        s.quit()
-    except Exception as e:
-        print(f"SMTP ERROR: {e}")
+    subject = f"ALERTA MT FITNESS: {client_name} necesita un Coach Humano"
+    body = f"El cliente {client_name} ha realizado una consulta que el Bot no puede resolver de forma automatizada. Entra a la App MT Fitness para tomar el control del chat."
+    send_admin_notification(subject, body)
 
 def generate_bot_response(message, client_name):
     # --- MOTOR DE INTELIGENCIA MT FITNESS coach 4.2 ---

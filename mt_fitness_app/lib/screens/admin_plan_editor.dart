@@ -219,12 +219,21 @@ class _AdminPlanEditorState extends State<AdminPlanEditor> with SingleTickerProv
                       ),
                   ],
                 ),
-                trailing: IconButton(
-                  icon: const Icon(LucideIcons.trash2, color: Colors.red, size: 20),
-                  onPressed: () async {
-                    await ApiService().removeExercise(ex['assignment_id']);
-                    _loadAll();
-                  },
+                trailing: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: const Icon(LucideIcons.edit, color: AppTheme.primary, size: 20),
+                      onPressed: () => _editExerciseDetails(ex),
+                    ),
+                    IconButton(
+                      icon: const Icon(LucideIcons.trash2, color: Colors.red, size: 20),
+                      onPressed: () async {
+                        await ApiService().removeExercise(ex['assignment_id']);
+                        _loadAll();
+                      },
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -292,12 +301,21 @@ class _AdminPlanEditorState extends State<AdminPlanEditor> with SingleTickerProv
                        style: const TextStyle(color: AppTheme.primary, fontSize: 11, fontWeight: FontWeight.bold)),
                 ],
               ),
-              trailing: IconButton(
-                icon: const Icon(LucideIcons.trash2, color: Colors.red, size: 20),
-                onPressed: () async {
-                  await ApiService().removeFood(food['assignment_id']);
-                  _loadAll();
-                },
+              trailing: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  IconButton(
+                    icon: const Icon(LucideIcons.edit, color: AppTheme.primary, size: 20),
+                    onPressed: () => _editFoodDetails(food),
+                  ),
+                  IconButton(
+                    icon: const Icon(LucideIcons.trash2, color: Colors.red, size: 20),
+                    onPressed: () async {
+                      await ApiService().removeFood(food['assignment_id']);
+                      _loadAll();
+                    },
+                  ),
+                ],
               ),
             ),
           ),
@@ -566,6 +584,110 @@ class _AdminPlanEditorState extends State<AdminPlanEditor> with SingleTickerProv
       ),
     );
   }
+  void _editExerciseDetails(dynamic ex) {
+    final setsController = TextEditingController(text: ex['sets']?.toString() ?? '3');
+    final repsController = TextEditingController(text: ex['reps']?.toString() ?? '');
+    final musclesController = TextEditingController(text: ex['target_muscles']?.toString() ?? '');
+    String selectedSetType = ex['set_type'] ?? 'NORMAL';
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          title: Text('Editar: ${ex['name']}'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: musclesController, 
+                  decoration: const InputDecoration(labelText: 'Grupos Musculares')
+                ),
+                TextField(controller: setsController, decoration: const InputDecoration(labelText: 'Series'), keyboardType: TextInputType.number),
+                TextField(controller: repsController, decoration: const InputDecoration(labelText: 'Repeticiones')),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedSetType,
+                  decoration: const InputDecoration(labelText: 'Técnica'),
+                  dropdownColor: AppTheme.bgColor,
+                  items: ['NORMAL', 'BISERIE', 'TRISERIE', 'DROPSET', 'ASCENDENTE', 'DESCENDENTE']
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                  onChanged: (v) => setDialogState(() => selectedSetType = v!),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () async {
+                await ApiService().updateExercise(ex['assignment_id'], {
+                  'sets': setsController.text,
+                  'reps': repsController.text,
+                  'target_muscles': musclesController.text,
+                  'set_type': selectedSetType,
+                });
+                if (!mounted) return;
+                Navigator.pop(context);
+                _loadAll();
+              },
+              child: const Text('Guardar Cambios'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _editFoodDetails(dynamic food) {
+    final mealController = TextEditingController(text: food['meal_name'] ?? 'Comida');
+    final gramsController = TextEditingController(text: food['grams']?.toString() ?? '100');
+    String selectedDay = food['day_name'] ?? 'Día 1';
+    final dietDays = ['Día 1', 'Día 2', 'Día 3', 'Día 4', 'Día 5'];
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: AppTheme.surface,
+          title: Text('Editar: ${food['name']}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DropdownButtonFormField<String>(
+                value: selectedDay,
+                decoration: const InputDecoration(labelText: 'Día de Dieta'),
+                dropdownColor: AppTheme.bgColor,
+                items: dietDays.map((e) => DropdownMenuItem(value: e, child: Text(e))).toList(),
+                onChanged: (v) => setDialogState(() => selectedDay = v!),
+              ),
+              const SizedBox(height: 12),
+              TextField(controller: mealController, decoration: const InputDecoration(labelText: 'Comida (Ej: Almuerzo)')),
+              TextField(controller: gramsController, decoration: const InputDecoration(labelText: 'Gramos'), keyboardType: TextInputType.number),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+            ElevatedButton(
+              onPressed: () async {
+                await ApiService().updateFood(food['assignment_id'], {
+                    'meal_name': mealController.text,
+                    'grams': double.parse(gramsController.text),
+                    'day_name': selectedDay,
+                });
+                if (!mounted) return;
+                Navigator.pop(context);
+                _loadAll();
+              },
+              child: const Text('Guardar Cambios'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildMeasurementsTab() {
     if (_userMeasurements.isEmpty) {
       return const Center(child: Text('No hay registros de medidas aún.', style: TextStyle(color: AppTheme.textMuted)));

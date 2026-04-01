@@ -21,6 +21,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _ageController = TextEditingController(text: ApiService().age?.toString());
   final _heightController = TextEditingController(text: ApiService().height?.toString());
   final _weightController = TextEditingController(text: ApiService().currentWeight?.toString());
+  final _bicepsController = TextEditingController(text: ApiService().biceps?.toString());
+  final _thighController = TextEditingController(text: ApiService().thigh?.toString());
+  final _hipController = TextEditingController(text: ApiService().hip?.toString());
+  final _waistController = TextEditingController(text: ApiService().waist?.toString());
   String _selectedObjective = ApiService().objective ?? 'Mantenimiento';
   
   bool _isLoading = false;
@@ -58,6 +62,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'height': double.tryParse(_heightController.text),
         'current_weight': double.tryParse(_weightController.text),
         'objective': _selectedObjective,
+        'biceps': double.tryParse(_bicepsController.text),
+        'thigh': double.tryParse(_thighController.text),
+        'hip': double.tryParse(_hipController.text),
+        'waist': double.tryParse(_waistController.text),
       };
 
       await ApiService().updateProfile(payload, imagePath: _imageFile?.path);
@@ -161,6 +169,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                    ),
                    const SizedBox(height: 16),
                    TextField(controller: _weightController, decoration: const InputDecoration(labelText: 'Peso Inicial (kg)'), keyboardType: TextInputType.number),
+                   const SizedBox(height: 24),
+                   const Text('MEDIDAS (cm)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 11)),
+                   const SizedBox(height: 16),
+                   Row(
+                     children: [
+                       Expanded(child: TextField(controller: _bicepsController, decoration: const InputDecoration(labelText: 'Bíceps'), keyboardType: TextInputType.number)),
+                       const SizedBox(width: 16),
+                       Expanded(child: TextField(controller: _thighController, decoration: const InputDecoration(labelText: 'Muslo'), keyboardType: TextInputType.number)),
+                     ],
+                   ),
+                   const SizedBox(height: 16),
+                   Row(
+                     children: [
+                       Expanded(child: TextField(controller: _hipController, decoration: const InputDecoration(labelText: 'Cadera'), keyboardType: TextInputType.number)),
+                       const SizedBox(width: 16),
+                       Expanded(child: TextField(controller: _waistController, decoration: const InputDecoration(labelText: 'Cintura'), keyboardType: TextInputType.number)),
+                     ],
+                   ),
                    const SizedBox(height: 24),
                    const Align(alignment: Alignment.centerLeft, child: Text('Objetivo Actual', style: TextStyle(fontSize: 12, color: AppTheme.textMuted))),
                    const SizedBox(height: 8),

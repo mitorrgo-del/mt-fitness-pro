@@ -17,6 +17,10 @@ class ApiService {
   String? _objective;
   int? _daysLeft;
   String? _profileImage;
+  double? _biceps;
+  double? _thigh;
+  double? _hip;
+  double? _waist;
 
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
@@ -35,6 +39,10 @@ class ApiService {
   String? get objective => _objective;
   int? get daysLeft => _daysLeft;
   String? get profileImage => _profileImage;
+  double? get biceps => _biceps;
+  double? get thigh => _thigh;
+  double? get hip => _hip;
+  double? get waist => _waist;
 
   void logout() {
     _token = null;
@@ -75,6 +83,10 @@ class ApiService {
     if (data.containsKey('objective')) _objective = data['objective'];
     if (data.containsKey('days_left')) _daysLeft = data['days_left'];
     if (data.containsKey('profile_image')) _profileImage = data['profile_image'];
+    if (data.containsKey('biceps')) _biceps = data['biceps']?.toDouble();
+    if (data.containsKey('thigh')) _thigh = data['thigh']?.toDouble();
+    if (data.containsKey('hip')) _hip = data['hip']?.toDouble();
+    if (data.containsKey('waist')) _waist = data['waist']?.toDouble();
     
     return data;
   }
@@ -251,6 +263,10 @@ class ApiService {
       request.fields['height'] = (data['height'] ?? '').toString();
       request.fields['current_weight'] = (data['current_weight'] ?? '').toString();
       request.fields['objective'] = data['objective'] ?? '';
+      request.fields['biceps'] = (data['biceps'] ?? '').toString();
+      request.fields['thigh'] = (data['thigh'] ?? '').toString();
+      request.fields['hip'] = (data['hip'] ?? '').toString();
+      request.fields['waist'] = (data['waist'] ?? '').toString();
       
       request.files.add(await http.MultipartFile.fromPath('profile_image', imagePath));
       
@@ -275,21 +291,48 @@ class ApiService {
     _height = data['height']?.toDouble();
     _currentWeight = data['current_weight']?.toDouble();
     _objective = data['objective'];
+    _biceps = data['biceps']?.toDouble();
+    _thigh = data['thigh']?.toDouble();
+    _hip = data['hip']?.toDouble();
+    _waist = data['waist']?.toDouble();
   }
 
-  Future<void> submitReport(String weight, String? photoFront, String? photoSide, String? photoBack) async {
+  Future<void> submitReport(String weight, String? photoFront, String? photoSide, String? photoBack, {String? biceps, String? thigh, String? hip, String? waist}) async {
     final request = http.MultipartRequest('POST', Uri.parse('${baseUrl}reports/submit'));
     request.headers.addAll({
       if (_token != null) 'Authorization': 'Bearer $_token',
     });
     request.fields['weight'] = weight;
+    request.fields['biceps'] = biceps ?? '';
+    request.fields['thigh'] = thigh ?? '';
+    request.fields['hip'] = hip ?? '';
+    request.fields['waist'] = waist ?? '';
     
     if (photoFront != null) request.files.add(await http.MultipartFile.fromPath('photo_front', photoFront));
     if (photoSide != null) request.files.add(await http.MultipartFile.fromPath('photo_side', photoSide));
     if (photoBack != null) request.files.add(await http.MultipartFile.fromPath('photo_back', photoBack));
     
     final streamedResponse = await request.send();
-    if (streamedResponse.statusCode != 200) throw Exception('Error al enviar el reporte');
+    if (streamedResponse.statusCode != 200) {
+      final response = await http.Response.fromStream(streamedResponse);
+      throw Exception('Error al enviar el reporte: ${response.body}');
+    }
+  }
+
+  Future<void> updateExercise(int assignmentId, Map<String, dynamic> data) async {
+    await http.post(
+      Uri.parse('${baseUrl}admin/update_exercise/$assignmentId'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
+  }
+
+  Future<void> updateFood(int assignmentId, Map<String, dynamic> data) async {
+    await http.post(
+      Uri.parse('${baseUrl}admin/update_food/$assignmentId'),
+      headers: _headers,
+      body: jsonEncode(data),
+    );
   }
 
   Future<List<dynamic>> getReportHistory(String userId) async {

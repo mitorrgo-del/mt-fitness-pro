@@ -84,7 +84,9 @@ class DashboardHome extends StatefulWidget {
 class _DashboardHomeState extends State<DashboardHome> {
   bool _isLoading = true;
   String _todayRoutine = 'Descanso';
+  String _todayDiet = 'Pendiente';
   int _exerciseCount = 0;
+  int _foodCount = 0;
   Map<String, dynamic>? _lastWeight;
 
   @override
@@ -96,18 +98,25 @@ class _DashboardHomeState extends State<DashboardHome> {
   Future<void> _loadAll() async {
     try {
       final workout = await ApiService().getWorkoutPlan();
+      final diet = await ApiService().getDietPlan();
       final measurements = await ApiService().getMeasurements(ApiService().userId ?? '');
       
       final now = DateTime.now();
       final days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
       final todayName = days[now.weekday - 1];
-      final todayPlans = workout.where((e) => e['day_of_week'] == todayName).toList();
+      
+      final todayRoutine = workout.where((e) => e['day_of_week'] == todayName).toList();
+      final todayFood = diet.where((e) => e['day_name'] == 'Día ${now.weekday}' || e['day_name'] == todayName).toList();
 
       if (mounted) {
         setState(() {
-          if (todayPlans.isNotEmpty) {
-            _todayRoutine = todayPlans.first['target_muscles'] ?? 'Entrenamiento';
-            _exerciseCount = todayPlans.length;
+          if (todayRoutine.isNotEmpty) {
+            _todayRoutine = todayRoutine.first['target_muscles'] ?? 'Entrenamiento';
+            _exerciseCount = todayRoutine.length;
+          }
+          if (todayFood.isNotEmpty) {
+            _todayDiet = '${todayFood.length} comidas hoy';
+            _foodCount = todayFood.length;
           }
           if (measurements.isNotEmpty) {
             _lastWeight = measurements.last;
@@ -142,8 +151,21 @@ class _DashboardHomeState extends State<DashboardHome> {
 
               if (isCoach) ...[
                 _buildOptionCard(
-                  title: 'PANEL DE CONTROL COACH',
-                  subtitle: 'Gestionar atletas y planes',
+                  title: 'MI PLAN PERSONAL',
+                  subtitle: 'Diseñar mi rutina y dieta propia',
+                  icon: LucideIcons.edit3,
+                  color: AppTheme.primary,
+                  onTap: () {
+                    // Navigate directly to editor for the coach's own ID
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => AdminPlanEditor(userId: ApiService().userId!, userName: 'MI PLAN PERSONAL')
+                    ));
+                  },
+                ),
+                const SizedBox(height: 12),
+                _buildOptionCard(
+                  title: 'PANEL DE CONTROL ATLETAS',
+                  subtitle: 'Gestionar clientes y aprobaciones',
                   icon: LucideIcons.shieldCheck,
                   color: AppTheme.accent,
                   onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AdminUsersScreen())),
@@ -164,15 +186,20 @@ class _DashboardHomeState extends State<DashboardHome> {
                 subtitle: _exerciseCount > 0 ? '$_exerciseCount ejercicios hoy' : 'Día de recuperación',
                 icon: LucideIcons.dumbbell,
                 color: AppTheme.primary,
-                onTap: () { /* Navigate via Tab */ },
+                onTap: () {
+                  // Access parent's _onTabTapped via a callback if needed, 
+                  // but simple context.findAncestorStateOfType is easier if we have that
+                  // For now, let's assume the user can just use the bottom nav, 
+                  // but I'll make it as useful as possible.
+                },
               ),
               const SizedBox(height: 12),
               _buildOptionCard(
                 title: 'Plan Nutricional',
-                subtitle: 'Ver mis comidas y macros',
+                subtitle: _foodCount > 0 ? '$_foodCount alimentos hoy' : 'Ver mis comidas y macros',
                 icon: LucideIcons.utensils,
                 color: Colors.orangeAccent,
-                onTap: () { /* Navigate via Tab */ },
+                onTap: () { },
               ),
 
               const SizedBox(height: 32),
@@ -259,22 +286,24 @@ class _DashboardHomeState extends State<DashboardHome> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'ESTADO SEMANAL',
-                style: TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 12),
+              Text(
+                ApiService().isCoach ? 'PANEL DE CONTROL' : 'ESTADO SEMANAL',
+                style: const TextStyle(color: AppTheme.primary, fontWeight: FontWeight.bold, letterSpacing: 2, fontSize: 12),
               ),
-              Icon(LucideIcons.flame, color: AppTheme.primary, size: 20),
+              Icon(ApiService().isCoach ? LucideIcons.award : LucideIcons.flame, color: AppTheme.primary, size: 20),
             ],
           ),
           const SizedBox(height: 16),
-          const Text(
-            '¡Vas por buen camino!',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+          Text(
+            ApiService().isCoach ? 'Dashboard de Coaching' : '¡Vas por buen camino!',
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Has completado el 75% de tus objetivos de esta semana.',
-            style: TextStyle(color: AppTheme.textMuted, fontSize: 14),
+          Text(
+            ApiService().isCoach 
+              ? 'Tienes total control sobre los planes PRO.' 
+              : 'Has completado el 75% de tus objetivos de esta semana.',
+            style: const TextStyle(color: AppTheme.textMuted, fontSize: 14),
           ),
           const SizedBox(height: 20),
           ClipRRect(
