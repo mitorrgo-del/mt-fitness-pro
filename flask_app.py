@@ -1269,9 +1269,6 @@ def agent_reject(post_id):
     conn.close()
     return jsonify({"status": "rejected"})
 
-@app.route('/descargar-app')
-def download_app():
-    return redirect("https://raw.githubusercontent.com/mitorrgo-del/mt-fitness-pro/main/app/MTFitness_PRO_FINAL.apk", code=302)
 
 @app.route('/')
 def index():
