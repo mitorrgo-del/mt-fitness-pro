@@ -1391,10 +1391,6 @@ def generate_marketing():
 
 @app.route('/api/contact', methods=['POST'])
 def contact():
-        data = req
-
-@app.route('/api/contact', methods=['POST'])
-def contact():
     data = request.json
     name = data.get('name')
     email = data.get('email')
