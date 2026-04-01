@@ -45,22 +45,36 @@ class DbWrapper:
         return self.conn.cursor()
     def execute(self, query, params=()):
         if self.is_pg:
+            # Handle standard transformations
+            # 1. Parameter markers
             query = query.replace('?', '%s')
-            # For Postgres, we use the cursor
+            # 2. SQLite specific AUTOINCREMENT
+            query = query.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
+            # 3. IF NOT EXISTS on indexes (not handled here but good practice)
+            
+            # Use raw connection execute or cursor
             cur = self.conn.cursor()
             cur.execute(query, params)
             return cur
         else:
+            # For SQLite, the connection.execute is a shorthand
             return self.conn.execute(query, params)
     def commit(self):
         self.conn.commit()
     def close(self):
         self.conn.close()
     def fetchone(self, cur):
-        res = cur.fetchone()
+        # Handle the fact that 'cur' could be a cursor or a Row object
+        if hasattr(cur, 'fetchone'):
+            res = cur.fetchone()
+        else:
+            res = cur # Fallback
         return dict(res) if res else None
     def fetchall(self, cur):
-        res = cur.fetchall()
+        if hasattr(cur, 'fetchall'):
+            res = cur.fetchall()
+        else:
+            res = cur # Fallback
         return [dict(r) for r in res]
 
 def get_db():
@@ -81,14 +95,13 @@ def init_db():
         print("Production DB (Postgres) detected. Assuming migrations are handled or running init...")
     
     conn_wrap = get_db()
-    c = conn_wrap.cursor()
     
     # We will skip DROP tables in production normally, but for the first run:
     if os.environ.get('RESEED_DB'):
-        c.execute("DROP TABLE IF EXISTS exercises")
-        c.execute("DROP TABLE IF EXISTS foods")
+        conn_wrap.execute("DROP TABLE IF EXISTS exercises")
+        conn_wrap.execute("DROP TABLE IF EXISTS foods")
     
-    c.execute('''CREATE TABLE IF NOT EXISTS users (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY, email TEXT UNIQUE, password TEXT, name TEXT, 
         role TEXT, status TEXT, token TEXT, phone TEXT, 
         objective_weight REAL, routine_weeks INTEGER DEFAULT 4, access_until TEXT,
@@ -96,50 +109,47 @@ def init_db():
     )''')
     
     # PRO Exercises Catalog
-    c.execute('''CREATE TABLE IF NOT EXISTS exercises (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS exercises (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, muscle_group TEXT
     )''')
     
     # PRO Foods Catalog (per 100g)
-    c.execute('''CREATE TABLE IF NOT EXISTS foods (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS foods (
         id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, category TEXT,
         kcal REAL, protein REAL, carbs REAL, fat REAL
     )''')
     
-    c.execute('''CREATE TABLE IF NOT EXISTS measurements (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS measurements (
         id INTEGER PRIMARY KEY AUTOINCREMENT, user_id TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP,
-        weight REAL, waist REAL, chest REAL, hip REAL, thigh REAL, biceps REAL,
-        FOREIGN KEY(user_id) REFERENCES users(id)
+        weight REAL, waist REAL, chest REAL, hip REAL, thigh REAL, biceps REAL
     )''')
 
-    c.execute('''CREATE TABLE IF NOT EXISTS reports (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS reports (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP,
-        weight REAL, photo_front TEXT, photo_side TEXT, photo_back TEXT,
-        FOREIGN KEY(user_id) REFERENCES users(id)
+        weight REAL, photo_front TEXT, photo_side TEXT, photo_back TEXT
     )''')
 
     # PRO Assigned Food Plans (Admin -> Client)
-    c.execute('''CREATE TABLE IF NOT EXISTS user_foods (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS user_foods (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, food_id INTEGER,
         meal_name TEXT, grams REAL, day_name TEXT DEFAULT 'Día 1',
-        added_date TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(food_id) REFERENCES foods(id)
+        added_date TEXT DEFAULT CURRENT_TIMESTAMP
     )''')
 
     # PRO Assigned Workout Plans (Admin -> Client)
-    c.execute('''CREATE TABLE IF NOT EXISTS user_exercises (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS user_exercises (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, exercise_id INTEGER,
         day_of_week TEXT, sets TEXT, reps TEXT, rest TEXT,
         target_muscles TEXT, set_type TEXT DEFAULT 'NORMAL', 
         combined_with INTEGER,
-        added_date TEXT DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(user_id) REFERENCES users(id), FOREIGN KEY(exercise_id) REFERENCES exercises(id)
+        added_date TEXT DEFAULT CURRENT_TIMESTAMP
     )''')
     
-    conn_wrap.commit() # Commit the creation of tables before attempting alteration
+    conn_wrap.commit()
+
     
     # MIGRACIÓN SEGURA: Añadir columnas si no existen
     def column_exists(table, column):
