@@ -201,14 +201,14 @@ def init_db():
             print(f"DEBUG: Column {col} already exists in {table}")
 
     # PRO Meal Tracking
-    c.execute('''CREATE TABLE IF NOT EXISTS meal_logs (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS meal_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, date TEXT, meal_name TEXT,
         FOREIGN KEY(user_id) REFERENCES users(id)
     )''')
 
     # PRIVACY & COACHING CHAT
-    c.execute('''CREATE TABLE IF NOT EXISTS chat_messages (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS chat_messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, sender_role TEXT, message TEXT,
         timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
