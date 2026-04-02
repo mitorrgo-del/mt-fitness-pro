@@ -1669,6 +1669,10 @@ def seed_exercises():
         ("Zottman_Curl","Bíceps"),("Zottman_Preacher_Curl","Bíceps"),
     ]
     conn = get_db()
+    # Limpiamos antes de insertar para evitar duplicados rotos y asegurar que todo tenga el formato correcto
+    conn.execute("DELETE FROM exercises")
+    conn.commit()
+    
     added = 0
     skipped = 0
     for name_only, mg in exercises_data:
