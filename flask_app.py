@@ -1428,11 +1428,26 @@ def contact():
 @app.route('/api/seed_exercises', methods=['GET'])
 def seed_exercises():
     """
-    Inserts all 873 exercises using EXACT image filenames as names.
+    Inserts all 873 exercises using Spanish names and original filenames.
     This guarantees the slug-matching in icon_mapper.dart finds the real image.
     Returns JSON with how many were added.
     """
-    exercises = [
+    import re
+    def translate_name(name):
+        replacements = {
+            'Barbell': 'con Barra', 'Dumbbell': 'con Mancuernas', 'Bench Press': 'Press de Banca',
+            'Incline': 'Inclinado', 'Decline': 'Declinado', 'Squat': 'Sentadilla', 'Lunge': 'Zancada',
+            'Deadlift': 'Peso Muerto', 'Row': 'Remo', 'Curl': 'Curl', 'Extension': 'Extensión',
+            'Extensions': 'Extensión', 'Pull-Up': 'Dominada', 'Pulldown': 'Jalón', 'Front Raise': 'Elevación Frontal',
+            'Shoulder Press': 'Press de Hombro', 'Lateral Raise': 'Elevación Lateral', 'Raise': 'Elevación',
+            'Crunch': 'Crunch Abdominal', 'Plank': 'Plancha', 'Machine': 'en Máquina', 'Cable': 'en Polea'
+        }
+        disp = name.replace('_', ' ').replace('-', ' ')
+        for eng, esp in replacements.items():
+            disp = re.sub(r'(?i)\b' + re.escape(eng) + r'\b', esp, disp)
+        return f"{disp} ({name})"
+
+    exercises_data = [
         ("3_4_Sit-Up","Core"),("90_90_Hamstring","Pierna"),("Ab_Crunch_Machine","Core"),
         ("Ab_Roller","Core"),("Adductor","Compuesto"),("Adductor_Groin","Compuesto"),
         ("Advanced_Kettlebell_Windmill","Compuesto"),("Air_Bike","Cardio"),
@@ -1656,16 +1671,17 @@ def seed_exercises():
     conn = get_db()
     added = 0
     skipped = 0
-    for name, mg in exercises:
-        existing = conn.execute("SELECT id FROM exercises WHERE name = ?", (name,)).fetchone()
+    for name_only, mg in exercises_data:
+        display_name = translate_name(name_only)
+        existing = conn.execute("SELECT id FROM exercises WHERE name = ?", (display_name,)).fetchone()
         if not existing:
-            conn.execute("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", (name, mg))
+            conn.execute("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", (display_name, mg))
             added += 1
         else:
             skipped += 1
+    conn.commit()
     conn.close()
-    total = added + skipped
-    return jsonify({"success": True, "added": added, "skipped": skipped, "total_in_db": total})
+    return jsonify({"success": True, "added": added, "skipped": skipped})
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
