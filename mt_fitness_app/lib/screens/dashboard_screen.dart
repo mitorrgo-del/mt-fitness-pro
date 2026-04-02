@@ -39,7 +39,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _onTabTapped(int index) {
-    setState(() => _currentIndex = index);
+    setState(() {
+      if (index == 0) _pages[0] = DashboardHome(key: UniqueKey(), onTabChange: _onTabTapped);
+      if (index == 2) _pages[2] = WorkoutScreen(key: UniqueKey());
+      if (index == 3) _pages[3] = DietScreen(key: UniqueKey());
+      if (index == 4) _pages[4] = ProfileScreen(key: UniqueKey());
+      _currentIndex = index;
+    });
   }
 
   @override
@@ -244,6 +250,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                         label: 'Peso Actual',
                         value: '${_lastWeight?['weight'] ?? '--'} kg',
                         icon: LucideIcons.scale,
+                        onTap: () => widget.onTabChange(4),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -301,10 +308,11 @@ class _DashboardHomeState extends State<DashboardHome> {
             shape: BoxShape.circle,
             gradient: AppTheme.primaryGradient,
           ),
-          child: const CircleAvatar(
+          child: CircleAvatar(
             backgroundColor: AppTheme.surface,
             radius: 24,
-            child: Icon(LucideIcons.user, color: AppTheme.primary),
+            backgroundImage: ApiService().profileImage != null ? NetworkImage('${ApiService.uploadsUrl}${ApiService().profileImage}') : null,
+            child: ApiService().profileImage == null ? const Icon(LucideIcons.user, color: AppTheme.primary) : null,
           ),
         ),
       ],
