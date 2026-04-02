@@ -1425,111 +1425,247 @@ def contact():
         print(f"Error enviando email: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/api/seed_images_to_db', methods=['GET'])
-def seed_images_to_db():
-    import os
-    import re
-    # The script runs from the project root. We access mt_fitness_app/assets/images
-    images_dir = os.path.join(BASE_DIR, 'mt_fitness_app', 'assets', 'images')
-    if not os.path.exists(images_dir):
-        return jsonify({"error": f"Images dir not found: {images_dir}"})
-        
-    image_files = [f for f in os.listdir(images_dir) if f.lower().endswith(('.jpg', '.png'))]
-    
+@app.route('/api/seed_exercises', methods=['GET'])
+def seed_exercises():
+    """
+    Inserts all 873 exercises using EXACT image filenames as names.
+    This guarantees the slug-matching in icon_mapper.dart finds the real image.
+    Returns JSON with how many were added.
+    """
+    exercises = [
+        ("3_4_Sit-Up","Core"),("90_90_Hamstring","Pierna"),("Ab_Crunch_Machine","Core"),
+        ("Ab_Roller","Core"),("Adductor","Compuesto"),("Adductor_Groin","Compuesto"),
+        ("Advanced_Kettlebell_Windmill","Compuesto"),("Air_Bike","Cardio"),
+        ("All_Fours_Quad_Stretch","Flexibilidad"),("Alternate_Hammer_Curl","Bíceps"),
+        ("Alternate_Heel_Touchers","Core"),("Alternate_Incline_Dumbbell_Curl","Bíceps"),
+        ("Alternate_Leg_Diagonal_Bound","Pierna"),("Alternating_Cable_Shoulder_Press","Hombro"),
+        ("Alternating_Deltoid_Raise","Hombro"),("Alternating_Floor_Press","Pecho"),
+        ("Alternating_Hang_Clean","Compuesto"),("Alternating_Kettlebell_Press","Hombro"),
+        ("Alternating_Kettlebell_Row","Espalda"),("Alternating_Renegade_Row","Espalda"),
+        ("Ankle_Circles","Flexibilidad"),("Ankle_On_The_Knee","Flexibilidad"),
+        ("Anterior_Tibialis-SMR","Flexibilidad"),("Anti-Gravity_Press","Hombro"),
+        ("Arm_Circles","Flexibilidad"),("Arnold_Dumbbell_Press","Hombro"),
+        ("Around_The_Worlds","Pecho"),("Atlas_Stones","Compuesto"),
+        ("Atlas_Stone_Trainer","Compuesto"),("Axle_Deadlift","Espalda"),
+        ("Backward_Drag","Compuesto"),("Backward_Medicine_Ball_Throw","Compuesto"),
+        ("Back_Flyes_-_With_Bands","Espalda"),("Balance_Board","Core"),
+        ("Ball_Leg_Curl","Pierna"),("Band_Assisted_Pull-Up","Espalda"),
+        ("Band_Good_Morning","Espalda"),("Band_Good_Morning_Pull_Through","Espalda"),
+        ("Band_Hip_Adductions","Pierna"),("Band_Pull_Apart","Hombro"),
+        ("Band_Skull_Crusher","Tríceps"),("Barbell_Ab_Rollout","Core"),
+        ("Barbell_Ab_Rollout_-_On_Knees","Core"),("Barbell_Bench_Press_-_Medium_Grip","Pecho"),
+        ("Barbell_Curl","Bíceps"),("Barbell_Curls_Lying_Against_An_Incline","Bíceps"),
+        ("Barbell_Deadlift","Espalda"),("Barbell_Full_Squat","Pierna"),
+        ("Barbell_Glute_Bridge","Pierna"),("Barbell_Guillotine_Bench_Press","Pecho"),
+        ("Barbell_Hack_Squat","Pierna"),("Barbell_Hip_Thrust","Pierna"),
+        ("Barbell_Incline_Bench_Press_-_Medium_Grip","Pecho"),("Barbell_Incline_Shoulder_Raise","Hombro"),
+        ("Barbell_Lunge","Pierna"),("Barbell_Rear_Delt_Row","Hombro"),
+        ("Barbell_Rollout_from_Bench","Core"),("Barbell_Seated_Calf_Raise","Pierna"),
+        ("Barbell_Shoulder_Press","Hombro"),("Barbell_Shrug","Hombro"),
+        ("Barbell_Shrug_Behind_The_Back","Hombro"),("Barbell_Side_Bend","Core"),
+        ("Barbell_Side_Split_Squat","Pierna"),("Barbell_Squat","Pierna"),
+        ("Barbell_Squat_To_A_Bench","Pierna"),("Barbell_Step_Ups","Pierna"),
+        ("Barbell_Walking_Lunge","Pierna"),("Battling_Ropes","Cardio"),
+        ("Bear_Crawl_Sled_Drags","Compuesto"),("Behind_Head_Chest_Stretch","Flexibilidad"),
+        ("Bench_Dips","Tríceps"),("Bench_Jump","Pierna"),
+        ("Bench_Press_-_Powerlifting","Pecho"),("Bench_Press_-_With_Bands","Pecho"),
+        ("Bench_Press_with_Chains","Pecho"),("Bench_Sprint","Cardio"),
+        ("Bent-Arm_Barbell_Pullover","Espalda"),("Bent-Arm_Dumbbell_Pullover","Espalda"),
+        ("Bent-Knee_Hip_Raise","Core"),("Bent_Over_Barbell_Row","Espalda"),
+        ("Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench","Hombro"),
+        ("Bent_Over_Low-Pulley_Side_Lateral","Hombro"),("Bent_Over_One-Arm_Long_Bar_Row","Espalda"),
+        ("Bent_Over_Two-Arm_Long_Bar_Row","Espalda"),("Bent_Over_Two-Dumbbell_Row","Espalda"),
+        ("Bent_Over_Two-Dumbbell_Row_With_Palms_In","Espalda"),("Bent_Press","Compuesto"),
+        ("Bicycling","Cardio"),("Bicycling_Stationary","Cardio"),
+        ("Board_Press","Pecho"),("Body-Up","Core"),
+        ("Bodyweight_Flyes","Pecho"),("Bodyweight_Mid_Row","Espalda"),
+        ("Bodyweight_Squat","Pierna"),("Bodyweight_Walking_Lunge","Pierna"),
+        ("Body_Tricep_Press","Tríceps"),("Bosu_Ball_Cable_Crunch_With_Side_Bends","Core"),
+        ("Bottoms-Up_Clean_From_The_Hang_Position","Compuesto"),("Bottoms_Up","Compuesto"),
+        ("Box_Jump_Multiple_Response","Pierna"),("Box_Skip","Cardio"),
+        ("Box_Squat","Pierna"),("Box_Squat_with_Bands","Pierna"),
+        ("Box_Squat_with_Chains","Pierna"),("Brachialis-SMR","Flexibilidad"),
+        ("Bradford_Rocky_Presses","Hombro"),("Butt-Ups","Core"),
+        ("Butterfly","Flexibilidad"),("Butt_Lift_Bridge","Pierna"),
+        ("Cable_Chest_Press","Pecho"),("Cable_Crossover","Pecho"),
+        ("Cable_Crunch","Core"),("Cable_Deadlifts","Espalda"),
+        ("Cable_Hammer_Curls_-_Rope_Attachment","Bíceps"),("Cable_Hip_Adduction","Pierna"),
+        ("Cable_Incline_Pushdown","Tríceps"),("Cable_Incline_Triceps_Extension","Tríceps"),
+        ("Cable_Internal_Rotation","Hombro"),("Cable_Iron_Cross","Pecho"),
+        ("Cable_Judo_Flip","Compuesto"),("Cable_Lying_Triceps_Extension","Tríceps"),
+        ("Cable_One_Arm_Tricep_Extension","Tríceps"),("Cable_Preacher_Curl","Bíceps"),
+        ("Cable_Rear_Delt_Fly","Hombro"),("Cable_Reverse_Crunch","Core"),
+        ("Cable_Rope_Overhead_Triceps_Extension","Tríceps"),("Cable_Rope_Rear-Delt_Rows","Hombro"),
+        ("Cable_Russian_Twists","Core"),("Cable_Seated_Crunch","Core"),
+        ("Cable_Seated_Lateral_Raise","Hombro"),("Cable_Shoulder_Press","Hombro"),
+        ("Cable_Shrugs","Hombro"),("Cable_Wrist_Curl","Compuesto"),
+        ("Calf-Machine_Shoulder_Shrug","Hombro"),("Calf_Press","Pierna"),
+        ("Calf_Press_On_The_Leg_Press_Machine","Pierna"),("Calf_Raises_-_With_Bands","Pierna"),
+        ("Calf_Raise_On_A_Dumbbell","Pierna"),("Calf_Stretch_Elbows_Against_Wall","Flexibilidad"),
+        ("Calf_Stretch_Hands_Against_Wall","Flexibilidad"),("Calves-SMR","Flexibilidad"),
+        ("Carioca_Quick_Step","Cardio"),("Car_Deadlift","Espalda"),
+        ("Car_Drivers","Hombro"),("Cat_Stretch","Flexibilidad"),
+        ("Chain_Handle_Extension","Tríceps"),("Chain_Press","Pecho"),
+        ("Chair_Squat","Pierna"),("Chest_And_Front_Of_Shoulder_Stretch","Flexibilidad"),
+        ("Chin-Up","Espalda"),("Clean","Compuesto"),
+        ("Clean_and_Jerk","Compuesto"),("Clean_and_Press","Compuesto"),
+        ("Clean_Deadlift","Espalda"),("Clean_Pull","Compuesto"),
+        ("Close-Grip_Barbell_Bench_Press","Tríceps"),("Close-Grip_Dumbbell_Press","Tríceps"),
+        ("Close-Grip_EZ_Bar_Curl","Bíceps"),("Close-Grip_Front_Lat_Pulldown","Espalda"),
+        ("Close-Grip_Standing_Barbell_Curl","Bíceps"),("Cocoons","Core"),
+        ("Concentration_Curls","Bíceps"),("Cross-Body_Crunch","Core"),
+        ("Crossover_Reverse_Lunge","Pierna"),("Cross_Body_Hammer_Curl","Bíceps"),
+        ("Crunches","Core"),("Crunch_-_Hands_Overhead","Core"),
+        ("Crunch_-_Legs_On_Exercise_Ball","Core"),("Cuban_Press","Hombro"),
+        ("Deadlift_with_Bands","Espalda"),("Deadlift_with_Chains","Espalda"),
+        ("Dead_Bug","Core"),("Decline_Barbell_Bench_Press","Pecho"),
+        ("Decline_Close-Grip_Bench_To_Skull_Crusher","Tríceps"),("Decline_Crunch","Core"),
+        ("Decline_Dumbbell_Bench_Press","Pecho"),("Decline_Dumbbell_Flyes","Pecho"),
+        ("Decline_Dumbbell_Triceps_Extension","Tríceps"),("Decline_EZ_Bar_Triceps_Extension","Tríceps"),
+        ("Decline_Oblique_Crunch","Core"),("Decline_Push-Up","Pecho"),
+        ("Decline_Reverse_Crunch","Core"),("Decline_Smith_Press","Pecho"),
+        ("Deficit_Deadlift","Espalda"),("Dips_-_Chest_Version","Pecho"),
+        ("Dips_-_Triceps_Version","Tríceps"),("Dip_Machine","Tríceps"),
+        ("Donkey_Calf_Raises","Pierna"),("Double_Kettlebell_Jerk","Compuesto"),
+        ("Double_Kettlebell_Push_Press","Compuesto"),("Double_Kettlebell_Snatch","Compuesto"),
+        ("Double_Leg_Butt_Kick","Cardio"),("Drag_Curl","Bíceps"),
+        ("Dumbbell_Alternate_Bicep_Curl","Bíceps"),("Dumbbell_Bench_Press","Pecho"),
+        ("Dumbbell_Bench_Press_with_Neutral_Grip","Pecho"),("Dumbbell_Bicep_Curl","Bíceps"),
+        ("Dumbbell_Clean","Compuesto"),("Dumbbell_Floor_Press","Pecho"),
+        ("Dumbbell_Flyes","Pecho"),("Dumbbell_Incline_Row","Espalda"),
+        ("Dumbbell_Incline_Shoulder_Raise","Hombro"),("Dumbbell_Lunges","Pierna"),
+        ("Dumbbell_Lying_One-Arm_Rear_Lateral_Raise","Hombro"),("Dumbbell_Lying_Rear_Lateral_Raise","Hombro"),
+        ("Dumbbell_One-Arm_Shoulder_Press","Hombro"),("Dumbbell_One-Arm_Triceps_Extension","Tríceps"),
+        ("Dumbbell_One-Arm_Upright_Row","Hombro"),("Dumbbell_Prone_Incline_Curl","Bíceps"),
+        ("Dumbbell_Raise","Hombro"),("Dumbbell_Rear_Lunge","Pierna"),
+        ("Dumbbell_Scaption","Hombro"),("Dumbbell_Shoulder_Press","Hombro"),
+        ("Dumbbell_Shrug","Hombro"),("Dumbbell_Side_Bend","Core"),
+        ("Dumbbell_Squat","Pierna"),("Dumbbell_Step_Ups","Pierna"),
+        ("EZ-Bar_Curl","Bíceps"),("EZ-Bar_Skullcrusher","Tríceps"),
+        ("Face_Pull","Hombro"),("Farmers_Walk","Compuesto"),
+        ("Finger_Curls","Compuesto"),("Flat_Bench_Cable_Flyes","Pecho"),
+        ("Flat_Bench_Lying_Leg_Raise","Core"),("Floor_Glute-Ham_Raise","Pierna"),
+        ("Floor_Press","Pecho"),("Flutter_Kicks","Core"),
+        ("Freehand_Jump_Squat","Pierna"),("Frog_Hops","Pierna"),
+        ("Front_Barbell_Squat","Pierna"),("Front_Box_Jump","Pierna"),
+        ("Front_Cable_Raise","Hombro"),("Front_Dumbbell_Raise","Hombro"),
+        ("Front_Incline_Dumbbell_Raise","Hombro"),("Front_Leg_Raises","Core"),
+        ("Front_Plate_Raise","Hombro"),("Full_Range-Of-Motion_Lat_Pulldown","Espalda"),
+        ("Glute_Ham_Raise","Pierna"),("Glute_Kickback","Pierna"),
+        ("Goblet_Squat","Pierna"),("Good_Morning","Espalda"),
+        ("Gorilla_Chin_Crunch","Core"),("Hack_Squat","Pierna"),
+        ("Hammer_Curls","Bíceps"),("Hammer_Grip_Incline_DB_Bench_Press","Pecho"),
+        ("Hamstring_Stretch","Flexibilidad"),("Handstand_Push-Ups","Hombro"),
+        ("Hanging_Leg_Raise","Core"),("Hang_Clean","Compuesto"),
+        ("Hang_Snatch","Compuesto"),("High_Cable_Curls","Bíceps"),
+        ("Hip_Extension_with_Bands","Pierna"),("Hyperextensions_Back_Extensions","Espalda"),
+        ("Incline_Barbell_Triceps_Extension","Tríceps"),("Incline_Cable_Chest_Press","Pecho"),
+        ("Incline_Cable_Flye","Pecho"),("Incline_Dumbbell_Curl","Bíceps"),
+        ("Incline_Dumbbell_Flyes","Pecho"),("Incline_Dumbbell_Press","Pecho"),
+        ("Incline_Hammer_Curls","Bíceps"),("Incline_Push-Up","Pecho"),
+        ("Inverted_Row","Espalda"),("Iron_Cross","Compuesto"),
+        ("Jackknife_Sit-Up","Core"),("Jefferson_Squats","Pierna"),
+        ("Jogging_Treadmill","Cardio"),("Kettlebell_Arnold_Press","Hombro"),
+        ("Kettlebell_Figure_8","Compuesto"),("Kettlebell_Pistol_Squat","Pierna"),
+        ("Kettlebell_Thruster","Compuesto"),("Kettlebell_Windmill","Compuesto"),
+        ("Kneeling_Cable_Triceps_Extension","Tríceps"),("Kneeling_High_Pulley_Row","Espalda"),
+        ("Kneeling_Jump_Squat","Pierna"),("Knee_Tuck_Jump","Pierna"),
+        ("Landmine_180s","Compuesto"),("Lateral_Box_Jump","Pierna"),
+        ("Lateral_Raise_-_With_Bands","Hombro"),("Leg_Extensions","Pierna"),
+        ("Leg_Press","Pierna"),("Leverage_Chest_Press","Pecho"),
+        ("Leverage_Deadlift","Espalda"),("Leverage_High_Row","Espalda"),
+        ("Leverage_Incline_Chest_Press","Pecho"),("Leverage_Shoulder_Press","Hombro"),
+        ("Lying_Cable_Curl","Bíceps"),("Lying_Close-Grip_Barbell_Triceps_Extension_Behind_The_Head","Tríceps"),
+        ("Lying_Dumbbell_Tricep_Extension","Tríceps"),("Lying_Glute","Flexibilidad"),
+        ("Lying_Hamstring","Flexibilidad"),("Lying_Leg_Curls","Pierna"),
+        ("Lying_Rear_Delt_Raise","Hombro"),("Lying_Triceps_Press","Tríceps"),
+        ("Machine_Bench_Press","Pecho"),("Machine_Bicep_Curl","Bíceps"),
+        ("Machine_Preacher_Curls","Bíceps"),("Machine_Shoulder_Military_Press","Hombro"),
+        ("Machine_Triceps_Extension","Tríceps"),("Medicine_Ball_Chest_Pass","Pecho"),
+        ("Middle_Back_Shrug","Espalda"),("Mountain_Climbers","Core"),
+        ("Muscle_Up","Compuesto"),("Narrow_Stance_Hack_Squats","Pierna"),
+        ("Narrow_Stance_Leg_Press","Pierna"),("Neck_Press","Pecho"),
+        ("Oblique_Crunches","Core"),("Olympic_Squat","Pierna"),
+        ("One-Arm_Dumbbell_Row","Espalda"),("One-Arm_Kettlebell_Clean","Compuesto"),
+        ("One-Arm_Kettlebell_Jerk","Compuesto"),("One-Arm_Kettlebell_Snatch","Compuesto"),
+        ("One_Arm_Dumbbell_Bench_Press","Pecho"),("One_Arm_Lat_Pulldown","Espalda"),
+        ("One_Leg_Barbell_Squat","Pierna"),("Open_Palm_Kettlebell_Clean","Compuesto"),
+        ("Overhead_Cable_Curl","Bíceps"),("Overhead_Squat","Pierna"),
+        ("Pallof_Press","Core"),("Parallel_Bar_Dip","Tríceps"),
+        ("Physioball_Hip_Bridge","Pierna"),("Plank","Core"),
+        ("Plate_Twist","Core"),("Plie_Dumbbell_Squat","Pierna"),
+        ("Plyo_Push-up","Pecho"),("Power_Clean","Compuesto"),
+        ("Power_Jerk","Compuesto"),("Power_Snatch","Compuesto"),
+        ("Preacher_Curl","Bíceps"),("Preacher_Hammer_Dumbbell_Curl","Bíceps"),
+        ("Pull_Through","Espalda"),("Push-Ups_-_Close_Triceps_Position","Tríceps"),
+        ("Push-Ups_With_Feet_Elevated","Pecho"),("Pushups","Pecho"),
+        ("Push_Press","Hombro"),("Pyramid","Compuesto"),
+        ("Rack_Pulls","Espalda"),("Rear_Leg_Raises","Pierna"),
+        ("Recumbent_Bike","Cardio"),("Reverse_Band_Bench_Press","Pecho"),
+        ("Reverse_Band_Deadlift","Espalda"),("Reverse_Barbell_Curl","Bíceps"),
+        ("Reverse_Cable_Curl","Bíceps"),("Reverse_Crunch","Core"),
+        ("Reverse_Flyes","Hombro"),("Reverse_Grip_Bent-Over_Rows","Espalda"),
+        ("Reverse_Grip_Triceps_Pushdown","Tríceps"),("Reverse_Hyperextension","Espalda"),
+        ("Ring_Dips","Tríceps"),("Romanian_Deadlift","Pierna"),
+        ("Rope_Climb","Espalda"),("Rope_Crunch","Core"),
+        ("Rope_Jumping","Cardio"),("Rowing_Stationary","Cardio"),
+        ("Running_Treadmill","Cardio"),("Russian_Twist","Core"),
+        ("Scapular_Pull-Up","Espalda"),("Seated_Band_Hamstring_Curl","Pierna"),
+        ("Seated_Barbell_Military_Press","Hombro"),("Seated_Bent-Over_Rear_Delt_Raise","Hombro"),
+        ("Seated_Cable_Rows","Espalda"),("Seated_Cable_Shoulder_Press","Hombro"),
+        ("Seated_Calf_Raise","Pierna"),("Seated_Dumbbell_Curl","Bíceps"),
+        ("Seated_Dumbbell_Press","Hombro"),("Seated_Leg_Curl","Pierna"),
+        ("Seated_Side_Lateral_Raise","Hombro"),("Seated_Triceps_Press","Tríceps"),
+        ("Side_Bridge","Core"),("Side_Jackknife","Core"),
+        ("Side_Lateral_Raise","Hombro"),("Side_Leg_Raises","Pierna"),
+        ("Single_Leg_Glute_Bridge","Pierna"),("Sit-Up","Core"),
+        ("Sled_Push","Compuesto"),("Smith_Machine_Bench_Press","Pecho"),
+        ("Smith_Machine_Bent_Over_Row","Espalda"),("Smith_Machine_Calf_Raise","Pierna"),
+        ("Smith_Machine_Incline_Bench_Press","Pecho"),("Smith_Machine_Leg_Press","Pierna"),
+        ("Smith_Machine_Overhead_Shoulder_Press","Hombro"),("Smith_Machine_Squat","Pierna"),
+        ("Snatch","Compuesto"),("Snatch_Deadlift","Espalda"),
+        ("Speed_Squats","Pierna"),("Spider_Curl","Bíceps"),
+        ("Split_Jerk","Compuesto"),("Split_Jump","Pierna"),
+        ("Split_Squats","Pierna"),("Split_Squat_with_Dumbbells","Pierna"),
+        ("Squat_with_Bands","Pierna"),("Stairmaster","Cardio"),
+        ("Standing_Barbell_Calf_Raise","Pierna"),("Standing_Biceps_Cable_Curl","Bíceps"),
+        ("Standing_Cable_Wood_Chop","Core"),("Standing_Calf_Raises","Pierna"),
+        ("Standing_Dumbbell_Calf_Raise","Pierna"),("Standing_Dumbbell_Press","Hombro"),
+        ("Standing_Dumbbell_Triceps_Extension","Tríceps"),("Standing_Military_Press","Hombro"),
+        ("Standing_One-Arm_Dumbbell_Triceps_Extension","Tríceps"),
+        ("Standing_Overhead_Barbell_Triceps_Extension","Tríceps"),
+        ("Stiff-Legged_Barbell_Deadlift","Pierna"),("Stiff-Legged_Dumbbell_Deadlift","Pierna"),
+        ("Straight-Arm_Dumbbell_Pullover","Espalda"),("Straight-Arm_Pulldown","Espalda"),
+        ("Sumo_Deadlift","Pierna"),("Sumo_Deadlift_with_Bands","Pierna"),
+        ("Superman","Espalda"),("Suspended_Push-Up","Pecho"),
+        ("Swiss_Ball_Dumbbell_Curl","Bíceps"),("T-Bar_Row","Espalda"),
+        ("T-Bar_Row_with_Handle","Espalda"),("TRX_Suspended_Pushup","Pecho"),
+        ("Thruster","Compuesto"),("Tire_Flip","Compuesto"),
+        ("Triceps_Pushdown","Tríceps"),("Triceps_Pushdown_-_Rope_Attachment","Tríceps"),
+        ("Underhand_Cable_Pulldowns","Espalda"),("Upright_Barbell_Row","Hombro"),
+        ("V_Bar_Pulldown","Espalda"),("Weighted_Bench_Dip","Tríceps"),
+        ("Weighted_Crunches","Core"),("Weighted_Jump_Squat","Pierna"),
+        ("Weighted_Pull_Ups","Espalda"),("Weighted_Squat","Pierna"),
+        ("Wide-Grip_Barbell_Bench_Press","Pecho"),("Wide-Grip_Decline_Barbell_Bench_Press","Pecho"),
+        ("Wide-Grip_Lat_Pulldown","Espalda"),("Wide-Grip_Rear_Pull-Up","Espalda"),
+        ("Wide-Grip_Standing_Barbell_Curl","Bíceps"),("Wide_Stance_Barbell_Squat","Pierna"),
+        ("Windmills","Compuesto"),("Wrist_Roller","Compuesto"),
+        ("Yoke_Walk","Compuesto"),("Zercher_Squats","Pierna"),
+        ("Zottman_Curl","Bíceps"),("Zottman_Preacher_Curl","Bíceps"),
+    ]
     conn = get_db()
-    
-    def translate_name(name):
-        replacements = {
-            'Barbell': 'con Barra',
-            'Dumbbell': 'con Mancuernas',
-            'Bench Press': 'Press de Banca',
-            'Incline': 'Inclinado',
-            'Decline': 'Declinado',
-            'Squat': 'Sentadilla',
-            'Lunge': 'Zancada',
-            'Deadlift': 'Peso Muerto',
-            'Row': 'Remo',
-            'Curl': 'Curl',
-            'Extension': 'Extensión',
-            'Extensions': 'Extensión',
-            'Pull-Up': 'Dominada',
-            'Pull-aparts': 'Aperturas',
-            'Pulldown': 'Jalón',
-            'Shoulder Press': 'Press de Hombro',
-            'Lateral Raise': 'Elevación Lateral',
-            'Front Raise': 'Elevación Frontal',
-            'Flyes': 'Aperturas',
-            'Fly': 'Aperturas',
-            'Machine': 'en Máquina',
-            'Cable': 'en Polea',
-            'Seated': 'Sentado',
-            'Standing': 'de Pie',
-            'Lying': 'Tumbado',
-            'Triceps': 'Tríceps',
-            'Biceps': 'Bíceps',
-            'Leg': 'Piernas',
-            'Chest': 'Pecho',
-            'Back': 'Espalda',
-            'Calf': 'Gemelos',
-            'Raise': 'Elevación',
-            'Raises': 'Elevaciones',
-            'Press': 'Press',
-            'Overhead': 'sobre la cabeza',
-            'Push-Up': 'Flexión',
-            'Crunch': 'Crunch Abdominal',
-            'Plank': 'Plancha',
-            'Romanian': 'Rumano',
-            'Close-Grip': 'Agarre Estrecho',
-            'Wide-Grip': 'Agarre Ancho',
-            'Reverse': 'Inverso'
-        }
-        for eng, esp in replacements.items():
-            name = re.sub(r'(?i)\b' + re.escape(eng) + r'\b', esp, name)
-            # Also handle snake case replacements
-            name = re.sub(r'(?i)' + re.escape(eng.replace(' ', '_')), esp, name)
-        return name.strip()
-
-    count = 0
-    results = []
-    for f in image_files:
-        if '_icon_' in f: continue
-            
-        name_only = os.path.splitext(f)[0]
-        # Example: Barbell_Bench_Press -> Barbell Bench Press -> translation
-        # First translate, then replace _ with space for whatever is left
-        display_name = translate_name(name_only)
-        display_name = display_name.replace('_', ' ').replace('-', ' ')
-        # Add original slug in parenthesis to guarantee icon mapping correctly
-        display_name = f"{display_name} ({name_only})"
-        
-        # Determine muscle group heuristically
-        mg = 'Variado'
-        lower = name_only.lower()
-        if 'chest' in lower or 'bench_press' in lower or 'fly' in lower or 'peck' in lower:
-            mg = 'Pecho'
-        elif 'back' in lower or 'row' in lower or 'pull_up' in lower or 'pulldown' in lower:
-            mg = 'Espalda'
-        elif 'leg' in lower or 'squat' in lower or 'lunge' in lower or 'calf' in lower or 'deadlift' in lower:
-            mg = 'Pierna'
-        elif 'shoulder' in lower or 'lateral_raise' in lower or 'delt' in lower:
-            mg = 'Hombro'
-        elif 'bicep' in lower or 'curl' in lower:
-            mg = 'Bíceps'
-        elif 'tricep' in lower or 'extension' in lower:
-            mg = 'Tríceps'
-        elif 'ab' in lower or 'crunch' in lower or 'plank' in lower:
-            mg = 'Core'
-
-        # Check existence
-        exists = conn.execute("SELECT id FROM exercises WHERE name = ?", (display_name,)).fetchone()
-        if not exists:
-            conn.execute("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", (display_name, mg))
-            count += 1
-            results.append(display_name)
-            
-    conn.commit()
+    added = 0
+    skipped = 0
+    for name, mg in exercises:
+        existing = conn.execute("SELECT id FROM exercises WHERE name = ?", (name,)).fetchone()
+        if not existing:
+            conn.execute("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", (name, mg))
+            added += 1
+        else:
+            skipped += 1
     conn.close()
-    return jsonify({"success": True, "added": count, "exercises": results})
+    total = added + skipped
+    return jsonify({"success": True, "added": added, "skipped": skipped, "total_in_db": total})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
