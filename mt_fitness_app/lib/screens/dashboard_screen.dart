@@ -243,26 +243,22 @@ class _DashboardHomeState extends State<DashboardHome> {
                 _buildSectionTitle('PROGRESO Y MÉTRICAS'),
                 const SizedBox(height: 16),
                 
-                Row(
-                  children: [
-                    Expanded(
-                      child: _buildMetricMiniCard(
-                        label: 'Peso Actual',
-                        value: '${_lastWeight?['weight'] ?? '--'} kg',
-                        icon: LucideIcons.scale,
-                        onTap: () => widget.onTabChange(4),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: _buildMetricMiniCard(
-                        label: 'Check-in',
-                        value: 'Viernes',
-                        icon: LucideIcons.camera,
-                        onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportScreen())).then((_) => _loadAll()),
-                      ),
-                    ),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = (constraints.maxWidth - 24) / 3;
+                    return Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        _buildSmallMetric('Peso', '${ApiService().currentWeight ?? '--'} kg', LucideIcons.scale, width),
+                        _buildSmallMetric('Bíceps', '${ApiService().biceps ?? '--'} cm', LucideIcons.activity, width),
+                        _buildSmallMetric('Cintura', '${ApiService().waist ?? '--'} cm', LucideIcons.activity, width),
+                        _buildSmallMetric('Cadera', '${ApiService().hip ?? '--'} cm', LucideIcons.activity, width),
+                        _buildSmallMetric('Muslo', '${ApiService().thigh ?? '--'} cm', LucideIcons.activity, width),
+                        _buildSmallMetric('Perfil', 'Abrir', LucideIcons.user, width, onTap: () => widget.onTabChange(4)),
+                      ],
+                    );
+                  }
                 ),
                 const SizedBox(height: 40),
                 Center(
@@ -423,27 +419,25 @@ class _DashboardHomeState extends State<DashboardHome> {
   );
 }
 
-  Widget _buildMetricMiniCard({required String label, required String value, required IconData icon, VoidCallback? onTap}) {
-    return PremiumCard(
-      padding: 0,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(icon, color: AppTheme.primary, size: 24),
-              const SizedBox(height: 16),
-              Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 12)),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
+  Widget _buildSmallMetric(String label, String value, IconData icon, double width, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: width,
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppTheme.primary.withOpacity(0.3)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: AppTheme.primary, size: 20),
+            const SizedBox(height: 8),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+            const SizedBox(height: 4),
+            Text(label, style: const TextStyle(color: AppTheme.textMuted, fontSize: 10, letterSpacing: 1.0)),
+          ],
         ),
       ),
     );

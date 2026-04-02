@@ -143,7 +143,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             const SizedBox(height: 32),
             
-            if (_measurements.length >= 2) ...[
+            if (_measurements.isNotEmpty) ...[
                const Text('EVOLUCIÓN DE PESO', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary, fontSize: 12, letterSpacing: 1.2)),
                const SizedBox(height: 16),
                _buildChart(),
