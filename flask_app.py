@@ -1268,7 +1268,6 @@ def agent_reject(post_id):
     conn.close()
     return jsonify({"status": "rejected"})
 
-
 @app.route('/')
 def index():
     return send_from_directory(app.static_folder, 'index.html')
@@ -1277,42 +1276,23 @@ def index():
 def serve_manifest():
     return send_from_directory(app.static_folder, 'manifest.json')
 
-
 @app.route('/api/increment_visits', methods=['GET', 'POST'])
 def increment_visits():
     ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    # Get country info from a free API (optional, can be slow)
     country = "Desconocido"
     try:
-        # We handle this quickly to not slow down the page load
         res = requests.get(f'http://ip-api.com/json/{ip}?fields=country', timeout=1)
         if res.status_code == 200:
             country = res.json().get('country', 'Desconocido')
-    except:
-        pass
-
+    except: pass
     conn = get_db()
     cursor = conn.cursor()
-    
-    # Tables for stats
     cursor.execute('''CREATE TABLE IF NOT EXISTS metrics (key TEXT UNIQUE, value INTEGER)''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS visitor_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, 
-        ip TEXT, 
-        country TEXT
-    )''')
-    
-    # Increment total
+    cursor.execute('''CREATE TABLE IF NOT EXISTS visitor_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, ip TEXT, country TEXT)''')
     cursor.execute('''INSERT OR IGNORE INTO metrics (key, value) VALUES ('total_visits', 0)''')
     cursor.execute('''UPDATE metrics SET value = value + 1 WHERE key = 'total_visits' ''')
-    
-    # Log visit
     cursor.execute('''INSERT INTO visitor_logs (ip, country) VALUES (?, ?)''', (ip, country))
-    
     conn.commit()
-    
-    # Get total for display
     cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
     visits = cursor.fetchone()[0]
     conn.close()
@@ -1320,12 +1300,10 @@ def increment_visits():
 
 @app.route('/api/get_stats', methods=['GET'])
 def get_stats():
-    # Only for the coach (no token yet, but we'll protect it later)
     conn = get_db()
     cursor = conn.cursor()
     cursor.execute('''SELECT country, COUNT(*) as count FROM visitor_logs GROUP BY country ORDER BY count DESC''')
     countries = [{"country": row[0], "count": row[1]} for row in cursor.fetchall()]
-    
     cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
     total = cursor.fetchone()[0] if cursor.fetchone() else 0
     conn.close()
@@ -1336,7 +1314,6 @@ def upload_db():
     master_token = request.form.get('master_token')
     if master_token != "MT_MASTER_PRO_2026":
         return jsonify({"error": "Unauthorized"}), 401
-        
     db_file = request.files.get('db')
     if db_file:
         db_file.save(DB_FILE)
@@ -1348,7 +1325,6 @@ def download_db():
     master_token = request.form.get('master_token')
     if master_token != "MT_MASTER_PRO_2026":
         return jsonify({"error": "Unauthorized"}), 401
-    
     return send_from_directory(BASE_DIR, 'mtfitness.db', as_attachment=True)
 
 @app.route('/<path:path>')
@@ -1368,214 +1344,14 @@ def generate_marketing():
     data = request.json
     topic = data.get('topic')
     type = data.get('type') # 'blog' or 'instagram'
-    
     if not topic:
         return jsonify({"error": "Topic required"}), 400
-    
-    # Custom prompt based on type
     if type == 'blog':
         prompt = f"Escribe un artículo de blog SEO de unas 300 palabras sobre '{topic}' para el entrenador Miguel Torres. Usa un tono motivador, profesional y directo. No uses la palabra 'ciencia'. Enfócate en resultados y alto rendimiento."
     else:
         prompt = f"Genera un post de Instagram rompedor sobre '{topic}' para Miguel Torres. Incluye un gancho inicial, 3 puntos clave, llamada a la acción y 5 hashtags virales del sector fitness (vete directamente al grano)."
-
     try:
         if "sk-proj" in OPENAI_API_KEY:
-            # Simple AI response if no key, but we strive for real logic if user has it
-            client = openai.OpenAI(api_key=OPENAI_API_KEY)
-            response = client.chat.completions.create(
-              model="gpt-3.5-turbo",
-        return jsonify({'error': str(e)}), 500
-
-# --- AGENT COMMAND CENTER ENDPOINTS ---
-
-@app.route('/api/agent/chat', methods=['POST'])
-def agent_chat():
-    data = request.json
-    user_prompt = data.get('message', '').lower()
-    
-    conn = get_db()
-    c = conn.cursor()
-    
-    try:
-        # --- LOCAL SIMULATED BRAIN (GRATUITO) ---
-        import random
-        
-        # Inteligencia de palabras clave para elegir el mejor copy
-        if 'pierna' in user_prompt or 'gluteo' in user_prompt:
-            caption = "💥 El 90% de la gente se salta su día de tren inferior porque duele.\n\nEsa es exactamente la razón por la que tú deberías hacerlo el doble de fuerte. Las piernas son la base de tu templo. No construyas una mansión sobre gelatina. 🏛️🔥\n\n¿Estás listo para mutar? Únete al equipo PRO en el link."
-            hashtags = "#DiaDePierna #LegDay #CreceONada #MTFitnessPRO #HipertrofiaReal"
-        elif 'comida' in user_prompt or 'nutricion' in user_prompt or 'desayuno' in user_prompt:
-            caption = "🍳 Abs are made in the kitchen! Puedes entrenar 3 horas al día, pero si tu nutrición es un desastre, solo estás perdiendo gasolina.\n\nEl secreto no es comer menos, es comer con ESTRATEGIA. Te enseño cómo mis atletas están recomponiendo su cuerpo sin pasar hambre. 🥑🥩\n\n👉🏻 Toca el link de mi bio para ver el plan."
-            hashtags = "#NutricionFitness #ComidaReal #DietaFlexible #MTFitnessPRO #RecomposicionCorporal"
-        elif 'motivacion' in user_prompt or 'empezar' in user_prompt:
-            caption = "🚀 'Empiezo el lunes'. ¿Cuántas veces te has dicho eso?\n\nEl tiempo va a pasar de todas formas. Dentro de 6 meses desearás haber empezado HOY. No necesitas estar motivado todos los días, necesitas ser DISCIPLINADO. 💪🏻🔥\n\nNo esperes a estar listo. Empieza y te harás listo por el camino. Únete a mi equipo hoy."
-            hashtags = "#MotivacionGym #DisciplinaFitness #CambioFisico #MTFitnessPRO #NoExcuses"
-        else:
-            caption = "🔥 Hay dos tipos de personas en el gimnasio: las que levantan peso para cansarse y las que entrenan para TRANSFORMARSE.\n\nSi llevas meses estancado, tu cuerpo se ha adaptado. La clave del crecimiento es entrenar INTELIGENTE. Yo te digo exactamente qué hacer repetición a repetición. 🧬⚡\n\n👉🏻 Link en bio para empezar tu transformación."
-            hashtags = "#EntrenamientoInteligente #FitnessEspaña #CrecimientoMuscular #MTFitnessPRO"
-        
-        c.execute('''INSERT INTO social_media_posts (title, caption, image_url, status) 
-                     VALUES (?, ?, ?, 'DRAFT')''',
-                  (user_prompt[:50], caption, "https://mtfitness.es/ai_demo.png"))
-        conn.commit()
-    except Exception as e:
-        print("Local AI Error:", e)
-        return jsonify({"error": str(e)}), 500
-    finally:
-        conn.close()
-        
-    return jsonify({"status": "ok"})
-
-@app.route('/api/agent/pending_posts', methods=['GET'])
-def agent_pending():
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM social_media_posts WHERE status = 'DRAFT' ORDER BY id DESC")
-    posts = [dict(r) for r in c.fetchall()]
-    conn.close()
-    
-    formatted = []
-    for p in posts:
-        formatted.append({
-            "id": p['id'],
-            "target": "Instagram",
-            "imageUrl": p['image_url'] or "https://mtfitness.es/ai_demo.png",
-            "caption": p['caption'],
-            "hashtags": "",
-            "status": "A la espera de tu aprobación",
-            "created_at": p['created_at']
-        })
-    return jsonify(formatted)
-
-@app.route('/api/agent/approve_post/<int:post_id>', methods=['POST'])
-def agent_approve(post_id):
-    conn = get_db()
-    conn.execute("UPDATE social_media_posts SET status = 'PENDING' WHERE id = ?", (post_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({"status": "approved"})
-
-@app.route('/api/agent/reject_post/<int:post_id>', methods=['POST'])
-def agent_reject(post_id):
-    conn = get_db()
-    conn.execute("UPDATE social_media_posts SET status = 'REJECTED' WHERE id = ?", (post_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({"status": "rejected"})
-
-
-@app.route('/')
-def index():
-    return send_from_directory(app.static_folder, 'index.html')
-
-@app.route('/manifest.json')
-def serve_manifest():
-    return send_from_directory(app.static_folder, 'manifest.json')
-
-
-@app.route('/api/increment_visits', methods=['GET', 'POST'])
-def increment_visits():
-    ip = request.headers.get('X-Forwarded-For', request.remote_addr)
-    # Get country info from a free API (optional, can be slow)
-    country = "Desconocido"
-    try:
-        # We handle this quickly to not slow down the page load
-        res = requests.get(f'http://ip-api.com/json/{ip}?fields=country', timeout=1)
-        if res.status_code == 200:
-            country = res.json().get('country', 'Desconocido')
-    except:
-        pass
-
-    conn = get_db()
-    cursor = conn.cursor()
-    
-    # Tables for stats
-    cursor.execute('''CREATE TABLE IF NOT EXISTS metrics (key TEXT UNIQUE, value INTEGER)''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS visitor_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, 
-        timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, 
-        ip TEXT, 
-        country TEXT
-    )''')
-    
-    # Increment total
-    cursor.execute('''INSERT OR IGNORE INTO metrics (key, value) VALUES ('total_visits', 0)''')
-    cursor.execute('''UPDATE metrics SET value = value + 1 WHERE key = 'total_visits' ''')
-    
-    # Log visit
-    cursor.execute('''INSERT INTO visitor_logs (ip, country) VALUES (?, ?)''', (ip, country))
-    
-    conn.commit()
-    
-    # Get total for display
-    cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
-    visits = cursor.fetchone()[0]
-    conn.close()
-    return jsonify({"visits": visits, "country": country})
-
-@app.route('/api/get_stats', methods=['GET'])
-def get_stats():
-    # Only for the coach (no token yet, but we'll protect it later)
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('''SELECT country, COUNT(*) as count FROM visitor_logs GROUP BY country ORDER BY count DESC''')
-    countries = [{"country": row[0], "count": row[1]} for row in cursor.fetchall()]
-    
-    cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
-    total = cursor.fetchone()[0] if cursor.fetchone() else 0
-    conn.close()
-    return jsonify({"total_visits": total, "countries": countries})
-
-@app.route('/api/master/upload_db', methods=['POST'])
-def upload_db():
-    master_token = request.form.get('master_token')
-    if master_token != "MT_MASTER_PRO_2026":
-        return jsonify({"error": "Unauthorized"}), 401
-        
-    db_file = request.files.get('db')
-    if db_file:
-        db_file.save(DB_FILE)
-        return jsonify({"status": "Database Synced Successfully"})
-    return jsonify({"error": "No file"}), 400
-
-@app.route('/api/master/download_db', methods=['POST'])
-def download_db():
-    master_token = request.form.get('master_token')
-    if master_token != "MT_MASTER_PRO_2026":
-        return jsonify({"error": "Unauthorized"}), 401
-    
-    return send_from_directory(BASE_DIR, 'mtfitness.db', as_attachment=True)
-
-@app.route('/<path:path>')
-def serve_static(path):
-    return send_from_directory(app.static_folder, path)
-
-@app.route('/descargar-app')
-def download_app_shorthand():
-    return send_from_directory(app.static_folder, 'MTFitness_PRO_FINAL.apk', as_attachment=True)
-
-@app.route('/uploads/<filename>')
-def serve_uploads(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
-
-@app.route('/api/generate_marketing', methods=['GET', 'POST'], strict_slashes=False)
-def generate_marketing():
-    data = request.json
-    topic = data.get('topic')
-    type = data.get('type') # 'blog' or 'instagram'
-    
-    if not topic:
-        return jsonify({"error": "Topic required"}), 400
-    
-    # Custom prompt based on type
-    if type == 'blog':
-        prompt = f"Escribe un artículo de blog SEO de unas 300 palabras sobre '{topic}' para el entrenador Miguel Torres. Usa un tono motivador, profesional y directo. No uses la palabra 'ciencia'. Enfócate en resultados y alto rendimiento."
-    else:
-        prompt = f"Genera un post de Instagram rompedor sobre '{topic}' para Miguel Torres. Incluye un gancho inicial, 3 puntos clave, llamada a la acción y 5 hashtags virales del sector fitness (vete directamente al grano)."
-
-    try:
-        if "sk-proj" in OPENAI_API_KEY:
-            # Simple AI response if no key, but we strive for real logic if user has it
             client = openai.OpenAI(api_key=OPENAI_API_KEY)
             response = client.chat.completions.create(
               model="gpt-3.5-turbo",
@@ -1585,7 +1361,6 @@ def generate_marketing():
             content = response.choices[0].message.content
         else:
             content = f"Simulación de IA para: {topic}. (Configura la clave en el servidor para resultados reales)."
-            
         return jsonify({"content": content})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -1596,31 +1371,25 @@ def contact():
     name = data.get('name')
     email = data.get('email')
     objective = data.get('objective')
-    
     try:
         smtp_server = "smtp.ionos.es"
         smtp_port = 587
         sender_email = "info@mtfitness.es"
         password = "mtfitness2026"
         receiver_email = "info@mtfitness.es"
-        
         message = MIMEMultipart("alternative")
         message["Subject"] = f"NUEVO LEAD WEB: {name}"
         message["From"] = sender_email
         message["To"] = receiver_email
-        
         text_body = f"Nombre: {name}\nEmail: {email}\nObjetivo: {objective}"
         message.attach(MIMEText(text_body, "plain"))
-        
         server = smtplib.SMTP(smtp_server, smtp_port)
         server.starttls()
         server.login(sender_email, password)
         server.sendmail(sender_email, receiver_email, message.as_string())
         server.quit()
-        
         return jsonify({"status": "success", "message": "Email enviado"}), 200
     except Exception as e:
-        print(f"Error enviando email: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route('/api/seed_exercises', methods=['GET'])
@@ -1631,7 +1400,6 @@ def seed_exercises():
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
 else:
-    # Para Render (Gunicorn)
     try:
         init_db()
     except Exception as e:
