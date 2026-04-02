@@ -97,13 +97,13 @@ dart_code = f"""class IconMapper {{
     // Fallbacks if nothing matched exactly
     if (muscleGroup != null) {{
       final mg = muscleGroup.toLowerCase();
-      if (mg == 'pecho') return 'assets/images/pecho.png';
-      if (mg == 'espalda') return 'assets/images/espalda.png';
-      if (mg == 'pierna') return 'assets/images/pierna.png';
-      if (mg == 'hombro') return 'assets/images/hombro.png';
-      if (mg == 'bíceps' || mg == 'biceps') return 'assets/images/biceps.png';
-      if (mg == 'tríceps' || mg == 'triceps') return 'assets/images/triceps.png';
-      if (mg == 'core') return 'assets/images/core.png';
+      if (mg.contains('pecho') || mg.contains('pectoral')) return 'assets/images/pecho_icon_1775126194087.png';
+      if (mg.contains('espalda') || mg.contains('dorsal')) return 'assets/images/espalda_icon_1775126212481.png';
+      if (mg.contains('pierna') || mg.contains('cuad') || mg.contains('femoral') || mg.contains('glute')) return 'assets/images/pierna_icon_1775126227797.png';
+      if (mg.contains('hombro') || mg.contains('delto')) return 'assets/images/hombro_icon_1775126243283.png';
+      if (mg.contains('biceps') || mg.contains('bíceps')) return 'assets/images/biceps_icon_1775126261867.png';
+      if (mg.contains('triceps') || mg.contains('tríceps')) return 'assets/images/triceps_icon_1775126276135.png';
+      if (mg.contains('core') || mg.contains('abdominal') || mg.contains('abdomen')) return 'assets/images/core_icon_1775126289413.png';
     }}
     return null;
   }}

@@ -113,6 +113,7 @@ class _DashboardHomeState extends State<DashboardHome> {
 
   Future<void> _loadAll() async {
     try {
+      await ApiService().refreshProfile();
       final workout = await ApiService().getWorkoutPlan();
       final diet = await ApiService().getDietPlan();
       final measurements = await ApiService().getMeasurements(ApiService().userId ?? '');
@@ -121,7 +122,10 @@ class _DashboardHomeState extends State<DashboardHome> {
       final days = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'];
       final todayName = days[now.weekday - 1];
       
-      final todayRoutine = workout.where((e) => e['day_of_week'] == todayName).toList();
+      final todayRoutine = workout.where((e) => 
+        e['day_of_week'] == todayName || 
+        e['day_of_week'] == 'Día ${now.weekday}'
+      ).toList();
 
       if (mounted) {
         setState(() {
@@ -250,11 +254,11 @@ class _DashboardHomeState extends State<DashboardHome> {
                       spacing: 12,
                       runSpacing: 12,
                       children: [
-                        _buildSmallMetric('Peso', '${ApiService().currentWeight ?? '--'} kg', LucideIcons.scale, width),
-                        _buildSmallMetric('Bíceps', '${ApiService().biceps ?? '--'} cm', LucideIcons.activity, width),
-                        _buildSmallMetric('Cintura', '${ApiService().waist ?? '--'} cm', LucideIcons.activity, width),
-                        _buildSmallMetric('Cadera', '${ApiService().hip ?? '--'} cm', LucideIcons.activity, width),
-                        _buildSmallMetric('Muslo', '${ApiService().thigh ?? '--'} cm', LucideIcons.activity, width),
+                        _buildSmallMetric('Peso', '${ApiService().currentWeight ?? '--'} kg', LucideIcons.scale, width, onTap: () => widget.onTabChange(4)),
+                        _buildSmallMetric('Bíceps', '${ApiService().biceps ?? '--'} cm', LucideIcons.activity, width, onTap: () => widget.onTabChange(4)),
+                        _buildSmallMetric('Cintura', '${ApiService().waist ?? '--'} cm', LucideIcons.activity, width, onTap: () => widget.onTabChange(4)),
+                        _buildSmallMetric('Cadera', '${ApiService().hip ?? '--'} cm', LucideIcons.activity, width, onTap: () => widget.onTabChange(4)),
+                        _buildSmallMetric('Muslo', '${ApiService().thigh ?? '--'} cm', LucideIcons.activity, width, onTap: () => widget.onTabChange(4)),
                         _buildSmallMetric('Perfil', 'Abrir', LucideIcons.user, width, onTap: () => widget.onTabChange(4)),
                       ],
                     );
@@ -263,7 +267,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                 const SizedBox(height: 40),
                 Center(
                   child: Text(
-                    'MT FITNESS PRO v1.0.8 | ID: ${ApiService().userId}',
+                    'MT FITNESS PRO v1.0.9 | ID: ${ApiService().userId}',
                     style: TextStyle(color: Colors.white.withOpacity(0.05), fontSize: 10),
                   ),
                 ),

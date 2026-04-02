@@ -307,7 +307,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             if (imgUrl != null)
               ClipRRect(
                 borderRadius: BorderRadius.circular(16),
-                child: Image.network(imgUrl, height: 250, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(LucideIcons.image, size: 100, color: AppTheme.border)),
+                child: Image.asset(imgUrl, height: 250, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(LucideIcons.image, size: 100, color: AppTheme.border)),
               )
             else
               Container(

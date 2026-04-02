@@ -111,6 +111,28 @@ class ApiService {
     return data;
   }
 
+  Future<void> refreshProfile() async {
+    final response = await http.get(Uri.parse('${baseUrl}auth/me'), headers: _headers);
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      _userId = data['id'];
+      _userName = data['name'];
+      _surname = data['surname'];
+      _userEmail = data['email'];
+      _age = data['age'];
+      _height = data['height']?.toDouble();
+      _currentWeight = data['current_weight']?.toDouble();
+      _objective = data['objective'];
+      _daysLeft = data['days_left'];
+      _profileImage = data['profile_image'];
+      _biceps = data['biceps']?.toDouble();
+      _thigh = data['thigh']?.toDouble();
+      _hip = data['hip']?.toDouble();
+      _waist = data['waist']?.toDouble();
+      _role = data['role'];
+    }
+  }
+
   Future<Map<String, dynamic>> register(Map<String, dynamic> data) async {
     final response = await http.post(
       Uri.parse('${baseUrl}auth/register'),
