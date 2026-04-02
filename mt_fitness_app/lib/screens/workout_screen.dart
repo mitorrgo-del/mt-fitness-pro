@@ -179,20 +179,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         ),
                         child: isDone
                           ? const Icon(LucideIcons.check, color: Colors.green, size: 28)
-                          : Builder(
-                              builder: (context) {
-                                final imgUrl = IconMapper.getExerciseImageUrl(ex['name'] ?? '', ex['muscle_group']);
-                                if (imgUrl != null) {
-                                  return ClipRRect(
-                                    borderRadius: BorderRadius.circular(16),
-                                    child: Image.asset(imgUrl, fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell, color: AppTheme.primary, size: 28),
-                                    ),
-                                  );
-                                }
-                                return Center(child: Text(IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']), style: const TextStyle(fontSize: 28)));
-                              },
-                            ),
+                          : Center(child: Text(IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']), style: const TextStyle(fontSize: 28))),
                       ),
                       const SizedBox(width: 16),
                       Expanded(

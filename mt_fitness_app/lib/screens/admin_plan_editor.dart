@@ -1046,13 +1046,6 @@ class _CatalogPickerState extends State<_CatalogPicker> {
                       child: Builder(
                         builder: (context) {
                           if (widget.title.contains('Ejercicio')) {
-                            final imgUrl = IconMapper.getExerciseImageUrl(item[widget.nameKey] ?? '');
-                            if (imgUrl != null) {
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(10),
-                                child: Image.network(imgUrl, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell)),
-                              );
-                            }
                             return Center(child: Text(IconMapper.getExerciseDrawing(item[widget.nameKey] ?? '', item[widget.subKey]), style: const TextStyle(fontSize: 24)));
                           }
                           return Center(child: Text(IconMapper.getFoodDrawing(item[widget.nameKey] ?? '', item[widget.subKey]), style: const TextStyle(fontSize: 24)));

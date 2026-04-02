@@ -1425,5 +1425,111 @@ def contact():
         print(f"Error enviando email: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
+@app.route('/api/seed_images_to_db', methods=['GET'])
+def seed_images_to_db():
+    import os
+    import re
+    # The script runs from the project root. We access mt_fitness_app/assets/images
+    images_dir = os.path.join(BASE_DIR, 'mt_fitness_app', 'assets', 'images')
+    if not os.path.exists(images_dir):
+        return jsonify({"error": f"Images dir not found: {images_dir}"})
+        
+    image_files = [f for f in os.listdir(images_dir) if f.lower().endswith(('.jpg', '.png'))]
+    
+    conn = get_db()
+    
+    def translate_name(name):
+        replacements = {
+            'Barbell': 'con Barra',
+            'Dumbbell': 'con Mancuernas',
+            'Bench Press': 'Press de Banca',
+            'Incline': 'Inclinado',
+            'Decline': 'Declinado',
+            'Squat': 'Sentadilla',
+            'Lunge': 'Zancada',
+            'Deadlift': 'Peso Muerto',
+            'Row': 'Remo',
+            'Curl': 'Curl',
+            'Extension': 'Extensión',
+            'Extensions': 'Extensión',
+            'Pull-Up': 'Dominada',
+            'Pull-aparts': 'Aperturas',
+            'Pulldown': 'Jalón',
+            'Shoulder Press': 'Press de Hombro',
+            'Lateral Raise': 'Elevación Lateral',
+            'Front Raise': 'Elevación Frontal',
+            'Flyes': 'Aperturas',
+            'Fly': 'Aperturas',
+            'Machine': 'en Máquina',
+            'Cable': 'en Polea',
+            'Seated': 'Sentado',
+            'Standing': 'de Pie',
+            'Lying': 'Tumbado',
+            'Triceps': 'Tríceps',
+            'Biceps': 'Bíceps',
+            'Leg': 'Piernas',
+            'Chest': 'Pecho',
+            'Back': 'Espalda',
+            'Calf': 'Gemelos',
+            'Raise': 'Elevación',
+            'Raises': 'Elevaciones',
+            'Press': 'Press',
+            'Overhead': 'sobre la cabeza',
+            'Push-Up': 'Flexión',
+            'Crunch': 'Crunch Abdominal',
+            'Plank': 'Plancha',
+            'Romanian': 'Rumano',
+            'Close-Grip': 'Agarre Estrecho',
+            'Wide-Grip': 'Agarre Ancho',
+            'Reverse': 'Inverso'
+        }
+        for eng, esp in replacements.items():
+            name = re.sub(r'(?i)\b' + re.escape(eng) + r'\b', esp, name)
+            # Also handle snake case replacements
+            name = re.sub(r'(?i)' + re.escape(eng.replace(' ', '_')), esp, name)
+        return name.strip()
+
+    count = 0
+    results = []
+    for f in image_files:
+        if '_icon_' in f: continue
+            
+        name_only = os.path.splitext(f)[0]
+        # Example: Barbell_Bench_Press -> Barbell Bench Press -> translation
+        # First translate, then replace _ with space for whatever is left
+        display_name = translate_name(name_only)
+        display_name = display_name.replace('_', ' ').replace('-', ' ')
+        # Add original slug in parenthesis to guarantee icon mapping correctly
+        display_name = f"{display_name} ({name_only})"
+        
+        # Determine muscle group heuristically
+        mg = 'Variado'
+        lower = name_only.lower()
+        if 'chest' in lower or 'bench_press' in lower or 'fly' in lower or 'peck' in lower:
+            mg = 'Pecho'
+        elif 'back' in lower or 'row' in lower or 'pull_up' in lower or 'pulldown' in lower:
+            mg = 'Espalda'
+        elif 'leg' in lower or 'squat' in lower or 'lunge' in lower or 'calf' in lower or 'deadlift' in lower:
+            mg = 'Pierna'
+        elif 'shoulder' in lower or 'lateral_raise' in lower or 'delt' in lower:
+            mg = 'Hombro'
+        elif 'bicep' in lower or 'curl' in lower:
+            mg = 'Bíceps'
+        elif 'tricep' in lower or 'extension' in lower:
+            mg = 'Tríceps'
+        elif 'ab' in lower or 'crunch' in lower or 'plank' in lower:
+            mg = 'Core'
+
+        # Check existence
+        exists = conn.execute("SELECT id FROM exercises WHERE name = ?", (display_name,)).fetchone()
+        if not exists:
+            conn.execute("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", (display_name, mg))
+            count += 1
+            results.append(display_name)
+            
+    conn.commit()
+    conn.close()
+    return jsonify({"success": True, "added": count, "exercises": results})
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False, threaded=True)

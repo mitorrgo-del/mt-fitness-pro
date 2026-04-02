@@ -267,7 +267,7 @@ class _DashboardHomeState extends State<DashboardHome> {
                 const SizedBox(height: 40),
                 Center(
                   child: Text(
-                    'MT FITNESS PRO v1.0.9 | ID: ${ApiService().userId}',
+                    'MT FITNESS PRO v1.1.0 | ID: ${ApiService().userId}',
                     style: TextStyle(color: Colors.white.withOpacity(0.05), fontSize: 10),
                   ),
                 ),
