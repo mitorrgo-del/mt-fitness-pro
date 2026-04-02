@@ -2,99 +2,52 @@ import os
 import re
 
 images_dir = "mt_fitness_app/assets/images"
-image_files = os.listdir(images_dir)
+image_files = [f for f in os.listdir(images_dir) if f.lower().endswith(('.jpg', '.png'))]
 
-# Helper to find closest image
-def find_image(keyword):
-    for f in image_files:
-        if keyword.lower() in f.lower():
-            return f
-    return None
+def slugify(text):
+    # Remove separators and lower
+    return "".join(re.findall(r'[a-zA-Z0-9]', text.lower()))
 
-mapping = []
-def add_map(lower_condition, keyword, default_img=None):
-    img = find_image(keyword) if keyword else default_img
-    if not img and default_img:
-        img = default_img
-    if img:
-        mapping.append(f"    if ({lower_condition}) return 'assets/images/{img}';")
+# Build a mapping of slug -> filename
+slug_to_file = {}
+for f in image_files:
+    # Skip icons we use for fallbacks
+    if "_icon_" in f:
+        continue
+    
+    name_only = os.path.splitext(f)[0]
+    slug = slugify(name_only)
+    slug_to_file[slug] = f
 
-# Pecho
-add_map("lower.contains('banca') && lower.contains('inclinado') && lower.contains('mancuerna')", "Dumbbell_Incline_Bench_Press")
-add_map("lower.contains('banca') && lower.contains('plano') && lower.contains('mancuerna')", "Dumbbell_Bench_Press")
-add_map("lower.contains('banca') && lower.contains('inclinado') && lower.contains('barra')", "Barbell_Incline_Bench_Press")
-add_map("lower.contains('banca') && lower.contains('plano') && lower.contains('barra')", "Barbell_Bench_Press")
-add_map("lower.contains('apertura')", "Dumbbell_Fly")
-add_map("lower.contains('cruce') && lower.contains('polea')", "Cable_Crossover")
-add_map("lower.contains('peck') || lower.contains('deck') || lower.contains('mariposa')", "Butterfly")
-add_map("lower.contains('flexion') || lower.contains('push-up') || lower.contains('pushup')", "Push-Up")
-add_map("lower.contains('fondos') && lower.contains('paralela')", "Chest_Dip")
-add_map("lower.contains('pullover')", "Dumbbell_Pullover")
+mapping_entries = []
+for slug, filename in slug_to_file.items():
+    mapping_entries.append(f"    '{slug}': 'assets/images/{filename}',")
 
-# Espalda
-add_map("lower.contains('dominada')", "Pull-up")
-add_map("lower.contains('jalon') && lower.contains('pecho')", "Cable_Pulldown")
-add_map("lower.contains('remo') && lower.contains('barra')", "Barbell_Bent_Over_Row")
-add_map("lower.contains('remo') && lower.contains('mancuerna')", "Dumbbell_One_Arm_Row")
-add_map("lower.contains('gironda') || (lower.contains('remo') && lower.contains('polea'))", "Cable_Seated_Row")
-add_map("lower.contains('punta') || lower.contains('barra t')", "T-Bar_Row")
-add_map("lower.contains('peso muerto') && !lower.contains('rumano')", "Barbell_Deadlift")
-add_map("lower.contains('hiperextension')", "Hyperextension")
-
-# Pierna
-add_map("lower.contains('sentadilla') && lower.contains('frontal')", "Barbell_Front_Squat")
-add_map("lower.contains('sentadilla') && lower.contains('hack')", "Hack_Squat")
-add_map("lower.contains('bulgara')", "Bulgarian_Split_Squat")
-add_map("lower.contains('sentadilla')", "Barbell_Squat")
-add_map("lower.contains('prensa')", "Leg_Press")
-add_map("lower.contains('extension') && lower.contains('cuad')", "Leg_Extension")
-add_map("lower.contains('curl femoral')", "Lying_Leg_Curl")
-add_map("lower.contains('peso muerto rumano')", "Romanian_Deadlift")
-add_map("lower.contains('zancada') || lower.contains('lunge')", "Barbell_Lunge")
-add_map("lower.contains('thrust') || lower.contains('puente')", "Barbell_Glute_Bridge")
-add_map("lower.contains('gemelo') || lower.contains('talon')", "Standing_Calf_Raise")
-
-# Hombro
-add_map("lower.contains('press militar') || lower.contains('press hombro')", "Barbell_Shoulder_Press")
-add_map("lower.contains('arnold')", "Arnold_Press")
-add_map("lower.contains('lateral')", "Dumbbell_Lateral_Raise")
-add_map("lower.contains('frontal')", "Dumbbell_Front_Raise")
-add_map("lower.contains('pajaro') || lower.contains('posterior')", "Dumbbell_Reverse_Fly")
-add_map("lower.contains('menton')", "Barbell_Upright_Row")
-add_map("lower.contains('face')", "Face_Pull")
-add_map("lower.contains('encogimiento')", "Barbell_Shrug")
-
-# Biceps
-add_map("lower.contains('curl') && lower.contains('barra')", "Barbell_Curl")
-add_map("lower.contains('martillo')", "Hammer_Curl")
-add_map("lower.contains('predicador') || lower.contains('scott')", "Preacher_Curl")
-add_map("lower.contains('concentrado')", "Concentration_Curl")
-add_map("lower.contains('curl') && lower.contains('mancuerna')", "Dumbbell_Bicep_Curl")
-add_map("lower.contains('curl') && lower.contains('polea')", "Cable_Curl")
-
-# Triceps
-add_map("lower.contains('frances') || lower.contains('skull')", "Skull_Crusher", "Barbell_Lying_Triceps_Extension.jpg")
-add_map("lower.contains('polea') && lower.contains('tricep')", "Triceps_Pushdown")
-add_map("lower.contains('patada')", "Triceps_Kickback")
-add_map("lower.contains('fondos') && lower.contains('banco')", "Bench_Dip")
-add_map("lower.contains('press') && lower.contains('cerrado')", "Close-Grip_Barbell_Bench_Press", "Barbell_Bench_Press.jpg")
-
-# Core
-add_map("lower.contains('crunch')", "Crunch")
-add_map("lower.contains('pierna') && lower.contains('eleva')", "Hanging_Leg_Raise")
-add_map("lower.contains('plancha') || lower.contains('plank')", "Plank")
-add_map("lower.contains('rueda')", "Ab_Roller")
-
-# Inject list into standard code
-mapping_str = "\n".join(mapping)
+mapping_js = "\n".join(mapping_entries)
 
 dart_code = f"""class IconMapper {{
-  static String? getExerciseImageUrl(String name, [String? muscleGroup]) {{
-    final lower = name.toLowerCase();
-    
-{mapping_str}
+  static const Map<String, String> _allImages = {{
+{mapping_js}
+  }};
 
-    // Fallbacks if nothing matched exactly
+  static String _slugify(String text) {{
+      return text.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+  }}
+
+  static String? getExerciseImageUrl(String name, [String? muscleGroup]) {{
+    if (name.isEmpty) return null;
+    
+    final slug = _slugify(name);
+    
+    // 1. Try exact slug match
+    if (_allImages.containsKey(slug)) return _allImages[slug];
+    
+    // 2. Try partial match in Name
+    for (var entry in _allImages.entries) {{
+        if (slug.contains(entry.key) || entry.key.contains(slug)) return entry.value;
+    }}
+
+    // 3. Muscle Group Fallbacks
     if (muscleGroup != null) {{
       final mg = muscleGroup.toLowerCase();
       if (mg.contains('pecho') || mg.contains('pectoral')) return 'assets/images/pecho_icon_1775126194087.png';
