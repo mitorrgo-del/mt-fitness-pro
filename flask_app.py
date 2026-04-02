@@ -477,18 +477,7 @@ def send_registration_email(client_name, client_email):
     body = f"Nuevo registro en la App MT Fitness PRO:\n\nNombre: {client_name}\nEmail: {client_email}\n\nRevisa el Panel de Administración para aprobar el acceso tras confirmar el pago."
     send_admin_notification(subject, body)
 
-@app.route('/api/contact', methods=['POST'])
-def handle_web_contact():
-    data = request.json
-    name = data.get('name')
-    email = data.get('email', 'No email')
-    goal = data.get('goal', 'No goal')
-    
-    subject = f"NUEVO LEAD WEB: {name}"
-    body = f"Has recibido una nueva solicitud de asesoría desde la web:\n\nNombre: {name}\nEmail: {email}\nObjetivo: {goal}\n\nContacta con el cliente desde Ionos."
-    
-    send_admin_notification(subject, body)
-    return jsonify({'status': 'ok', 'message': 'Email enviado a Ionos'})
+
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
