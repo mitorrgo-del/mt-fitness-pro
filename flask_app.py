@@ -45,37 +45,39 @@ class DbWrapper:
         return self.conn.cursor()
     def execute(self, query, params=()):
         if self.is_pg:
-            # Handle standard transformations
-            # 1. Parameter markers
             query = query.replace('?', '%s')
-            # 2. SQLite specific AUTOINCREMENT
             query = query.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
-            # 3. IF NOT EXISTS on indexes (not handled here but good practice)
-            
-            # Use raw connection execute or cursor
             cur = self.conn.cursor()
             cur.execute(query, params)
             return cur
         else:
-            # For SQLite, the connection.execute is a shorthand
             return self.conn.execute(query, params)
+    def executemany(self, query, params=()):
+        if self.is_pg:
+            query = query.replace('?', '%s')
+            cur = self.conn.cursor()
+            cur.executemany(query, params)
+            return cur
+        else:
+            return self.conn.executemany(query, params)
     def commit(self):
         self.conn.commit()
     def close(self):
         self.conn.close()
-    def fetchone(self, cur):
-        # Handle the fact that 'cur' could be a cursor or a Row object
+    def fetchone(self, cur=None):
+        if cur is None: return None
         if hasattr(cur, 'fetchone'):
             res = cur.fetchone()
         else:
-            res = cur # Fallback
-        return dict(res) if res else None
-    def fetchall(self, cur):
+            res = cur
+        return dict(res) if res and not isinstance(res, tuple) else res
+    def fetchall(self, cur=None):
+        if cur is None: return []
         if hasattr(cur, 'fetchall'):
             res = cur.fetchall()
         else:
-            res = cur # Fallback
-        return [dict(r) for r in res]
+            res = cur
+        return [dict(r) if not isinstance(r, tuple) else r for r in res]
 
 def get_db():
     db_url = os.environ.get('DATABASE_URL')
@@ -95,6 +97,7 @@ def init_db():
         print("Production DB (Postgres) detected. Assuming migrations are handled or running init...")
     
     conn_wrap = get_db()
+    c = conn_wrap # Fix NameError c in entire script scope
     
     # We will skip DROP tables in production normally, but for the first run:
     if os.environ.get('RESEED_DB'):
@@ -216,7 +219,7 @@ def init_db():
     )''')
     
     # PRO Workout Weight Logging
-    c.execute('''CREATE TABLE IF NOT EXISTS workout_logs (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS workout_logs (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, assignment_id INTEGER,
         set_number INTEGER, weight_kg REAL, date TEXT,
@@ -225,7 +228,7 @@ def init_db():
     )''')
 
     # MARKETING LEADS
-    c.execute('''CREATE TABLE IF NOT EXISTS marketing_leads (
+    conn_wrap.execute('''CREATE TABLE IF NOT EXISTS marketing_leads (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT UNIQUE,
         name TEXT,
@@ -237,7 +240,9 @@ def init_db():
 
     # --- SEEDING PRO DATA ---
     # Check if we have exercises
-    count_ex = c.execute("SELECT count(*) FROM exercises").fetchone()[0]
+    res = conn_wrap.execute("SELECT count(*) as count FROM exercises")
+    row = conn_wrap.fetchone(res)
+    count_ex = row['count'] if isinstance(row, dict) else (row[0] if row else 0)
     if count_ex == 0:
         exs = [
             # PECHO
@@ -273,10 +278,12 @@ def init_db():
             ('Crunch Abdominal', 'Core'), ('Plancha Isométrica', 'Core'), ('Elevación de Piernas', 'Core'),
             ('Rueda Abdominal', 'Core'), ('Oblicuos en Polea', 'Core')
         ]
-        c.executemany("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", exs)
+        conn_wrap.executemany("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", exs)
 
     # Check if we have foods
-    count_foods = c.execute("SELECT count(*) FROM foods").fetchone()[0]
+    res_f = conn_wrap.execute("SELECT count(*) as count FROM foods")
+    row_f = conn_wrap.fetchone(res_f)
+    count_foods = row_f['count'] if isinstance(row_f, dict) else (row_f[0] if row_f else 0)
     if count_foods == 0:
         foods = [
             # PROTEINAS (Valores aprox. por 100g en crudo)
@@ -387,12 +394,12 @@ def init_db():
             ('Miel', 'Hidratos', 300, 0.3, 80, 0),
             ('Chocolate Negro +85%', 'Grasas', 580, 8, 20, 48)
         ]
-        c.executemany("INSERT INTO foods (name, category, kcal, protein, carbs, fat) VALUES (?, ?, ?, ?, ?, ?)", foods)
+        conn_wrap.executemany("INSERT INTO foods (name, category, kcal, protein, carbs, fat) VALUES (?, ?, ?, ?, ?, ?)", foods)
 
     # Ensure Admin exists
-    exists_admin = c.execute("SELECT id FROM users WHERE email = 'mitorrgo@gmail.com'").fetchone()
+    exists_admin = conn_wrap.fetchone(conn_wrap.execute("SELECT id FROM users WHERE email = 'mitorrgo@gmail.com'"))
     if not exists_admin:
-        c.execute("INSERT INTO users (id, email, password, name, role, status, token) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        conn_wrap.execute("INSERT INTO users (id, email, password, name, role, status, token) VALUES (?, ?, ?, ?, ?, ?, ?)",
                   (str(uuid.uuid4()), 'mitorrgo@gmail.com', 'admin123', 'Coach Mitor', 'ADMIN', 'APPROVED', 'token-admin-123'))
 
     conn_wrap.commit()
