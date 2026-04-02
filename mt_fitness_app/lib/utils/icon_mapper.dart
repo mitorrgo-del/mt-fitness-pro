@@ -1,76 +1,16 @@
 class IconMapper {
-  static const String _baseUrl = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises';
-
-  static String? getExerciseImageUrl(String name) {
-    final lower = name.toLowerCase();
-    
-    // PECHO
-    if (lower.contains('banca') && lower.contains('plano') && lower.contains('barra')) return '$_baseUrl/Barbell_Bench_Press/0.jpg';
-    if (lower.contains('banca') && lower.contains('inclinado') && lower.contains('barra')) return '$_baseUrl/Barbell_Incline_Bench_Press/0.jpg';
-    if (lower.contains('banca') && lower.contains('plano') && lower.contains('mancuerna')) return '$_baseUrl/Dumbbell_Bench_Press/0.jpg';
-    if (lower.contains('banca') && lower.contains('inclinado') && lower.contains('mancuerna')) return '$_baseUrl/Dumbbell_Incline_Bench_Press/0.jpg';
-    if (lower.contains('apertura')) return '$_baseUrl/Dumbbell_Fly/0.jpg';
-    if (lower.contains('cruce') && lower.contains('polea')) return '$_baseUrl/Cable_Crossover/0.jpg';
-    if (lower.contains('peck') || lower.contains('deck') || lower.contains('mariposa')) return '$_baseUrl/Butterfly/0.jpg';
-    if (lower.contains('flexion') || lower.contains('pushup')) return '$_baseUrl/Push-up/0.jpg';
-    if (lower.contains('fondos') && lower.contains('paralela')) return '$_baseUrl/Chest_Dip/0.jpg';
-    if (lower.contains('pullover')) return '$_baseUrl/Dumbbell_Pullover/0.jpg';
-
-    // ESPALDA
-    if (lower.contains('dominada')) return '$_baseUrl/Pull-up/0.jpg';
-    if (lower.contains('jalon') && lower.contains('pecho')) return '$_baseUrl/Cable_Pulldown/0.jpg';
-    if (lower.contains('remo') && lower.contains('barra')) return '$_baseUrl/Barbell_Bent_Over_Row/0.jpg';
-    if (lower.contains('remo') && lower.contains('mancuerna')) return '$_baseUrl/Dumbbell_One_Arm_Row/0.jpg';
-    if (lower.contains('gironda') || (lower.contains('remo') && lower.contains('polea'))) return '$_baseUrl/Cable_Seated_Row/0.jpg';
-    if (lower.contains('punta') || lower.contains('barra t')) return '$_baseUrl/T-Bar_Row/0.jpg';
-    if (lower.contains('peso muerto') && !lower.contains('rumano')) return '$_baseUrl/Barbell_Deadlift/0.jpg';
-    if (lower.contains('hiperextension')) return '$_baseUrl/Hyperextension/0.jpg';
-
-    // PIERNA
-    if (lower.contains('sentadilla') && lower.contains('frontal')) return '$_baseUrl/Barbell_Front_Squat/0.jpg';
-    if (lower.contains('sentadilla') && lower.contains('hack')) return '$_baseUrl/Hack_Squat/0.jpg';
-    if (lower.contains('bulgara')) return '$_baseUrl/Bulgarian_Split_Squat/0.jpg';
-    if (lower.contains('sentadilla')) return '$_baseUrl/Barbell_Squat/0.jpg';
-    if (lower.contains('prensa')) return '$_baseUrl/Leg_Press/0.jpg';
-    if (lower.contains('extension') && lower.contains('cuad')) return '$_baseUrl/Leg_Extension/0.jpg';
-    if (lower.contains('curl femoral')) return '$_baseUrl/Lying_Leg_Curl/0.jpg';
-    if (lower.contains('peso muerto rumano')) return '$_baseUrl/Romanian_Deadlift/0.jpg';
-    if (lower.contains('zancada') || lower.contains('lunge')) return '$_baseUrl/Barbell_Lunge/0.jpg';
-    if (lower.contains('thrust') || lower.contains('puente')) return '$_baseUrl/Barbell_Glute_Bridge/0.jpg';
-    if (lower.contains('gemelo') || lower.contains('talon')) return '$_baseUrl/Standing_Calf_Raise/0.jpg';
-
-    // HOMBRO
-    if (lower.contains('press militar') || lower.contains('press hombro')) return '$_baseUrl/Barbell_Shoulder_Press/0.jpg';
-    if (lower.contains('arnold')) return '$_baseUrl/Arnold_Press/0.jpg';
-    if (lower.contains('lateral')) return '$_baseUrl/Dumbbell_Lateral_Raise/0.jpg';
-    if (lower.contains('frontal')) return '$_baseUrl/Dumbbell_Front_Raise/0.jpg';
-    if (lower.contains('pajaro') || lower.contains('posterior')) return '$_baseUrl/Dumbbell_Reverse_Fly/0.jpg';
-    if (lower.contains('menton')) return '$_baseUrl/Barbell_Upright_Row/0.jpg';
-    if (lower.contains('face')) return '$_baseUrl/Face_Pull/0.jpg';
-    if (lower.contains('encogimiento')) return '$_baseUrl/Barbell_Shrug/0.jpg';
-
-    // BICEPS
-    if (lower.contains('curl') && lower.contains('barra')) return '$_baseUrl/Barbell_Curl/0.jpg';
-    if (lower.contains('martillo')) return '$_baseUrl/Dumbbell_Hammer_Curl/0.jpg';
-    if (lower.contains('predicador') || lower.contains('scott')) return '$_baseUrl/Barbell_Preacher_Curl/0.jpg';
-    if (lower.contains('concentrado')) return '$_baseUrl/Dumbbell_Concentration_Curl/0.jpg';
-    if (lower.contains('curl') && lower.contains('mancuerna')) return '$_baseUrl/Dumbbell_Bicep_Curl/0.jpg';
-    if (lower.contains('curl') && lower.contains('polea')) return '$_baseUrl/Cable_Curl/0.jpg';
-
-    // TRICEPS
-    if (lower.contains('frances') || lower.contains('skull')) return '$_baseUrl/Barbell_Lying_Triceps_Extension/0.jpg';
-    if (lower.contains('polea') && lower.contains('tricep')) return '$_baseUrl/Cable_Triceps_Pushdown/0.jpg';
-    if (lower.contains('patada')) return '$_baseUrl/Dumbbell_Triceps_Kickback/0.jpg';
-    if (lower.contains('fondos') && lower.contains('banco')) return '$_baseUrl/Bench_Dip/0.jpg';
-    if (lower.contains('press') && lower.contains('cerrado')) return '$_baseUrl/Close-Grip_Barbell_Bench_Press/0.jpg';
-
-    // CORE
-    if (lower.contains('crunch')) return '$_baseUrl/Crunch/0.jpg';
-    if (lower.contains('pierna') && lower.contains('eleva')) return '$_baseUrl/Hanging_Leg_Raise/0.jpg';
-    if (lower.contains('plancha') || lower.contains('plank')) return '$_baseUrl/Front_Plank/0.jpg';
-    if (lower.contains('rueda')) return '$_baseUrl/Ab_Roller/0.jpg';
-    
-    return null; 
+  static String? getExerciseImageUrl(String name, [String? muscleGroup]) {
+    if (muscleGroup != null) {
+      final mg = muscleGroup.toLowerCase();
+      if (mg == 'pecho') return 'assets/images/pecho.png';
+      if (mg == 'espalda') return 'assets/images/espalda.png';
+      if (mg == 'pierna') return 'assets/images/pierna.png';
+      if (mg == 'hombro') return 'assets/images/hombro.png';
+      if (mg == 'bíceps' || mg == 'biceps') return 'assets/images/biceps.png';
+      if (mg == 'tríceps' || mg == 'triceps') return 'assets/images/triceps.png';
+      if (mg == 'core') return 'assets/images/core.png';
+    }
+    return null;
   }
 
   static String getExerciseDrawing(String name, String? muscleGroup) {
