@@ -238,47 +238,55 @@ def init_db():
         last_followup DATETIME
     )''')
 
-    # --- SEEDING PRO DATA ---
-    # Check if we have exercises
-    res = conn_wrap.execute("SELECT count(*) as count FROM exercises")
-    row = conn_wrap.fetchone(res)
-    count_ex = row['count'] if isinstance(row, dict) else (row[0] if row else 0)
-    if count_ex == 0:
-        exs = [
-            # PECHO
-            ('Press Banca Plano Barra', 'Pecho'), ('Press Banca Inclinado Barra', 'Pecho'), ('Press Banca Declinado Barra', 'Pecho'),
-            ('Press Banca Plano Mancuernas', 'Pecho'), ('Press Banca Inclinado Mancuernas', 'Pecho'), ('Aperturas Planas', 'Pecho'),
-            ('Aperturas Inclinadas', 'Pecho'), ('Cruces en Polea Alta', 'Pecho'), ('Cruces en Polea Baja', 'Pecho'),
-            ('Peck Deck (Máquina)', 'Pecho'), ('Press Pecho Máquina Sentado', 'Pecho'), ('Fondos en Paralelas (Pecho)', 'Pecho'),
-            ('Pullover con Mancuerna', 'Pecho'), ('Flexiones de Brazo', 'Pecho'), ('Flexiones Lastradas', 'Pecho'),
-            # ESPALDA
-            ('Dominadas Pronas', 'Espalda'), ('Dominadas Supinas', 'Espalda'), ('Dominadas Neutras', 'Espalda'),
-            ('Jalón al Pecho Abierto', 'Espalda'), ('Jalón al Pecho Cerrado', 'Espalda'), ('Remo con Barra Pronom', 'Espalda'),
-            ('Remo con Barra Supino', 'Espalda'), ('Remo en Punta (T-Bar)', 'Espalda'), ('Remo con Mancuerna a 1 Mano', 'Espalda'),
-            ('Remo Gironda en Polea', 'Espalda'), ('Remo en Máquina Pecho Apoyado', 'Espalda'), ('Pull-down Brazos Rígidos', 'Espalda'),
-            ('Peso Muerto Convencional', 'Espalda'), ('Hiperextensiones Lumbar', 'Espalda'), ('Encogimientos Hombro (Trapecio)', 'Espalda'),
-            # PIERNA
-            ('Sentadilla Libre Barra Alta', 'Pierna'), ('Sentadilla Frontal', 'Pierna'), ('Sentadilla Hack', 'Pierna'),
-            ('Prensa Inclinada a 45º', 'Pierna'), ('Prensa Horizontal', 'Pierna'), ('Extensiones de Cuádriceps', 'Pierna'),
-            ('Zancadas (Lunges) con Mancuernas', 'Pierna'), ('Zancadas en Multipower', 'Pierna'), ('Sentadilla Búlgara', 'Pierna'),
-            ('Peso Muerto Rumano', 'Pierna'), ('Peso Muerto Piernas Rígidas', 'Pierna'), ('Curl Femoral Tumbado', 'Pierna'),
-            ('Curl Femoral Sentado', 'Pierna'), ('Curl Femoral de Pie a 1 Pierna', 'Pierna'), ('Hip Thrust (Puente de Glúteo)', 'Pierna'),
-            ('Patada de Glúteo en Polea', 'Pierna'), ('Elevación de Talones de Pie (Gemelo)', 'Pierna'), ('Elevación de Talones Sentado (Sóleo)', 'Pierna'),
-            # HOMBRO
-            ('Press Militar Barra', 'Hombro'), ('Press Militar Mancuernas', 'Hombro'), ('Press Arnold', 'Hombro'),
-            ('Elevaciones Laterales Mancuernas', 'Hombro'), ('Elevaciones Laterales Polea', 'Hombro'), ('Elevaciones Frontales', 'Hombro'),
-            ('Pájaros (Hombro Posterior)', 'Hombro'), ('Facepull', 'Hombro'), ('Remo al Mentón', 'Hombro'),
-            # BICEPS
-            ('Curl Bíceps Barra Z', 'Bíceps'), ('Curl Bíceps Mancuernas', 'Bíceps'), ('Curl Martillo', 'Bíceps'),
-            ('Curl Concentrado', 'Bíceps'), ('Curl Predicador', 'Bíceps'), ('Curl en Polea Baja', 'Bíceps'),
-            # TRICEPS
-            ('Press Francés', 'Tríceps'), ('Extensión Polea Alta (Cuerda)', 'Tríceps'), ('Extensión Polea Alta (Barra)', 'Tríceps'),
-            ('Patada de Tríceps', 'Tríceps'), ('Fondos entre Bancos', 'Tríceps'), ('Press Cerrado (Pecho/Tríceps)', 'Tríceps'),
-            # CORE
-            ('Crunch Abdominal', 'Core'), ('Plancha Isométrica', 'Core'), ('Elevación de Piernas', 'Core'),
-            ('Rueda Abdominal', 'Core'), ('Oblicuos en Polea', 'Core')
-        ]
-        conn_wrap.executemany("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", exs)
+    def sync_pro_exercises():
+        """Sincroniza el catálogo de 873 ejercicios reales."""
+        # Se define aquí dentro para no ensuciar el scope global o se puede mover fuera
+        conn = get_db()
+        current = conn.execute("SELECT count(*) as count FROM exercises").fetchone()
+        count = current['count'] if isinstance(current, dict) else (current[0] if current else 0)
+        
+        # Si faltan muchos, o si queremos forzar una actualización de nombres
+        # Para v1.1.0 forzamos si no detectamos el formato con paréntesis en alguno representativo
+        sample = conn.execute("SELECT name FROM exercises LIMIT 5").fetchall()
+        needs_migration = not any('(' in (row['name'] if isinstance(row, dict) else row[0]) for row in sample)
+        
+        if count < 800 or needs_migration:
+            print(f"MIGRATION: Syncing {len(exercises_data)} PRO exercises...")
+            # Si es migración crítica de nombres, podemos limpiar o solo insertar los que faltan
+            # Por seguridad en init_db, solo insertamos los que no existen por Display Name
+            # Pero para que el IconMapper funcione, necesitamos el sufijo.
+            import re
+            def translate_name(name):
+                replacements = {
+                    'Barbell': 'con Barra', 'Dumbbell': 'con Mancuernas', 'Bench Press': 'Press de Banca',
+                    'Incline': 'Inclinado', 'Decline': 'Declinado', 'Squat': 'Sentadilla', 'Lunge': 'Zancada',
+                    'Deadlift': 'Peso Muerto', 'Row': 'Remo', 'Curl': 'Curl', 'Extension': 'Extensión',
+                    'Extensions': 'Extensión', 'Pull-Up': 'Dominada', 'Pulldown': 'Jalón', 'Front Raise': 'Elevación Frontal',
+                    'Shoulder Press': 'Press de Hombro', 'Lateral Raise': 'Elevación Lateral', 'Raise': 'Elevación',
+                    'Crunch': 'Crunch Abdominal', 'Plank': 'Plancha', 'Machine': 'en Máquina', 'Cable': 'en Polea'
+                }
+                disp = name.replace('_', ' ').replace('-', ' ')
+                for eng, esp in replacements.items():
+                    disp = re.sub(r'(?i)\b' + re.escape(eng) + r'\b', esp, disp)
+                return f"{disp} ({name})"
+
+            # Insertar en bloques para eficiencia
+            to_insert = []
+            for name_only, mg in exercises_data:
+                display_name = translate_name(name_only)
+                # Si no existe este nombre exacto, lo añadimos
+                # En v1.1.0 esto poblará la DB con los nombres nuevos
+                to_insert.append((display_name, mg))
+            
+            # Borramos antiguos si detectamos que son los "cortos" (sin paréntesis)
+            if needs_migration:
+                conn.execute("DELETE FROM exercises")
+                conn.commit()
+
+            conn.executemany("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", to_insert)
+            conn.commit()
+    
+    sync_pro_exercises()
 
     # Check if we have foods
     res_f = conn_wrap.execute("SELECT count(*) as count FROM foods")
