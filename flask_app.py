@@ -1372,17 +1372,17 @@ def download_db():
         return jsonify({"error": "Unauthorized"}), 401
     return send_from_directory(BASE_DIR, 'mtfitness.db', as_attachment=True)
 
-@app.route('/<path:path>')
-def serve_static(path):
-    return send_from_directory(app.static_folder, path)
-
 @app.route('/descargar-app')
-def download_app_shorthand():
+def download_app_v110():
     return send_from_directory(app.static_folder, 'MT_Fitness_PRO_v1.1.0.apk', as_attachment=True)
 
 @app.route('/uploads/<filename>')
 def serve_uploads(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory(app.static_folder, path)
 
 @app.route('/api/generate_marketing', methods=['GET', 'POST'], strict_slashes=False)
 def generate_marketing():
