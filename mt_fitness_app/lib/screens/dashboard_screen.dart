@@ -51,6 +51,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      body: IndexedStack(
         index: _currentIndex,
         children: _pages,
       ),
@@ -176,19 +177,19 @@ class _DashboardHomeState extends State<DashboardHome> {
           if (measurements.isNotEmpty) {
             _lastWeight = measurements.last;
           }
-
-          // Check if report was submitted this week (last 7 days and it's a Friday report)
-          final history = await ApiService().getReportHistory(ApiService().userId ?? '');
-          if (history.isNotEmpty) {
-            final lastReportDate = DateTime.tryParse(history.first['date'] ?? '');
-            if (lastReportDate != null) {
-              final difference = DateTime.now().difference(lastReportDate).inDays;
-              _reportSubmittedThisWeek = difference < 7;
-            }
-          }
-
           _isLoading = false;
         });
+      }
+
+      final history = await ApiService().getReportHistory(ApiService().userId ?? '');
+      if (history.isNotEmpty && mounted) {
+        final lastReportDate = DateTime.tryParse(history.first['date'] ?? '');
+        if (lastReportDate != null) {
+          final difference = DateTime.now().difference(lastReportDate).inDays;
+          setState(() {
+            _reportSubmittedThisWeek = difference < 7;
+          });
+        }
       }
     } catch (e) {
       if (mounted) setState(() => _isLoading = false);

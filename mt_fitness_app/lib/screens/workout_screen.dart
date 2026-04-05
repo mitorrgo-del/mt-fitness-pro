@@ -140,8 +140,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       for (int i = 0; i < dayItems.length; i++) {
         final item = dayItems[i];
         final ex = item['data'];
-        final index = item['originalIndex'];
-        final isDone = _completedIndices.contains(index);
+        final assignmentId = ex['id'] ?? 0;
+        final isDone = _completedAssignmentIds.contains(assignmentId);
         
         final bool isCombined = (ex['set_type'] == 'BISERIE' || ex['set_type'] == 'TRISERIE');
         
