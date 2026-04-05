@@ -1378,7 +1378,7 @@ def serve_static(path):
 
 @app.route('/descargar-app')
 def download_app_shorthand():
-    return send_from_directory(app.static_folder, 'MT_Fitness_PRO_v1.0.1.apk', as_attachment=True)
+    return send_from_directory(app.static_folder, 'MT_Fitness_PRO_v1.1.0.apk', as_attachment=True)
 
 @app.route('/uploads/<filename>')
 def serve_uploads(filename):
@@ -1437,17 +1437,6 @@ def contact():
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-@app.route('/')
-def home():
-    return send_from_directory(app.static_folder, 'index.html')
-
-@app.route('/descargar-app')
-def download_app_shorthand():
-    return send_from_directory(app.static_folder, 'MT_Fitness_PRO_v1.1.0.apk', as_attachment=True)
-
-@app.route('/<path:filename>')
-def serve_static(filename):
-    return send_from_directory(app.static_folder, filename)
 
 @app.route('/api/seed_exercises', methods=['GET'])
 def seed_exercises():
