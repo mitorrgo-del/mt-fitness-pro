@@ -875,8 +875,139 @@ class IconMapper {
     'zottmanpreachercurl': 'assets/images/Zottman_Preacher_Curl.jpg',
   };
 
+  // Spanish keyword → image path (for new Spanish catalog)
+  static const Map<String, String> _spanishKeywords = {
+    // PECHO
+    'pressdebanca': 'assets/images/Barbell_Bench_Press_-_Medium_Grip.jpg',
+    'pressbancabarraaguerreancho': 'assets/images/Wide-Grip_Barbell_Bench_Press.jpg',
+    'pressinclinarobarrabancd': 'assets/images/Barbell_Incline_Bench_Press_-_Medium_Grip.jpg',
+    'presdeclinado': 'assets/images/Decline_Barbell_Bench_Press.jpg',
+    'aperturasconmancuernasenbancoplano': 'assets/images/Dumbbell_Flyes.jpg',
+    'aperturasconmancuernasenbancoinclina': 'assets/images/Incline_Dumbbell_Flyes.jpg',
+    'aperturasconmancuernasenbancideclin': 'assets/images/Decline_Dumbbell_Flyes.jpg',
+    'crucedepoleas': 'assets/images/Cable_Crossover.jpg',
+    'pulloverconmancuerna': 'assets/images/Dumbbell_Lying_Pronation.jpg',
+    'fondosenparalelas': 'assets/images/Dips_-_Chest_Version.jpg',
+    'flexionesdebrazo': 'assets/images/Pushups.jpg',
+    // ESPALDA
+    'pesomuertoconbarra': 'assets/images/Barbell_Deadlift.jpg',
+    'pesomuertosumo': 'assets/images/Sumo_Deadlift.jpg',
+    'pesomuertodeficit': 'assets/images/Deficit_Deadlift.jpg',
+    'pesomuertoenrack': 'assets/images/Rack_Pulls.jpg',
+    'pesomuertoconbarratrap': 'assets/images/Trap_Bar_Deadlift.jpg',
+    'remoconbarrainclina': 'assets/images/Bent_Over_Barbell_Row.jpg',
+    'remoconmancuerna': 'assets/images/One-Arm_Dumbbell_Row.jpg',
+    'remoenpolea': 'assets/images/Seated_Cable_Rows.jpg',
+    'remotenbarrat': 'assets/images/Lying_T-Bar_Row.jpg',
+    'jalonalpecho': 'assets/images/Full_Range-Of-Motion_Lat_Pulldown.jpg',
+    'jalondetrasdelcuello': 'assets/images/Wide-Grip_Pulldown_Behind_The_Neck.jpg',
+    'dominadasagarre': 'assets/images/Pullups.jpg',
+    'dominadascon': 'assets/images/Weighted_Pull_Ups.jpg',
+    'encogimientosconbarra': 'assets/images/Barbell_Shrug.jpg',
+    'encogimientosconmancuerna': 'assets/images/Dumbbell_Shrug.jpg',
+    'hipeextension': 'assets/images/Hyperextensions_Back_Extensions.jpg',
+    'buenosdiasconbarra': 'assets/images/Good_Morning.jpg',
+    'facepull': 'assets/images/Face_Pull.jpg',
+    'remoinvertido': 'assets/images/Inverted_Row.jpg',
+    // HOMBRO
+    'pressmilitar': 'assets/images/Standing_Military_Press.jpg',
+    'pressarnold': 'assets/images/Arnold_Dumbbell_Press.jpg',
+    'presshoombros': 'assets/images/Dumbbell_Shoulder_Press.jpg',
+    'elevacioneslaterale': 'assets/images/Side_Lateral_Raise.jpg',
+    'elevacionesfrontale': 'assets/images/Front_Dumbbell_Raise.jpg',
+    'elevacionesdeltoidesposterior': 'assets/images/Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench.jpg',
+    'removertical': 'assets/images/Upright_Barbell_Row.jpg',
+    'rotacionexterna': 'assets/images/External_Rotation.jpg',
+    'rotacioninterna': 'assets/images/Internal_Rotation_with_Band.jpg',
+    // BICEPS
+    'curldebiceps': 'assets/images/Barbell_Curl.jpg',
+    'curlconbarraez': 'assets/images/EZ-Bar_Curl.jpg',
+    'curlmancuernasimu': 'assets/images/Dumbbell_Bicep_Curl.jpg',
+    'curlmartillo': 'assets/images/Hammer_Curls.jpg',
+    'curlenbancoscott': 'assets/images/Preacher_Curl.jpg',
+    'curldeconcentra': 'assets/images/Concentration_Curls.jpg',
+    'curlenpoleas': 'assets/images/Cable_Preacher_Curl.jpg',
+    'curlinverso': 'assets/images/Reverse_Barbell_Curl.jpg',
+    'curlzottman': 'assets/images/Zottman_Curl.jpg',
+    'curlspider': 'assets/images/Spider_Curl.jpg',
+    'curldrag': 'assets/images/Drag_Curl.jpg',
+    'curlinclina': 'assets/images/Incline_Dumbbell_Curl.jpg',
+    // TRICEPS
+    'extension': 'assets/images/Triceps_Pushdown.jpg',
+    'pressfrancs': 'assets/images/EZ-Bar_Skullcrusher.jpg',
+    'patadadetriceps': 'assets/images/Tricep_Dumbbell_Kickback.jpg',
+    'fondosenbanco': 'assets/images/Bench_Dips.jpg',
+    'fondosenparalelast': 'assets/images/Dips_-_Triceps_Version.jpg',
+    // PIERNA / CUAD
+    'sentadilla': 'assets/images/Barbell_Squat.jpg',
+    'prentadepiernaos': 'assets/images/Leg_Press.jpg',
+    'prensadepierna': 'assets/images/Leg_Press.jpg',
+    'extensiondecuadriceps': 'assets/images/Leg_Extensions.jpg',
+    'zancada': 'assets/images/Barbell_Lunge.jpg',
+    'subidaalcajon': 'assets/images/Barbell_Step_Ups.jpg',
+    // ISQUIOS / GLUTE
+    'curlfemoral': 'assets/images/Lying_Leg_Curls.jpg',
+    'pesomuertoromano': 'assets/images/Romanian_Deadlift.jpg',
+    'pesomuertoconpiernasrigi': 'assets/images/Stiff-Legged_Barbell_Deadlift.jpg',
+    'puentedegluteo': 'assets/images/Barbell_Hip_Thrust.jpg',
+    'puentegluteo': 'assets/images/Barbell_Glute_Bridge.jpg',
+    'patadadegluteo': 'assets/images/Glute_Kickback.jpg',
+    'abduccion': 'assets/images/Band_Hip_Adductions.jpg',
+    'aduccion': 'assets/images/Cable_Hip_Adduction.jpg',
+    // GEMELOS
+    'elevaciondetalon': 'assets/images/Standing_Calf_Raises.jpg',
+    'elevaciondetalones': 'assets/images/Seated_Calf_Raise.jpg',
+    // CORE
+    'crunchabdominal': 'assets/images/Crunches.jpg',
+    'crunchenpolaa': 'assets/images/Rope_Crunch.jpg',
+    'crunchcruzado': 'assets/images/Cross-Body_Crunch.jpg',
+    'crunchinver': 'assets/images/Decline_Reverse_Crunch.jpg',
+    'planchafron': 'assets/images/Plank.jpg',
+    'planchalate': 'assets/images/Side_Bridge.jpg',
+    'elevaciondepiernas': 'assets/images/Hanging_Leg_Raise.jpg',
+    'elevacionderodilas': 'assets/images/Knee_Hip_Raise_On_Parallel_Bars.jpg',
+    'rodilloabdominal': 'assets/images/Ab_Roller.jpg',
+    'giroruso': 'assets/images/Russian_Twist.jpg',
+    'banderade': 'assets/images/Plank.jpg',
+    'escalador': 'assets/images/Mountain_Climbers.jpg',
+    'abdominallen': 'assets/images/Sit-Up.jpg',
+    'abdominaljackknife': 'assets/images/Jackknife_Sit-Up.jpg',
+    // COMPUESTO  
+    'cargadayjerk': 'assets/images/Clean_and_Jerk.jpg',
+    'cargadadepotencia': 'assets/images/Power_Clean.jpg',
+    'cargadadesdecolgad': 'assets/images/Hang_Clean.jpg',
+    'arrangadacompleta': 'assets/images/Snatch.jpg',
+    'arrancadadepoten': 'assets/images/Power_Snatch.jpg',
+    'thruster': 'assets/images/Kettlebell_Thruster.jpg',
+    'swingconkettlebell': 'assets/images/One-Arm_Kettlebell_Swings.jpg',
+    'muscleupenbar': 'assets/images/Muscle_Up.jpg',
+    'saltaalcajon': 'assets/images/Box_Jump_Multiple_Response.jpg',
+    'saltoconsentadilla': 'assets/images/Freehand_Jump_Squat.jpg',
+    'volteodeneumatico': 'assets/images/Tire_Flip.jpg',
+    'acarreodelgranjero': 'assets/images/Farmers_Walk.jpg',
+    'empujadetrineo': 'assets/images/Sled_Push.jpg',
+    'escaladacuerda': 'assets/images/Rope_Climb.jpg',
+    // CARDIO
+    'carreraencintas': 'assets/images/Running_Treadmill.jpg',
+    'bicicletaestat': 'assets/images/Bicycling_Stationary.jpg',
+    'romoenmaquinaestat': 'assets/images/Rowing_Stationary.jpg',
+    'eliptica': 'assets/images/Elliptical_Trainer.jpg',
+    'saltaralacomba': 'assets/images/Rope_Jumping.jpg',
+    'burpee': 'assets/images/Mountain_Climbers.jpg',
+  };
+
+  static String _removeAccents(String text) {
+    const accents = 'áéíóúàèìòùâêîôûäëïöüñçÁÉÍÓÚÀÈÌÒÙÂÊÎÔÛÄËÏÖÜÑÇ';
+    const noAccents = 'aeiouaeiouaeiouaeiouncareiouaeiouaeiouaeiouncar';
+    var result = text;
+    for (var i = 0; i < accents.length; i++) {
+      result = result.replaceAll(accents[i], noAccents[i]);
+    }
+    return result;
+  }
+
   static String _slugify(String text) {
-      return text.toLowerCase().replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+    return _removeAccents(text).toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
   }
 
   static String? getExerciseImageUrl(String name, [String? muscleGroup]) {
@@ -884,10 +1015,15 @@ class IconMapper {
     
     final slug = _slugify(name);
     
-    // 1. Try exact slug match
+    // 1. Try exact slug match (original English names)
     if (_allImages.containsKey(slug)) return _allImages[slug];
     
-    // 2. Try partial match in Name
+    // 2. Try Spanish keywords (new Spanish catalog)
+    for (var entry in _spanishKeywords.entries) {
+      if (slug.startsWith(entry.key) || slug.contains(entry.key)) return entry.value;
+    }
+    
+    // 3. Try partial match with existing English keys
     for (var entry in _allImages.entries) {
         if (slug.contains(entry.key) || entry.key.contains(slug)) return entry.value;
     }
