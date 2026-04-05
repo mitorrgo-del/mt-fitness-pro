@@ -4,30 +4,30 @@
 */
 
 :root {
-  /* Colors - Rose Palette */
-  --primary: #e11d48;
-  --primary-hover: #f43f5e;
-  --primary-glow: rgba(225, 29, 72, 0.4);
-  --secondary: #fb7185;
+  /* Colors - Luxury Gold Palette */
+  --primary: #D4AF37;
+  --primary-hover: #FFD700;
+  --primary-glow: rgba(212, 175, 55, 0.4);
+  --secondary: #9A7B4F;
   
-  --bg-dark: #09090b;
-  --bg-card: #121214;
-  --bg-card-hover: #18181b;
+  --bg-dark: #0B0E14;
+  --bg-card: #171B22;
+  --bg-card-hover: #1D232B;
   
   --text: #ffffff;
-  --text-muted: #a1a1aa;
-  --text-dim: #71717a;
+  --text-muted: #94A3B8;
+  --text-dim: #64748B;
   
-  --border: rgba(255, 255, 255, 0.08);
-  --border-glow: rgba(225, 29, 72, 0.2);
+  --border: rgba(212, 175, 55, 0.1);
+  --border-glow: rgba(212, 175, 55, 0.2);
   
-  --glass: rgba(18, 18, 20, 0.7);
-  --glass-border: rgba(255, 255, 255, 0.1);
+  --glass: rgba(11, 14, 20, 0.8);
+  --glass-border: rgba(212, 175, 55, 0.15);
   
   /* Gradientes */
-  --grad-premium: linear-gradient(135deg, #e11d48 0%, #881337 100%);
-  --grad-surface: linear-gradient(180deg, #18181b 0%, #09090b 100%);
-  --grad-overlay: linear-gradient(to right, rgba(9, 9, 11, 0.95) 0%, rgba(9, 9, 11, 0.5) 100%);
+  --grad-premium: linear-gradient(135deg, #D4AF37 0%, #8A6E2F 100%);
+  --grad-surface: linear-gradient(180deg, #171B22 0%, #0B0E14 100%);
+  --grad-overlay: linear-gradient(to right, rgba(11, 14, 20, 0.95) 0%, rgba(11, 14, 20, 0.6) 100%);
   
   /* Fonts */
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;

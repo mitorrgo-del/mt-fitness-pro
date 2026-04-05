@@ -2,24 +2,24 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
-  // Premium MT FITNESS PRO Theme - Slate & Teal (Modern Professional)
-  static const Color bgColor = Color(0xFF0F172A); // Deep Slate
-  static const Color surface = Color(0xFF1E293B); // Slate-800
-  static const Color primary = Color(0xFF2DD4BF); // Teal-400
-  static const Color secondary = Color(0xFF14B8A6); // Teal-500
-  static const Color accent = Color(0xFFFACC15); // Yellow-400 for alerts/icons
+  // Luxury MT FITNESS ELITE Theme - Black & Gold (Ultimate Premium)
+  static const Color bgColor = Color(0xFF0B0E14); // Deep Carbon Black
+  static const Color surface = Color(0xFF171B22); // Dark Slate-900
+  static const Color primary = Color(0xFFD4AF37); // Metallic Gold
+  static const Color secondary = Color(0xFFA67C00); // Darker Bronze Gold
+  static const Color accent = Color(0xFFFFD700); // Bright Gold for highlights
   static const Color text = Color(0xFFF8FAFC);
   static const Color textMuted = Color(0xFF94A3B8);
-  static const Color border = Color(0xFF334155);
+  static const Color border = Color(0xFF2D333D);
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primary, Color(0xFF22D3EE)], // Teal to Cyan
+    colors: [primary, Color(0xFFF9D423)], // Gold to Radiant Yellow
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient surfaceGradient = LinearGradient(
-    colors: [Color(0xFF1E293B), Color(0xFF0F172A)], // Slate to Deep
+    colors: [Color(0xFF171B22), Color(0xFF0B0E14)], // Carbon to Deep
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
   );

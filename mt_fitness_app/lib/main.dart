@@ -47,28 +47,28 @@ class MTFitnessApp extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 4),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
+                    gradient: const LinearGradient(
                       colors: [
-                        Colors.orange.withOpacity(0.9),
-                        Colors.deepOrange.withOpacity(0.9),
+                        AppTheme.primary,
+                        Color(0xFFA67C00), // Darker Gold
                       ],
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 2),
+                        color: Colors.black.withOpacity(0.5),
+                        blurRadius: 15,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Text(
-                      '🚧 UNDER CONSTRUCTION - MT FITNESS PRO 🚧',
-                      style: TextStyle(
-                        color: Colors.white,
+                      '🏆 MT FITNESS ELITE PRO - v1.2.2 GOLD HOTFIX 🏆',
+                      style: GoogleFonts.outfit(
+                        color: Colors.black,
                         fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 2.0,
                       ),
                     ),
                   ),
