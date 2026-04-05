@@ -93,51 +93,22 @@ def get_db():
         return DbWrapper(conn, False)
 
 def sync_pro_exercises():
-    """Sincroniza el catálogo de 873 ejercicios reales."""
+    """Sincroniza el catálogo de ejercicios en español."""
     conn = get_db()
     current = conn.execute("SELECT count(*) as count FROM exercises").fetchone()
     count = current['count'] if isinstance(current, dict) else (current[0] if current else 0)
-    
-    # Force translation if we detect English names or count is off
-    force_sync = True # Force it this time to translate everything to Spanish
-    if count < 800 or force_sync:
-        print(f"MIGRATION: Syncing {len(exercises_data)} PRO exercises...")
-        import re
-        def t(n):
-            replacements = {
-                'Barbell': 'con Barra', 'Dumbbell': 'con Mancuernas', 'Bench Press': 'Press de Banca',
-                'Incline': 'Inclinado', 'Decline': 'Declinado', 'Squat': 'Sentadilla', 'Lunge': 'Zancada',
-                'Deadlift': 'Peso Muerto', 'Row': 'Remo', 'Curl': 'Curl', 'Extension': 'Extensión',
-                'Extensions': 'Extensión', 'Pull-Up': 'Dominada', 'Pulldown': 'Jalón', 'Front Raise': 'Elevación Frontal',
-                'Shoulder Press': 'Press de Hombro', 'Lateral Raise': 'Elevación Lateral', 'Raise': 'Elevación',
-                'Crunch': 'Crunch Abdominal', 'Plank': 'Plancha', 'Machine': 'en Máquina', 'Cable': 'en Polea',
-                'Leg Press': 'Prensa de Piernas', 'Calf Raise': 'Elevación de Gemelos', 'Fly': 'Aperturas',
-                'Dips': 'Fondos', 'Dip': 'Fondo', 'Push-Up': 'Flexión', 'Push-Ups': 'Flexiones',
-                'Hammer': 'Martillo', 'Skull Crusher': 'Press Francés', 'Face Pull': 'Face Pull',
-                'Preacher': 'Predicador', 'Leg Extension': 'Extensión de Cuádriceps', 'Leg Curl': 'Curl de Pierna',
-                'Step-Up': 'Subida al Cajón', 'Glute': 'Glúteo', 'Hamstring': 'Isquios', 'Abs': 'Abdominales',
-                'Upper': 'Superior', 'Lower': 'Inferior', 'Middle': 'Medio', 'Rear': 'Posterior',
-                'Wide Grip': 'Agarre Ancho', 'Close Grip': 'Agarre Cerrado', 'Reverse Grip': 'Agarre Inverso',
-                'Bent Over': 'Inclinado', 'Seated': 'Sentado', 'Standing': 'De Pie', 'One Arm': 'a una Mano',
-                'Single Arm': 'a una Mano', 'Alt': 'Alterno', 'Alternating': 'Alterno', 'Triceps': 'Tríceps',
-                'Biceps': 'Bíceps', 'Shoulder': 'Hombro', 'Chest': 'Pecho', 'Back': 'Espalda', 'Leg': 'Pierna'
-            }
-            disp = n.replace('_', ' ').replace('-', ' ')
-            for eng, esp in replacements.items():
-                disp = re.sub(r'(?i)\b' + re.escape(eng) + r'\b', esp, disp)
-            return f"{disp} ({n})"
 
-        to_insert = []
-        for name_only, mg in exercises_data:
-            to_insert.append((t(name_only), mg))
-        
-        if force_sync:
-            conn.execute("DELETE FROM exercises")
-            conn.commit()
-
-        conn.executemany("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", to_insert)
+    # Los nombres ya están en español en exercises_data.py — resinsertar siempre para actualizar
+    force_sync = True
+    if count != len(exercises_data) or force_sync:
+        print(f"MIGRATION: Cargando {len(exercises_data)} ejercicios en español...")
+        conn.execute("DELETE FROM exercises")
         conn.commit()
+        conn.executemany("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", exercises_data)
+        conn.commit()
+        print("MIGRATION: Ejercicios cargados correctamente.")
     conn.close()
+
 
 def init_db():
     db_url = os.environ.get('DATABASE_URL')
