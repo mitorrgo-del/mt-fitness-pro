@@ -131,7 +131,7 @@ def sync_pro_exercises():
         for name_only, mg in exercises_data:
             to_insert.append((t(name_only), mg))
         
-        if needs_migration:
+        if force_sync:
             conn.execute("DELETE FROM exercises")
             conn.commit()
 
