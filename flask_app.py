@@ -98,10 +98,9 @@ def sync_pro_exercises():
     current = conn.execute("SELECT count(*) as count FROM exercises").fetchone()
     count = current['count'] if isinstance(current, dict) else (current[0] if current else 0)
     
-    sample = conn.execute("SELECT name FROM exercises LIMIT 5").fetchall()
-    needs_migration = not any('(' in (row['name'] if isinstance(row, dict) else row[0]) for row in sample)
-    
-    if count < 800 or needs_migration:
+    # Force translation if we detect English names or count is off
+    force_sync = True # Force it this time to translate everything to Spanish
+    if count < 800 or force_sync:
         print(f"MIGRATION: Syncing {len(exercises_data)} PRO exercises...")
         import re
         def t(n):
@@ -111,7 +110,17 @@ def sync_pro_exercises():
                 'Deadlift': 'Peso Muerto', 'Row': 'Remo', 'Curl': 'Curl', 'Extension': 'Extensión',
                 'Extensions': 'Extensión', 'Pull-Up': 'Dominada', 'Pulldown': 'Jalón', 'Front Raise': 'Elevación Frontal',
                 'Shoulder Press': 'Press de Hombro', 'Lateral Raise': 'Elevación Lateral', 'Raise': 'Elevación',
-                'Crunch': 'Crunch Abdominal', 'Plank': 'Plancha', 'Machine': 'en Máquina', 'Cable': 'en Polea'
+                'Crunch': 'Crunch Abdominal', 'Plank': 'Plancha', 'Machine': 'en Máquina', 'Cable': 'en Polea',
+                'Leg Press': 'Prensa de Piernas', 'Calf Raise': 'Elevación de Gemelos', 'Fly': 'Aperturas',
+                'Dips': 'Fondos', 'Dip': 'Fondo', 'Push-Up': 'Flexión', 'Push-Ups': 'Flexiones',
+                'Hammer': 'Martillo', 'Skull Crusher': 'Press Francés', 'Face Pull': 'Face Pull',
+                'Preacher': 'Predicador', 'Leg Extension': 'Extensión de Cuádriceps', 'Leg Curl': 'Curl de Pierna',
+                'Step-Up': 'Subida al Cajón', 'Glute': 'Glúteo', 'Hamstring': 'Isquios', 'Abs': 'Abdominales',
+                'Upper': 'Superior', 'Lower': 'Inferior', 'Middle': 'Medio', 'Rear': 'Posterior',
+                'Wide Grip': 'Agarre Ancho', 'Close Grip': 'Agarre Cerrado', 'Reverse Grip': 'Agarre Inverso',
+                'Bent Over': 'Inclinado', 'Seated': 'Sentado', 'Standing': 'De Pie', 'One Arm': 'a una Mano',
+                'Single Arm': 'a una Mano', 'Alt': 'Alterno', 'Alternating': 'Alterno', 'Triceps': 'Tríceps',
+                'Biceps': 'Bíceps', 'Shoulder': 'Hombro', 'Chest': 'Pecho', 'Back': 'Espalda', 'Leg': 'Pierna'
             }
             disp = n.replace('_', ' ').replace('-', ' ')
             for eng, esp in replacements.items():
