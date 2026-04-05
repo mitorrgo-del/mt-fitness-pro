@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     Center(
                       child: Text(
-                        'MT FITNESS PRO',
+                        'MT FITNESS APP',
                         style: GoogleFonts.outfit(
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
