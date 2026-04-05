@@ -1378,7 +1378,7 @@ def serve_static(path):
 
 @app.route('/descargar-app-final')
 def download_app_final():
-    return send_from_directory(app.static_folder, 'MT_Fitness_PRO_v1.1.0_Final.apk', as_attachment=True)
+    return send_from_directory(app.static_folder, 'MT_FITNESS_PRO_ULTIMATE_V110.apk', as_attachment=True)
 
 @app.route('/uploads/<filename>')
 def serve_uploads(filename):
