@@ -797,19 +797,35 @@ def admin_toggle_bot(admin, target_id):
 def log_meal(user):
     data = request.json
     meal_name = data.get('meal_name')
-    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    # Use localized date or provided date
+    date_str = data.get('date', datetime.datetime.now().strftime("%Y-%m-%d"))
+    status = data.get('status', True) # True to check, False to uncheck
     
     conn = get_db()
     c = conn.cursor()
     
-    # Check if already logged to avoid dupes
-    exists = c.execute("SELECT 1 FROM meal_logs WHERE user_id = ? AND date = ? AND meal_name = ?", (user['id'], date_str, meal_name)).fetchone()
-    if not exists:
-        c.execute("INSERT INTO meal_logs (user_id, date, meal_name) VALUES (?, ?, ?)", (user['id'], date_str, meal_name))
+    if status:
+        # Check if already logged to avoid dupes
+        exists = c.execute("SELECT 1 FROM meal_logs WHERE user_id = ? AND date = ? AND meal_name = ?", (user['id'], date_str, meal_name)).fetchone()
+        if not exists:
+            c.execute("INSERT INTO meal_logs (user_id, date, meal_name) VALUES (?, ?, ?)", (user['id'], date_str, meal_name))
+            conn.commit()
+    else:
+        c.execute("DELETE FROM meal_logs WHERE user_id = ? AND date = ? AND meal_name = ?", (user['id'], date_str, meal_name))
         conn.commit()
+        
     conn.close()
-    
-    return jsonify({'message': 'Comida registrada con éxito'})
+    return jsonify({'message': 'Registro de comida actualizado', 'status': status})
+
+@app.route('/api/client/meal_logs', methods=['GET'])
+@require_auth(roles=['CLIENT', 'ADMIN'])
+def get_meal_logs(user):
+    target_id = request.args.get('user_id', user['id'])
+    date_str = request.args.get('date', datetime.datetime.now().strftime("%Y-%m-%d"))
+    conn = get_db()
+    logs = conn.execute("SELECT meal_name FROM meal_logs WHERE user_id = ? AND date = ?", (target_id, date_str)).fetchall()
+    conn.close()
+    return jsonify([l['meal_name'] for l in logs])
 
 # ---- PRO WORKOUT ASSIGNMENT ENDPOINTS ----
 @app.route('/api/admin/exercises', methods=['GET'])
@@ -959,28 +975,48 @@ def get_workout_logs(user):
     conn.close()
     return jsonify([dict(l) for l in logs])
 
-@app.route('/api/client/log_workout', methods=['POST'])
+@app.route('/api/client/log_workout', methods=['POST', 'DELETE'])
 @require_auth(roles=['ADMIN', 'CLIENT'])
 def log_workout(user):
     data = request.json
     assignment_id = data.get('assignment_id')
-    logs = data.get('logs')
+    date_str = data.get('date', datetime.datetime.now().strftime("%Y-%m-%d"))
     
-    if not assignment_id or not logs:
-        return jsonify({'error': 'Missing log data'}), 400
+    if not assignment_id:
+        return jsonify({'error': 'Missing assignment_id'}), 400
         
-    date_str = datetime.datetime.now().strftime("%Y-%m-%d")
-    
     conn = get_db()
     c = conn.cursor()
-    for log in logs:
-        c.execute('''
-            INSERT INTO workout_logs (user_id, assignment_id, set_number, weight_kg, date)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (user['id'], assignment_id, log['set'], float(log['weight']), date_str))
-    conn.commit()
+    
+    if request.method == 'POST':
+        # Single check log
+        exists = c.execute("SELECT 1 FROM workout_logs WHERE user_id = ? AND assignment_id = ? AND date = ?", (user['id'], assignment_id, date_str)).fetchone()
+        if not exists:
+            # We use set_number=0 and weight=0 to indicate a simple completion check if no logs were provided
+            logs = data.get('logs', [{'set': 0, 'weight': 0.0}])
+            for log in logs:
+                c.execute('''
+                    INSERT INTO workout_logs (user_id, assignment_id, set_number, weight_kg, date)
+                    VALUES (?, ?, ?, ?, ?)
+                ''', (user['id'], assignment_id, log['set'], float(log['weight']), date_str))
+            conn.commit()
+    else: # DELETE
+        c.execute("DELETE FROM workout_logs WHERE user_id = ? AND assignment_id = ? AND date = ?", (user['id'], assignment_id, date_str))
+        conn.commit()
+        
     conn.close()
     return jsonify({'success': True})
+
+@app.route('/api/client/workout_status', methods=['GET'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def get_workout_status(user):
+    target_id = request.args.get('user_id', user['id'])
+    date_str = request.args.get('date', datetime.datetime.now().strftime("%Y-%m-%d"))
+    conn = get_db()
+    # Return distinct assignment_ids that have logs for today
+    logs = conn.execute("SELECT DISTINCT assignment_id FROM workout_logs WHERE user_id = ? AND date = ?", (target_id, date_str)).fetchall()
+    conn.close()
+    return jsonify([l['assignment_id'] for l in logs])
 
 # ---- MEASUREMENTS TRACKING ----
 @app.route('/api/measurements', methods=['GET', 'POST'])

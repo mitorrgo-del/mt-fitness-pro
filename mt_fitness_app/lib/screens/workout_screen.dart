@@ -15,7 +15,7 @@ class WorkoutScreen extends StatefulWidget {
 class _WorkoutScreenState extends State<WorkoutScreen> {
   bool _isLoading = true;
   List<dynamic> _exercises = [];
-  final Set<int> _completedIndices = {};
+  final Set<int> _completedAssignmentIds = {};
 
   @override
   void initState() {
@@ -25,9 +25,12 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
 
   Future<void> _loadWorkout() async {
     try {
-      final data = await ApiService().getWorkoutPlan();
+      final workoutData = await ApiService().getWorkoutPlan();
+      final statusData = await ApiService().getWorkoutStatus(DateTime.now());
       setState(() {
-        _exercises = data;
+        _exercises = workoutData;
+        _completedAssignmentIds.clear();
+        _completedAssignmentIds.addAll(statusData);
         _isLoading = false;
       });
     } catch (e) {
@@ -35,14 +38,26 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
   }
 
-  void _toggleComplete(int index) {
+  void _toggleComplete(int assignmentId) async {
+     final bool currentlyDone = _completedAssignmentIds.contains(assignmentId);
+     
      setState(() {
-       if (_completedIndices.contains(index)) {
-         _completedIndices.remove(index);
+       if (currentlyDone) {
+         _completedAssignmentIds.remove(assignmentId);
        } else {
-         _completedIndices.add(index);
+         _completedAssignmentIds.add(assignmentId);
        }
      });
+
+     try {
+       await ApiService().toggleWorkoutLog(assignmentId, !currentlyDone);
+     } catch (e) {
+       // Rollback on error
+       setState(() {
+         if (currentlyDone) _completedAssignmentIds.add(assignmentId);
+         else _completedAssignmentIds.remove(assignmentId);
+       });
+     }
   }
 
   @override
@@ -235,7 +250,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                       ),
                       Checkbox(
                         value: isDone, 
-                        onChanged: (v) => _toggleComplete(index),
+                        onChanged: (v) => _toggleComplete(assignmentId),
                         activeColor: Colors.green,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                       ),

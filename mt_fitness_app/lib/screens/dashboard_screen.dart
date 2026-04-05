@@ -51,10 +51,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
         index: _currentIndex,
         children: _pages,
       ),
+      floatingActionButton: _currentIndex == 0 ? FloatingActionButton.extended(
+        onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportScreen())).then((_) => _onTabTapped(0)),
+        backgroundColor: AppTheme.primary,
+        foregroundColor: Colors.black,
+        icon: const Icon(LucideIcons.clipboardCheck),
+        label: const Text('REPORTE VIP', style: TextStyle(fontWeight: FontWeight.w900)),
+      ) : null,
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: AppTheme.bgColor,
@@ -103,6 +109,7 @@ class _DashboardHomeState extends State<DashboardHome> {
   String _todayDiet = 'Pendiente';
   int _exerciseCount = 0;
   int _foodCount = 0;
+  bool _reportSubmittedThisWeek = false;
   Map<String, dynamic>? _lastWeight;
 
   @override
@@ -140,11 +147,17 @@ class _DashboardHomeState extends State<DashboardHome> {
                     if (mg != null && mg.isNotEmpty) muscles.add(mg);
                 }
             }
-            _todayRoutine = muscles.isNotEmpty ? muscles.take(2).join(' - ') : 'Entrenamiento';
+            _todayRoutine = muscles.isNotEmpty ? muscles.take(2).join(' - ') : 'ENTRENAMIENTO PRO';
             _exerciseCount = todayRoutine.length;
           } else {
-            _todayRoutine = 'Día de Descanso';
-            _exerciseCount = 0;
+            // Check if there are ANY routines at all
+            if (workout.isNotEmpty) {
+              _todayRoutine = 'DÍA DE DESCANSO / RECUPERACIÓN';
+              _exerciseCount = 0;
+            } else {
+              _todayRoutine = 'SIN RUTINA ASIGNADA';
+              _exerciseCount = 0;
+            }
           }
           
           final foodForToday = diet.where((f) => 
@@ -153,16 +166,27 @@ class _DashboardHomeState extends State<DashboardHome> {
           ).toList();
 
           if (foodForToday.isNotEmpty) {
-            _todayDiet = '${foodForToday.length} alimentos hoy';
+            _todayDiet = '${foodForToday.length} ALIMENTOS PARA HOY';
             _foodCount = foodForToday.length;
           } else {
-            _todayDiet = 'Sin dieta hoy';
+            _todayDiet = diet.isNotEmpty ? 'REVISA TU PLAN NUTRICIONAL' : 'SIN DIETA ASIGNADA';
             _foodCount = 0;
           }
           
           if (measurements.isNotEmpty) {
             _lastWeight = measurements.last;
           }
+
+          // Check if report was submitted this week (last 7 days and it's a Friday report)
+          final history = await ApiService().getReportHistory(ApiService().userId ?? '');
+          if (history.isNotEmpty) {
+            final lastReportDate = DateTime.tryParse(history.first['date'] ?? '');
+            if (lastReportDate != null) {
+              final difference = DateTime.now().difference(lastReportDate).inDays;
+              _reportSubmittedThisWeek = difference < 7;
+            }
+          }
+
           _isLoading = false;
         });
       }
@@ -192,6 +216,17 @@ class _DashboardHomeState extends State<DashboardHome> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(name, isCoach),
+                const SizedBox(height: 24),
+
+                // Reporte Semanal VIP (Movido arriba para máxima visibilidad)
+                _buildOptionCard(
+                  title: 'REPORTE SEMANAL VIP',
+                  subtitle: _reportSubmittedThisWeek ? '¡REPORTE COMPLETADO!' : 'ENVIAR PESO Y FOTOS DE PROGRESO',
+                  icon: _reportSubmittedThisWeek ? LucideIcons.checkCircle2 : LucideIcons.badgeAlert,
+                  color: _reportSubmittedThisWeek ? Colors.greenAccent : Colors.amberAccent,
+                  subtitleBold: true,
+                  onTap: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const ReportScreen())).then((_) => _loadAll()),
+                ),
                 const SizedBox(height: 32),
 
                 if (isCoach) ...[

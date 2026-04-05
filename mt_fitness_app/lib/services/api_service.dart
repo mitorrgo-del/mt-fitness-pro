@@ -159,6 +159,48 @@ class ApiService {
     return response.statusCode == 200 ? jsonDecode(response.body) : [];
   }
 
+  Future<List<String>> getMealLogs(DateTime date) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final response = await http.get(Uri.parse('${baseUrl}client/meal_logs?date=$dateStr'), headers: _headers);
+    if (response.statusCode == 200) {
+      return List<String>.from(jsonDecode(response.body));
+    }
+    return [];
+  }
+
+  Future<void> toggleMealLog(String mealName, bool status) async {
+    await http.post(
+      Uri.parse('${baseUrl}client/log_meal'),
+      headers: _headers,
+      body: jsonEncode({'meal_name': mealName, 'status': status}),
+    );
+  }
+
+  Future<List<int>> getWorkoutStatus(DateTime date) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final response = await http.get(Uri.parse('${baseUrl}client/workout_status?date=$dateStr'), headers: _headers);
+    if (response.statusCode == 200) {
+      return List<int>.from(jsonDecode(response.body));
+    }
+    return [];
+  }
+
+  Future<void> toggleWorkoutLog(int assignmentId, bool status) async {
+    if (status) {
+      await http.post(
+        Uri.parse('${baseUrl}client/log_workout'),
+        headers: _headers,
+        body: jsonEncode({'assignment_id': assignmentId}),
+      );
+    } else {
+      await http.delete(
+        Uri.parse('${baseUrl}client/log_workout'),
+        headers: _headers,
+        body: jsonEncode({'assignment_id': assignmentId}),
+      );
+    }
+  }
+
   Future<List<dynamic>> getAllUsers() async {
     final response = await http.get(Uri.parse('${baseUrl}admin/users'), headers: _headers);
     return response.statusCode == 200 ? jsonDecode(response.body) : [];

@@ -15,6 +15,7 @@ class DietScreen extends StatefulWidget {
 class _DietScreenState extends State<DietScreen> {
   bool _isLoading = true;
   List<dynamic> _meals = [];
+  final Set<String> _completedMealKeys = {}; // combination of day_name and meal_name
   double _totalKcal = 0;
   double _totalProtein = 0;
   double _totalCarbs = 0;
@@ -28,16 +29,20 @@ class _DietScreenState extends State<DietScreen> {
 
   Future<void> _loadDiet() async {
     try {
-      final data = await ApiService().getDietPlan();
+      final dietData = await ApiService().getDietPlan();
+      final logs = await ApiService().getMealLogs(DateTime.now());
+      
       double kcal = 0, p = 0, c = 0, f = 0;
-      for (var item in data) {
+      for (var item in dietData) {
         kcal += (item['calc_kcal'] ?? 0).toDouble();
         p += (item['calc_protein'] ?? 0).toDouble();
         c += (item['calc_carbs'] ?? 0).toDouble();
         f += (item['calc_fat'] ?? 0).toDouble();
       }
       setState(() {
-        _meals = data;
+        _meals = dietData;
+        _completedMealKeys.clear();
+        _completedMealKeys.addAll(logs);
         _totalKcal = kcal;
         _totalProtein = p;
         _totalCarbs = c;
@@ -45,7 +50,26 @@ class _DietScreenState extends State<DietScreen> {
         _isLoading = false;
       });
     } catch (e) {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _toggleMeal(String mealName) async {
+    final bool currentlyDone = _completedMealKeys.contains(mealName);
+    
+    setState(() {
+      if (currentlyDone) _completedMealKeys.remove(mealName);
+      else _completedMealKeys.add(mealName);
+    });
+
+    try {
+       await ApiService().toggleMealLog(mealName, !currentlyDone);
+    } catch (e) {
+       // Rollback
+       setState(() {
+         if (currentlyDone) _completedMealKeys.add(mealName);
+         else _completedMealKeys.remove(mealName);
+       });
     }
   }
 
@@ -155,12 +179,17 @@ class _DietScreenState extends State<DietScreen> {
           ),
         ));
         
-        children.addAll(foods.map((food) => _buildMealCard(
-          food['name'],
-          '${food['grams']}g',
-          '${food['calc_kcal']?.toStringAsFixed(0) ?? 0} kcal | P: ${food['calc_protein']?.toStringAsFixed(1) ?? 0}g | C: ${food['calc_carbs']?.toStringAsFixed(1) ?? 0}g | G: ${food['calc_fat']?.toStringAsFixed(1) ?? 0}g',
-          IconMapper.getFoodDrawing(food['name'], food['category']),
-        )).toList());
+        children.addAll(foods.map((food) {
+          final isMealDone = _completedMealKeys.contains(mealName);
+          return _buildMealCard(
+            food['name'],
+            '${food['grams']}g',
+            '${food['calc_kcal']?.toStringAsFixed(0) ?? 0} kcal | P: ${food['calc_protein']?.toStringAsFixed(1) ?? 0}g | C: ${food['calc_carbs']?.toStringAsFixed(1) ?? 0}g | G: ${food['calc_fat']?.toStringAsFixed(1) ?? 0}g',
+            IconMapper.getFoodDrawing(food['name'], food['category']),
+            isMealDone,
+            () => _toggleMeal(mealName),
+          );
+        }).toList());
         
         children.add(const SizedBox(height: 8));
       });
@@ -169,33 +198,61 @@ class _DietScreenState extends State<DietScreen> {
     return children;
   }
 
-  Widget _buildMealCard(String title, String description, String macros, String iconText) {
+  Widget _buildMealCard(String title, String description, String macros, String iconText, bool isDone, VoidCallback onToggle) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12.0),
       child: PremiumCard(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(10)),
-              child: Center(child: Text(iconText, style: const TextStyle(fontSize: 20))),
+        child: InkWell(
+          onTap: onToggle,
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: isDone ? Colors.green.withOpacity(0.2) : AppTheme.primary.withOpacity(0.1), 
+                    borderRadius: BorderRadius.circular(12)
+                  ),
+                  child: Center(
+                    child: isDone 
+                      ? const Icon(LucideIcons.check, color: Colors.green, size: 24)
+                      : Text(iconText, style: const TextStyle(fontSize: 22))
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title, 
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold, 
+                          fontSize: 16,
+                          color: isDone ? Colors.green.withOpacity(0.7) : Colors.white,
+                          decoration: isDone ? TextDecoration.lineThrough : null,
+                        )
+                      ),
+                      const SizedBox(height: 4),
+                      Text(description, style: const TextStyle(color: AppTheme.textMuted, fontSize: 14)),
+                      const SizedBox(height: 4),
+                      Text(macros, style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ),
+                Checkbox(
+                  value: isDone, 
+                  onChanged: (_) => onToggle(),
+                  activeColor: Colors.green,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                )
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-                  const SizedBox(height: 4),
-                  Text(description, style: const TextStyle(color: AppTheme.textMuted, fontSize: 14)),
-                  const SizedBox(height: 4),
-                  Text(macros, style: const TextStyle(color: AppTheme.primary, fontSize: 12, fontWeight: FontWeight.bold)),
-                ],
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
