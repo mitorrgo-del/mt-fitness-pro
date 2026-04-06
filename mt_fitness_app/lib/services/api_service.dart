@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
   static const String baseUrl = 'https://mt-fitness-pro.onrender.com/api/';
@@ -27,22 +28,36 @@ class ApiService {
   factory ApiService() => _instance;
   ApiService._internal();
 
-  void setToken(String token) => _token = token;
-  void setRole(String role) => _role = role;
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _token = prefs.getString('auth_token');
+    _role = prefs.getString('user_role');
+    if (_token != null) {
+      await refreshProfile();
+    }
+  }
+
+  void setToken(String token) async {
+    _token = token;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('auth_token', token);
+  }
+
+  void setRole(String role) async {
+    _role = role;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('user_role', role);
+  }
+
+  String? get token => _token;
   String? get role => _role;
   String? get userId => _userId;
   String? get userEmail => _userEmail;
 
   String getExerciseImage(String name) {
-    final slug = name.toLowerCase().trim().replaceAll(' ', '-').replaceAll('(', '').replaceAll(')', '');
-    // Using a reliable public fitness image placeholder or a mapping
-    // This is a placeholder logic, in a real app we'd have a full mapping or DB
-    if (slug.contains('banca') || slug.contains('chest')) return 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?auto=format&fit=crop&q=80&w=200';
-    if (slug.contains('sentadilla') || slug.contains('squat')) return 'https://images.unsplash.com/photo-1574673139082-c3b52fca511f?auto=format&fit=crop&q=80&w=200';
-    if (slug.contains('mancuerna') || slug.contains('dumbell')) return 'https://images.unsplash.com/photo-1583454110551-21f2fa2ae617?auto=format&fit=crop&q=80&w=200';
-    if (slug.contains('espalda') || slug.contains('back')) return 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?auto=format&fit=crop&q=80&w=200';
-    return 'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?auto=format&fit=crop&q=80&w=200'; // Default gym
+    return 'assets/images/logo.png'; // Handled via IconMapper primarily
   }
+
   String? get userName => _userName;
   String? get surname => _surname;
   int? get age => _age;
@@ -56,12 +71,14 @@ class ApiService {
   double? get hip => _hip;
   double? get waist => _waist;
 
-  void logout() {
+  void logout() async {
     _token = null;
     _role = null;
     _userId = null;
     _userName = null;
     _userEmail = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.clear();
   }
 
   bool get isCoach => _role == 'ADMIN';
@@ -78,58 +95,66 @@ class ApiService {
       body: jsonEncode({'email': email, 'password': password}),
     );
     
-    if (!response.headers['content-type']!.contains('application/json')) {
-      return {'error': 'El servidor no respondió con JSON.'};
+    if (response.statusCode >= 400) {
+      return {'error': 'Email o contraseña incorrectos.'};
     }
     
     final data = jsonDecode(response.body);
-    if (data.containsKey('token')) _token = data['token'];
+    if (data.containsKey('token')) {
+      await setToken(data['token']);
+    }
     
     // DRASTIC AUTO-UPGRADE IN FRONTEND
     final uEmail = data['email'] ?? email;
     if (uEmail == 'mitorrgo@gmail.com' || uEmail == 'mtfitness2026@gmail.com') {
-      _role = 'ADMIN';
+      await setRole('ADMIN');
     } else {
-      if (data.containsKey('role')) _role = data['role'];
+      if (data.containsKey('role')) await setRole(data['role']);
     }
     
-    if (data.containsKey('id')) _userId = data['id'];
-    if (data.containsKey('name')) _userName = data['name'];
-    if (data.containsKey('surname')) _surname = data['surname'];
-    if (data.containsKey('email')) _userEmail = data['email'];
-    if (data.containsKey('age')) _age = data['age'];
-    if (data.containsKey('height')) _height = data['height']?.toDouble();
-    if (data.containsKey('current_weight')) _currentWeight = data['current_weight']?.toDouble();
-    if (data.containsKey('objective')) _objective = data['objective'];
-    if (data.containsKey('days_left')) _daysLeft = data['days_left'];
-    if (data.containsKey('profile_image')) _profileImage = data['profile_image'];
-    if (data.containsKey('biceps')) _biceps = data['biceps']?.toDouble();
-    if (data.containsKey('thigh')) _thigh = data['thigh']?.toDouble();
-    if (data.containsKey('hip')) _hip = data['hip']?.toDouble();
-    if (data.containsKey('waist')) _waist = data['waist']?.toDouble();
+    _userId = data['id'];
+    _userName = data['name'];
+    _surname = data['surname'];
+    _userEmail = data['email'];
+    _age = data['age'];
+    _height = data['height']?.toDouble();
+    _currentWeight = data['current_weight']?.toDouble();
+    _objective = data['objective'];
+    _daysLeft = data['days_left'];
+    _profileImage = data['profile_image'];
+    _biceps = data['biceps']?.toDouble();
+    _thigh = data['thigh']?.toDouble();
+    _hip = data['hip']?.toDouble();
+    _waist = data['waist']?.toDouble();
     
     return data;
   }
 
   Future<void> refreshProfile() async {
-    final response = await http.get(Uri.parse('${baseUrl}auth/me'), headers: _headers);
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      _userId = data['id'];
-      _userName = data['name'];
-      _surname = data['surname'];
-      _userEmail = data['email'];
-      _age = data['age'];
-      _height = data['height']?.toDouble();
-      _currentWeight = data['current_weight']?.toDouble();
-      _objective = data['objective'];
-      _daysLeft = data['days_left'];
-      _profileImage = data['profile_image'];
-      _biceps = data['biceps']?.toDouble();
-      _thigh = data['thigh']?.toDouble();
-      _hip = data['hip']?.toDouble();
-      _waist = data['waist']?.toDouble();
-      _role = data['role'];
+    try {
+      final response = await http.get(Uri.parse('${baseUrl}auth/me'), headers: _headers);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        _userId = data['id'];
+        _userName = data['name'];
+        _surname = data['surname'];
+        _userEmail = data['email'];
+        _age = data['age'];
+        _height = data['height']?.toDouble();
+        _currentWeight = data['current_weight']?.toDouble();
+        _objective = data['objective'];
+        _daysLeft = data['days_left'];
+        _profileImage = data['profile_image'];
+        _biceps = data['biceps']?.toDouble();
+        _thigh = data['thigh']?.toDouble();
+        _hip = data['hip']?.toDouble();
+        _waist = data['waist']?.toDouble();
+        _role = data['role'];
+      } else if (response.statusCode == 401) {
+        logout();
+      }
+    } catch (e) {
+      // Offline or error
     }
   }
 

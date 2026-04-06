@@ -89,8 +89,8 @@ class _LoginScreenState extends State<LoginScreen> {
                             )
                           ],
                         ),
-                        child: Image.network(
-                          'https://www.mtfitness.es/logo.png',
+                        child: Image.asset(
+                          'assets/images/logo.png',
                           height: 140,
                           width: 140,
                           fit: BoxFit.contain,
@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 24),
                     Center(
                       child: Text(
-                        'MT FITNESS APP',
+                        'MT FITNESS PRO',
                         style: GoogleFonts.outfit(
                           fontSize: 32,
                           fontWeight: FontWeight.w900,
