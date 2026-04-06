@@ -194,7 +194,21 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                         ),
                         child: isDone
                           ? const Icon(LucideIcons.check, color: Colors.green, size: 28)
-                          : Center(child: Text(IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']), style: const TextStyle(fontSize: 28))),
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(16),
+                              child: Image.asset(
+                                IconMapper.getExerciseImageUrl(ex['name'] ?? '', ex['muscle_group']) ?? 'assets/images/logo.png',
+                                height: 60,
+                                width: 60,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Center(
+                                  child: Text(
+                                    IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']),
+                                    style: const TextStyle(fontSize: 28)
+                                  ),
+                                ),
+                              ),
+                            ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
@@ -292,13 +306,13 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   }
 
   void _showExerciseDetails(BuildContext context, dynamic ex) {
-    final imgUrl = IconMapper.getExerciseImageUrl(ex['name'] ?? '');
+    final imgUrl = IconMapper.getExerciseImageUrl(ex['name'] ?? '', ex['muscle_group']);
 
     showModalBottomSheet(
       context: context,
       backgroundColor: AppTheme.bgColor,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       builder: (context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
         child: Column(
@@ -306,18 +320,16 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           children: [
             Container(width: 40, height: 4, decoration: BoxDecoration(color: AppTheme.border, borderRadius: BorderRadius.circular(2))),
             const SizedBox(height: 24),
-            if (imgUrl != null)
-              ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: Image.asset(imgUrl, height: 250, width: double.infinity, fit: BoxFit.cover, errorBuilder: (_, __, ___) => const Icon(LucideIcons.image, size: 100, color: AppTheme.border)),
-              )
-            else
-              Container(
-                height: 150,
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: Image.asset(
+                imgUrl ?? 'assets/images/logo.png', // Logo as absolute fallback
+                height: 250,
                 width: double.infinity,
-                decoration: BoxDecoration(color: AppTheme.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(16)),
-                child: Center(child: Text(IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']), style: const TextStyle(fontSize: 80))),
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => const Icon(LucideIcons.image, size: 100, color: AppTheme.border),
               ),
+            ),
             const SizedBox(height: 32),
             Text(ex['name'] ?? 'Ejercicio', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold), textAlign: TextAlign.center),
             if (ex['set_type'] != null && ex['set_type'] != 'NORMAL') ...[

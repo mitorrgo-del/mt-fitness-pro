@@ -1,20 +1,61 @@
 import os
 import re
 
+# Correct path for assets in the project
 images_dir = "mt_fitness_app/assets/images"
 image_files = [f for f in os.listdir(images_dir) if f.lower().endswith(('.jpg', '.png'))]
+
+# Translation bridge for better matching
+translations = {
+    'pecho': 'chest',
+    'espalda': 'back',
+    'hombro': 'shoulder',
+    'biceps': 'bicep',
+    'triceps': 'tricep',
+    'pierna': 'leg',
+    'cuadriceps': 'quad',
+    'isquios': 'hamstring',
+    'gluteo': 'glute',
+    'gemelo': 'calf',
+    'core': 'abs',
+    'abdominal': 'crunch',
+    'barra': 'barbell',
+    'mancuerna': 'dumbbell',
+    'mancuernas': 'dumbbell',
+    'polea': 'cable',
+    'maquina': 'machine',
+    'sentadilla': 'squat',
+    'peso muerto': 'deadlift',
+    'press': 'press',
+    'aperturas': 'fly',
+    'remo': 'row',
+    'dominadas': 'pullup',
+    'fondos': 'dip',
+    'zancada': 'lunge',
+    'extension': 'extension',
+    'curl': 'curl',
+    'elevacion': 'raise',
+    'inclinado': 'incline',
+    'declinado': 'decline',
+    'plano': 'flat',
+}
 
 def slugify(text):
     # Remove separators and lower
     return "".join(re.findall(r'[a-zA-Z0-9]', text.lower()))
 
+def get_keywords(text):
+    text = text.lower()
+    for sp, en in translations.items():
+        if sp in text:
+            text += " " + en
+    return set(re.findall(r'[a-z0-9]+', text))
+
 # Build a mapping of slug -> filename
 slug_to_file = {}
 for f in image_files:
-    # Skip icons we use for fallbacks
     if "_icon_" in f:
         continue
-    
     name_only = os.path.splitext(f)[0]
     slug = slugify(name_only)
     slug_to_file[slug] = f
@@ -25,9 +66,21 @@ for slug, filename in slug_to_file.items():
 
 mapping_js = "\n".join(mapping_entries)
 
-dart_code = f"""class IconMapper {{
+# Build translations mapping for Dart
+trans_entries = []
+for k, v in translations.items():
+    trans_entries.append(f"    '{k}': '{v}',")
+trans_js = "\n".join(trans_entries)
+
+dart_code = f"""import 'package:flutter/material.dart';
+
+class IconMapper {{
   static const Map<String, String> _allImages = {{
 {mapping_js}
+  }};
+
+  static const Map<String, String> _translations = {{
+{trans_js}
   }};
 
   static String _slugify(String text) {{
@@ -37,27 +90,50 @@ dart_code = f"""class IconMapper {{
   static String? getExerciseImageUrl(String name, [String? muscleGroup]) {{
     if (name.isEmpty) return null;
     
-    final slug = _slugify(name);
+    String searchTitle = name.toLowerCase();
     
     // 1. Try exact slug match
-    if (_allImages.containsKey(slug)) return _allImages[slug];
+    final directSlug = _slugify(name);
+    if (_allImages.containsKey(directSlug)) return _allImages[directSlug];
     
-    // 2. Try partial match in Name
+    // 2. Try translating and matching
+    String translatedName = searchTitle;
+    _translations.forEach((es, en) {{
+      if (searchTitle.contains(es)) translatedName += en;
+    }});
+    
+    final translatedSlug = _slugify(translatedName);
+    if (_allImages.containsKey(translatedSlug)) return _allImages[translatedSlug];
+    
+    // 3. Score-based matching (Highest overlap of keywords)
+    String? bestMatch;
+    int maxScore = 0;
+    
     for (var entry in _allImages.entries) {{
-        if (slug.contains(entry.key) || entry.key.contains(slug)) return entry.value;
+      int score = 0;
+      if (translatedSlug.contains(entry.key)) score += 10;
+      if (entry.key.contains(directSlug)) score += 5;
+      
+      if (score > maxScore) {{
+        maxScore = score;
+        bestMatch = entry.value;
+      }}
     }}
 
-    // 3. Muscle Group Fallbacks
+    if (bestMatch != null && maxScore >= 5) return bestMatch;
+
+    // 4. Muscle Group Fallbacks
     if (muscleGroup != null) {{
       final mg = muscleGroup.toLowerCase();
-      if (mg.contains('pecho') || mg.contains('pectoral')) return 'assets/images/pecho_icon_1775126194087.png';
-      if (mg.contains('espalda') || mg.contains('dorsal')) return 'assets/images/espalda_icon_1775126212481.png';
-      if (mg.contains('pierna') || mg.contains('cuad') || mg.contains('femoral') || mg.contains('glute')) return 'assets/images/pierna_icon_1775126227797.png';
-      if (mg.contains('hombro') || mg.contains('delto')) return 'assets/images/hombro_icon_1775126243283.png';
-      if (mg.contains('biceps') || mg.contains('bíceps')) return 'assets/images/biceps_icon_1775126261867.png';
-      if (mg.contains('triceps') || mg.contains('tríceps')) return 'assets/images/triceps_icon_1775126276135.png';
-      if (mg.contains('core') || mg.contains('abdominal') || mg.contains('abdomen')) return 'assets/images/core_icon_1775126289413.png';
+      if (mg.contains('pecho')) return 'assets/images/pecho_icon_1775126194087.png';
+      if (mg.contains('espalda')) return 'assets/images/espalda_icon_1775126212481.png';
+      if (mg.contains('pierna')) return 'assets/images/pierna_icon_1775126227797.png';
+      if (mg.contains('hombro')) return 'assets/images/hombro_icon_1775126243283.png';
+      if (mg.contains('biceps')) return 'assets/images/biceps_icon_1775126261867.png';
+      if (mg.contains('triceps')) return 'assets/images/triceps_icon_1775126276135.png';
+      if (mg.contains('core')) return 'assets/images/core_icon_1775126289413.png';
     }}
+    
     return null;
   }}
 
@@ -74,55 +150,12 @@ dart_code = f"""class IconMapper {{
     }}
     return '🏋️‍♂️';
   }}
-
-  static String getFoodDrawing(String name, String? category) {{
-    final lower = name.toLowerCase();
-    if (lower.contains('pollo') || lower.contains('pavo')) return '🍗';
-    if (lower.contains('ternera') || lower.contains('cerdo') || lower.contains('lomo') || lower.contains('jamón')) return '🥩';
-    if (lower.contains('salmón') || lower.contains('atún') || lower.contains('merluza') || lower.contains('bacalao') || lower.contains('pescado') || lower.contains('lubina') || lower.contains('dorada') || lower.contains('sardina') || lower.contains('caballa') || lower.contains('trucha')) return '🐟';
-    if (lower.contains('gamba') || lower.contains('langostino') || lower.contains('calamar') || lower.contains('pulpo') || lower.contains('cangrejo') || lower.contains('mejillón')) return '🦐';
-    if (lower.contains('huevo') || lower.contains('clara')) return '🥚';
-    if (lower.contains('tofu') || lower.contains('seitán') || lower.contains('heura') || lower.contains('soja')) return '🌱';
-    if (lower.contains('arroz')) return '🍚';
-    if (lower.contains('pasta') || lower.contains('espagueti') || lower.contains('macarrones')) return '🍝';
-    if (lower.contains('avena') || lower.contains('cereal') || lower.contains('muesli')) return '🥣';
-    if (lower.contains('patata') || lower.contains('boniato') || lower.contains('yuca')) return '🥔';
-    if (lower.contains('pan') || lower.contains('biscote')) return '🍞';
-    if (lower.contains('garbanzo') || lower.contains('lenteja') || lower.contains('judía') || lower.contains('guisante')) return '🧆';
-    if (lower.contains('aceite')) return '🫒';
-    if (lower.contains('aguacate')) return '🥑';
-    if (lower.contains('nuez') || lower.contains('almendra') || lower.contains('cacahuete') || lower.contains('pistacho') || lower.contains('anacardo') || lower.contains('pecana') || lower.contains('avellana') || lower.contains('semilla') || lower.contains('piñón')) return '🥜';
-    if (lower.contains('chocolate')) return '🍫';
-    if (lower.contains('brócoli')) return '🥦';
-    if (lower.contains('espinaca') || lower.contains('lechuga') || lower.contains('canónigo') || lower.contains('rúcula') || lower.contains('kale') || lower.contains('col')) return '🥬';
-    if (lower.contains('tomate')) return '🍅';
-    if (lower.contains('zanahoria')) return '🥕';
-    if (lower.contains('champiñón') || lower.contains('seta')) return '🍄';
-    if (lower.contains('manzana')) return '🍎';
-    if (lower.contains('plátano')) return '🍌';
-    if (lower.contains('naranja') || lower.contains('mandarina') || lower.contains('limón') || lower.contains('pomelo')) return '🍊';
-    if (lower.contains('fresa') || lower.contains('arándano') || lower.contains('frambuesa') || lower.contains('mora') || lower.contains('cereza')) return '🍓';
-    if (lower.contains('piña')) return '🍍';
-    if (lower.contains('sandía')) return '🍉';
-    if (lower.contains('uva')) return '🍇';
-    if (lower.contains('leche')) return '🥛';
-    if (lower.contains('yogur') || lower.contains('queso')) return '🧀';
-    if (lower.contains('proteína') || lower.contains('whey') || lower.contains('creatina') || lower.contains('caseína')) return '🥤';
-    if (lower.contains('miel') || lower.contains('azúcar')) return '🍯';
-    
-    if (category != null) {{
-        final cat = category.toLowerCase();
-        if (cat.contains('proteína')) return '🥩';
-        if (cat.contains('hidrato')) return '🍚';
-        if (cat.contains('grasa')) return '🥑';
-        if (cat.contains('verdura')) return '🥗';
-        if (cat.contains('fruta')) return '🍎';
-        if (cat.contains('lácteo')) return '🥛';
-    }}
-    return '🍽️';
-  }}
 }}
 """
 
-with open("mt_fitness_app/lib/utils/icon_mapper.dart", "w", encoding="utf-8") as f:
+output_path = "mt_fitness_app/lib/utils/icon_mapper.dart"
+os.makedirs(os.path.dirname(output_path), exist_ok=True)
+with open(output_path, "w", encoding="utf-8") as f:
     f.write(dart_code)
+
+print("IconMapper.dart generated successfully!")

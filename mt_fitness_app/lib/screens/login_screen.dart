@@ -13,11 +13,40 @@ class LoginScreen extends StatefulWidget {
   State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _obscurePassword = true;
+  late AnimationController _animController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _glowAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 4),
+    )..repeat(reverse: true);
+
+    _scaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.2).chain(CurveTween(curve: Curves.easeOutBack)), weight: 70),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.2, end: 1.0).chain(CurveTween(curve: Curves.easeInOut)), weight: 30),
+    ]).animate(CurvedAnimation(parent: _animController, curve: const Interval(0, 0.4)));
+
+    _glowAnimation = Tween<double>(begin: 0.6, end: 1.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   Future<void> _handleLogin() async {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
@@ -75,50 +104,73 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // PREMIUM LOGO AREA
+                    // INCANDESCENT AURORA LOGO AREA
                     Center(
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppTheme.primary.withOpacity(0.15),
-                              blurRadius: 60,
-                              spreadRadius: 10,
-                            )
-                          ],
-                        ),
-                        child: Image.asset(
-                          'assets/images/logo.png',
-                          height: 140,
-                          width: 140,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell, size: 100, color: AppTheme.primary),
-                        ),
+                      child: AnimatedBuilder(
+                        animation: _animController,
+                        builder: (context, child) {
+                          return Transform.scale(
+                            scale: _scaleAnimation.value,
+                            child: Stack(
+                              alignment: Alignment.center,
+                              children: [
+                                // THE AURORA (Pulsing Glow)
+                                Container(
+                                  width: 250,
+                                  height: 250,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.accent.withOpacity(0.08 * _glowAnimation.value),
+                                        blurRadius: 100 * _glowAnimation.value,
+                                        spreadRadius: 40 * _glowAnimation.value,
+                                      ),
+                                      BoxShadow(
+                                        color: AppTheme.primary.withOpacity(0.12 * _glowAnimation.value),
+                                        blurRadius: 60 * _glowAnimation.value,
+                                        spreadRadius: 10,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // PROTECTED LOGO
+                                Image.asset(
+                                  'assets/images/logo.png',
+                                  height: 200,
+                                  width: 200,
+                                  fit: BoxFit.contain,
+                                  color: AppTheme.accent, // TINTING IT GOLD
+                                  colorBlendMode: BlendMode.srcATop,
+                                  errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell, size: 100, color: AppTheme.primary),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 40),
                     Center(
                       child: Text(
                         'MT FITNESS PRO',
                         style: GoogleFonts.outfit(
-                          fontSize: 32,
+                          fontSize: 34,
                           fontWeight: FontWeight.w900,
-                          letterSpacing: 1,
-                          color: Colors.white,
+                          letterSpacing: 2,
+                          color: AppTheme.primary,
                         ),
                       ),
                     ),
                     const SizedBox(height: 8),
                     Center(
                       child: Text(
-                        'ELITE COACHING EXPERIENCE',
+                        'TU ENTRENADOR Y DIETISTA',
                         style: GoogleFonts.outfit(
-                          fontSize: 12,
-                          letterSpacing: 4,
-                          color: AppTheme.primary,
-                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          letterSpacing: 5,
+                          color: Colors.white70,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -145,7 +197,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword ? LucideIcons.eye : LucideIcons.eyeOff,
-                            size: 20,
+                            size: 24,
                             color: AppTheme.textMuted,
                           ),
                           onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
