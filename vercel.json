@@ -1,0 +1,15 @@
+{
+    "version": 2,
+    "builds": [
+          {
+                  "src": "mt_fitness_app/app.py",
+                  "use": "@vercel/python"
+          }
+    ],
+    "routes": [
+          {
+                  "src": "/(.*)",
+                  "dest": "mt_fitness_app/app.py"
+          }
+    ]
+}
