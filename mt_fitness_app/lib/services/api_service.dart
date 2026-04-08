@@ -3,8 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class ApiService {
-  static const String baseUrl = 'https://mt-fitness-pro.onrender.com/api/';
-  static const String uploadsUrl = 'https://mt-fitness-pro.onrender.com/uploads/';
+  static const String baseUrl = 'https://mt-fitness-pro.vercel.app/api/';
+  static const String uploadsUrl = 'https://mt-fitness-pro.vercel.app/uploads/';
   
   String? _token;
   String? _role;
