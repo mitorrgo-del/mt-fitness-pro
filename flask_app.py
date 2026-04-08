@@ -728,7 +728,8 @@ def master_exec(admin):
     except Exception as e:
         return jsonify({'status': 'error', 'output': str(e)})
 
-@app.route('/api/uploads/<filename>')
+@app.route('/uploads/<path:filename>')
+@app.route('/api/uploads/<path:filename>')
 def uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
