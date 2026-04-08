@@ -35,7 +35,11 @@ CORS(app)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, 'mtfitness.db')
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+try:
+        if not os.path.exists(UPLOAD_FOLDER):
+                    os.makedirs(UPLOAD_FOLDER)
+except Exception as e:
+        print(f"Aviso: No se pudo crear UPLOAD_FOLDER (entorno de solo lectura): {e}")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 class DbWrapper:
