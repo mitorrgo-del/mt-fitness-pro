@@ -39,8 +39,7 @@ try:
         if not os.path.exists(UPLOAD_FOLDER):
                     os.makedirs(UPLOAD_FOLDER)
 except Exception as e:
-        print(f"Aviso: No se pudo crear UPLOAD_FOLDER (entorno de solo lectura): {e}")
-app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+        print(f"Aviso: No se pudo crear UPLOAD_FOLDER (entorno de solo lectura): {e}"    app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 class DbWrapper:
     def __init__(self, conn, is_pg):
