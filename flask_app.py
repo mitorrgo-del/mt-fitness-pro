@@ -50,7 +50,7 @@ class DbWrapper:
     def execute(self, query, params=()):
         if self.is_pg:
             query = query.replace('?', '%s')
-            query = query.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
+            query = query.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY').replace('DATETIME', 'TIMESTAMP')
             cur = self.conn.cursor()
             cur.execute(query, params)
             return cur
@@ -58,7 +58,7 @@ class DbWrapper:
             return self.conn.execute(query, params)
     def executemany(self, query, params=()):
         if self.is_pg:
-            query = query.replace('?', '%s')
+            query = query.replace('?', '%s').replace('DATETIME', 'TIMESTAMP')
             cur = self.conn.cursor()
             cur.executemany(query, params)
             return cur
