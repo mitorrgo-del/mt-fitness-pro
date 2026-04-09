@@ -1,8 +1,39 @@
-mt_fitness_app
-backup_old
+# Excluir todo lo pesado y no web
+mt_fitness_app/
+build/
+dist/
+backup_old/
+free_ex_db/
+scratch/
+social_media_posts/
+__pycache__/
+*.exe
+ngrok.exe
 Agente MT Fitness PRO.exe
-social_media_posts
-MT_ANALYTICS_MASTER.py
-MT_COACH_MASTER_PC.py
-free_ex_db
-requirements_old.txt
+*.pyc
+*.pyo
+*.pyd
+.db
+mtfitness.db
+agent_errors.txt
+agent_logs.txt
+ngrok_err.txt
+ngrok_out.txt
+pinggy_err.txt
+pinggy_out.txt
+serveo_err.txt
+serveo_out.txt
+sync_out.txt
+sync_out_utf8.txt
+telegram_errors.txt
+telegram_logs.txt
+tunnel_logs.txt
+test_out.txt
+test_out_utf8.txt
+
+# Mantener solo lo esencial
+# flask_app.py
+# app/
+# api/
+# requirements.txt
+# vercel.json
