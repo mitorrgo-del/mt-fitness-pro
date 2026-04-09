@@ -1440,7 +1440,36 @@ def serve_uploads(filename):
 def serve_static(path):
     return send_from_directory(app.static_folder, path)
 
-@app.route('/api/generate_marketing', methods=['GET', 'POST'], strict_slashes=False)
+@app.route('/api/master/repair_db')
+def repair_db():
+    master_token = request.args.get('token')
+    if master_token != "MT_MASTER_REPAIR_2026":
+        return "Unauthorized", 401
+        
+    conn = get_db()
+    c = conn.cursor()
+    try:
+        # Detectar el desplazamiento (offset)
+        # Asumimos que el primer ejercicio de exercises_data coincide con el primer ID actual
+        c.execute("SELECT MIN(id) as first_id FROM exercises")
+        current_min_id = c.fetchone()['first_id']
+        
+        # Si el anterior empezaba en 1, el offset es current_min_id - 1
+        offset = current_min_id - 1
+        print(f"REPAIR: Detectado offset de {offset}")
+        
+        if offset > 0:
+            # Shift exercise_id in user_exercises
+            # ATENCION: Esto solo funciona si no se habian asignado rutinas nuevas con los IDs nuevos
+            c.execute("UPDATE user_exercises SET exercise_id = exercise_id + ? WHERE exercise_id < ?", (offset, current_min_id))
+            conn.commit()
+            return f"Base de Datos reparada. Offset aplicado: {offset}"
+        else:
+            return "No se detectó desplazamiento de IDs. La DB parece estar en orden."
+    except Exception as e:
+        return f"Error en reparación: {str(e)}"
+    finally:
+        conn.close()
 def generate_marketing():
     data = request.json
     topic = data.get('topic')
