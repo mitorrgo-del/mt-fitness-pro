@@ -106,25 +106,58 @@ def sync_pro_exercises():
         available_files = os.listdir(exercises_dir)
 
     def find_icon(name, muscle):
-        # Lógica simplificada de mapeo
         name_lower = name.lower()
-        # Intentar encontrar coincidencias por palabras clave
-        for fname in available_files:
-            # Limpiar nombre de archivo para comparar
-            clean_fname = fname.lower().replace('_', ' ').replace('.jpg', '').replace('.png', '')
-            # Si el nombre en español contiene palabras clave del inglés
-            if 'banca' in name_lower and 'bench press' in clean_fname: return fname
-            if 'mancuerna' in name_lower and 'dumbbell' in clean_fname:
-                if 'curl' in name_lower and 'curl' in clean_fname: return fname
-                if 'press' in name_lower and 'press' in clean_fname: return fname
-            if 'barra' in name_lower and 'barbell' in clean_fname:
-                if 'curl' in name_lower and 'curl' in clean_fname: return fname
-                if 'sentadilla' in name_lower and 'squat' in clean_fname: return fname
-            
-            # Fallback: si el nombre limpio del archivo está contenido en el nombre (poco probable por el idioma)
-            # O mejor: mapeo directo para los más comunes
         
-        # Mapeo por defecto por grupo muscular si no hay foto exacta
+        # Mapeos directos de términos comunes
+        mappings = {
+            'press de banca': 'bench_press',
+            'mancuerna': 'dumbbell',
+            'barra': 'barbell',
+            'polea': 'cable',
+            'sentadilla': 'squat',
+            'peso muerto': 'deadlift',
+            'biceps': 'curl',
+            'curvada': 'ez_bar',
+            'z': 'ez_bar',
+            'jalón': 'pulldown',
+            'remo': 'row',
+            'aperturas': 'fly',
+            'hombro': 'shoulder_press',
+            'militar': 'military_press',
+            'zancada': 'lunge',
+            'prensa': 'leg_press',
+            'isquios': 'leg_curl',
+            'cuadriceps': 'leg_extension',
+            'fondos': 'dip',
+            'dominadas': 'pullup',
+            'flexiones': 'pushup'
+        }
+
+        # Intentar encontrar el archivo más descriptivo
+        best_match = None
+        for fname in available_files:
+            clean_fname = fname.lower().replace('_', ' ')
+            
+            # Si el nombre en español contiene la palabra clave y el archivo también
+            matched_keywords = 0
+            for sp, en in mappings.items():
+                if sp in name_lower and en in clean_fname:
+                    matched_keywords += 1
+            
+            if matched_keywords > 0:
+                # Si es un match exacto (ej: Barbell Curl)
+                if 'barra' in name_lower and 'barbell' in clean_fname and 'curl' in clean_fname: return fname
+                if 'mancuerna' in name_lower and 'dumbbell' in clean_fname and 'curl' in clean_fname: return fname
+                if 'banca' in name_lower and 'bench press' in clean_fname: return fname
+                if 'inclinado' in name_lower and 'incline' in clean_fname: return fname
+                if 'declinado' in name_lower and 'decline' in clean_fname: return fname
+                if 'smith' in name_lower and 'smith' in clean_fname: return fname
+                
+                best_match = fname
+
+        if best_match: return best_match
+        
+        # Fallback por musculo
         muscle_icons = {
             'Pecho': 'pecho_icon_1775126194087.png',
             'Espalda': 'espalda_icon_1775126212481.png',
@@ -1012,17 +1045,26 @@ def log_workout(user):
     c = conn.cursor()
     
     if request.method == 'POST':
-        # Single check log
-        exists = c.execute("SELECT 1 FROM workout_logs WHERE user_id = ? AND assignment_id = ? AND date = ?", (user['id'], assignment_id, date_str)).fetchone()
-        if not exists:
-            # We use set_number=0 and weight=0 to indicate a simple completion check if no logs were provided
-            logs = data.get('logs', [{'set': 0, 'weight': 0.0}])
+        # Accept single weight/reps or a list of logs
+        weight = data.get('weight')
+        reps = data.get('reps')
+        set_num = data.get('set_number', 1)
+        
+        if weight is not None and reps is not None:
+            # Single log entry
+            c.execute('''
+                INSERT INTO workout_logs (user_id, assignment_id, set_number, weight_kg, date)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (user['id'], assignment_id, set_num, float(weight), date_str))
+        else:
+            # List of logs fallback
+            logs = data.get('logs', [])
             for log in logs:
                 c.execute('''
                     INSERT INTO workout_logs (user_id, assignment_id, set_number, weight_kg, date)
                     VALUES (?, ?, ?, ?, ?)
-                ''', (user['id'], assignment_id, log['set'], float(log['weight']), date_str))
-            conn.commit()
+                ''', (user['id'], assignment_id, log.get('set', 1), float(log.get('weight', 0)), date_str))
+        conn.commit()
     else: # DELETE
         c.execute("DELETE FROM workout_logs WHERE user_id = ? AND assignment_id = ? AND date = ?", (user['id'], assignment_id, date_str))
         conn.commit()
