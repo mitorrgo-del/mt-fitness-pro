@@ -169,16 +169,16 @@ def sync_pro_exercises():
         }
         return muscle_icons.get(muscle, 'logo.png')
 
-    print(f"MIGRATION: Cargando {len(exercises_data)} ejercicios...")
-    conn.execute("DELETE FROM exercises")
-    conn.commit()
-    
-    prepared_data = []
+    print(f"MIGRATION: Sincronizando {len(exercises_data)} ejercicios de forma segura...")
     for name, muscle in exercises_data:
         icon = find_icon(name, muscle)
-        prepared_data.append((name, muscle, icon))
-        
-    conn.executemany("INSERT INTO exercises (name, muscle_group, icon_path) VALUES (?, ?, ?)", prepared_data)
+        # INSERT OR IGNORE para no romper IDs existentes
+        conn.execute("INSERT OR IGNORE INTO exercises (name, muscle_group, icon_path) VALUES (?, ?, ?)",
+                     (name, muscle, icon))
+        # UPDATE para asegurar que las fotos y grupos musculares estén al día sin cambiar el ID
+        conn.execute("UPDATE exercises SET icon_path = ?, muscle_group = ? WHERE name = ?",
+                     (icon, muscle, name))
+    
     conn.commit()
     print("MIGRATION: Ejercicios e imágenes sincronizados.")
     conn.close()
