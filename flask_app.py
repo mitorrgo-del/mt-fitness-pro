@@ -1460,21 +1460,22 @@ def repair_db():
         return "Unauthorized", 401
         
     conn = get_db()
-    c = conn.cursor()
     try:
-        # Detectar el desplazamiento (offset)
-        # Asumimos que el primer ejercicio de exercises_data coincide con el primer ID actual
-        c.execute("SELECT MIN(id) as first_id FROM exercises")
-        current_min_id = c.fetchone()['first_id']
+        # Detectar el desplazamiento (offset) usando el wrapper seguro
+        result = conn.execute("SELECT MIN(id) as first_id FROM exercises")
+        row = conn.fetchone(result)
+        current_min_id = row['first_id'] if (row and isinstance(row, dict)) else (row[0] if row else None)
+        
+        if current_min_id is None:
+            return "No hay ejercicios en la DB para reparar."
         
         # Si el anterior empezaba en 1, el offset es current_min_id - 1
         offset = current_min_id - 1
         print(f"REPAIR: Detectado offset de {offset}")
         
         if offset > 0:
-            # Shift exercise_id in user_exercises
-            # ATENCION: Esto solo funciona si no se habian asignado rutinas nuevas con los IDs nuevos
-            c.execute("UPDATE user_exercises SET exercise_id = exercise_id + ? WHERE exercise_id < ?", (offset, current_min_id))
+            # Shift exercise_id in user_exercises asegurando compatibilidad PG
+            conn.execute("UPDATE user_exercises SET exercise_id = exercise_id + " + ("%s" if getattr(conn, 'is_pg', False) else "?") + " WHERE exercise_id < " + ("%s" if getattr(conn, 'is_pg', False) else "?"), (offset, current_min_id))
             conn.commit()
             return f"Base de Datos reparada. Offset aplicado: {offset}"
         else:
