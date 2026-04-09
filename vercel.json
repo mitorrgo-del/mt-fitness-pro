@@ -3,11 +3,10 @@
   "builds": [
     { "src": "flask_app.py", "use": "@vercel/python" }
   ],
-  "routes": [
-    { "src": "/(.*\\.apk)", "dest": "/app/$1" },
-    { "src": "/(.*)", "dest": "flask_app.py" }
+  "rewrites": [
+    { "source": "/(.*)", "destination": "flask_app.py" }
   ],
   "env": {
-    "FORCE_REBUILD": "2026-04-09-V5"
+    "FORCE_REBUILD": "2026-04-09-V8"
   }
 }

@@ -1,40 +1,46 @@
 from PIL import Image
 import numpy as np
 
-def process_logo(input_path, output_path):
-    print("Loading image...")
-    img = Image.open(input_path).convert('RGBA')
-    data = np.array(img)
-
+def process_logo():
+    print("Iniciando procesamiento de Logo V2...")
+    # Cargar la foto intacta de la semana pasada (ahora en public/)
+    img = Image.open('public/logo.png').convert('RGBA')
+    data = np.array(img).astype(float)
+    
     r, g, b, a = data[:,:,0], data[:,:,1], data[:,:,2], data[:,:,3]
     
-    # 1. Hacer el fondo transparente
-    # Suponemos que el fondo es blanco (valores altos en RGB)
-    bg_mask = (r > 240) & (g > 240) & (b > 240)
-    data[bg_mask, 3] = 0
-
-    # 2. Convertir la parte azul a dorada
-    # Azul: B > R y B > G de forma significativa
-    blue_mask = (b > 100) & (b > r + 30) & (b > g + 30) & (a > 50)
+    # 1. Inteligencia de Fondo: Leer el pixel de la esquina (arriba-izq)
+    bg_r, bg_g, bg_b = r[0,0], g[0,0], b[0,0]
+    print(f"Color de fondo detectado: RGB({bg_r}, {bg_g}, {bg_b})")
     
-    # Objetivo dorado: #D4AF37 (R:212, G:175, B:55)
-    # Reemplazamos los píxeles azules, pero mantenemos una mínima preservación de sombra/brillo
-    # Para ser simples y contundentes, si es azul, pasa a nuestro dorado:
+    # 2. Transparencia Agresiva: Todo lo parecido a ese fondo se va a 0 opacidad
+    dist = np.sqrt((r - bg_r)**2 + (g - bg_g)**2 + (b - bg_b)**2)
+    bg_mask = dist < 45 # Tolerancia para borrar suciedad/bordes
+    data[bg_mask, 3] = 0
+    
+    # 3. Detectar Azul (Incluso marinos/oscuros)
+    # Cualquier pixel donde el azul domine sobre el rojo y verde minimamente
+    blue_mask = (b > r + 5) & (b > g + 5) & (~bg_mask) & (a > 20)
+    
+    # 4. Inyectar Oro Puro (#D4AF37)
     data[blue_mask, 0] = 212
     data[blue_mask, 1] = 175
     data[blue_mask, 2] = 55
-    data[blue_mask, 3] = 255 # Opaco
+    data[blue_mask, 3] = 255 # Dejar opaco y solido
     
-    # Cuidado adicional con los bordes (anti-aliasing) que pueden verse celestes o grises azulados
-    light_blue_mask = (b > r + 15) & (b > g + 15) & (~blue_mask) & (a > 50) & (~bg_mask)
+    # 5. Bordes dorados (Anti-aliasing)
+    light_blue_mask = (b > r + 2) & (b > g + 2) & (~bg_mask) & (~blue_mask) & (a > 10)
     data[light_blue_mask, 0] = 212
     data[light_blue_mask, 1] = 175
     data[light_blue_mask, 2] = 55
     
-    print("Saving modified image...")
-    out_img = Image.fromarray(data)
-    out_img.save(output_path, 'PNG')
-    print("Logo processed successfully!")
+    print("Guardando nueva version en TODAS las carpetas...")
+    final_img = Image.fromarray(data.astype(np.uint8))
+    
+    # Sobreescribir tanto en public como en app para evitar rutas ciegas de flask
+    final_img.save('app/logo.png', 'PNG')
+    final_img.save('public/logo.png', 'PNG')
+    print("Mision de Logo cumplida!")
 
 if __name__ == '__main__':
-    process_logo('app/logo.png', 'app/logo.png')
+    process_logo()
