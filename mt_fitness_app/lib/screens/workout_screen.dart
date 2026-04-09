@@ -379,7 +379,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
       context: context,
       backgroundColor: AppTheme.bgColor,
       isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       builder: (context) => Padding(
         padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
         child: Column(

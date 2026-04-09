@@ -978,4 +978,17 @@ class IconMapper {
     }
     return '🏋️‍♂️';
   }
+
+  static String getFoodDrawing(String name, String? category) {
+    if (category != null) {
+      final c = category.toLowerCase();
+      if (c.contains('proteina') || c.contains('proteína')) return '🥩';
+      if (c.contains('carbo')) return '🍚';
+      if (c.contains('grasa')) return '🥑';
+      if (c.contains('fruta')) return '🍎';
+      if (c.contains('verdura')) return '🥦';
+      if (c.contains('lacteo') || c.contains('lácteo')) return '🥛';
+    }
+    return '🍽️';
+  }
 }

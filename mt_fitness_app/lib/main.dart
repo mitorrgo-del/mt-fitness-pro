@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'theme/app_theme.dart';
 import 'screens/login_screen.dart';
 
+import 'screens/splash_screen.dart';
+
 void main() {
   // Ensure orientation is fixed to portrait
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,7 +35,7 @@ class MTFitnessApp extends StatelessWidget {
       title: 'MT FITNESS PRO',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const LoginScreen(),
+      home: SplashScreen(),
     );
   }
 }

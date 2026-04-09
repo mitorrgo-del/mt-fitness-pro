@@ -536,3 +536,16 @@ footer {
   color: var(--text-dim);
   font-size: 12px;
 }
+
+/* EXTENDED MOBILE OPTIMIZATIONS FOR IPHONE/ANDROID */
+@media (max-width: 768px) {
+  .hero-content h1 { font-size: 3rem; line-height: 1.1; }
+  .hero-btns { flex-direction: column; width: 100%; gap: 15px !important; }
+  .hero-btns a, .btn { width: 100%; min-width: unset !important; text-align: center; justify-content: center; }
+  .grid-3, .trainer-section, .app-container { grid-template-columns: 1fr !important; gap: 40px; }
+  section { padding: 60px 20px !important; }
+  .footer-grid { grid-template-columns: 1fr !important; text-align: center; gap: 40px; }
+  .footer-brand p { margin: 20px auto; }
+  .plan-card { padding: 40px 20px; }
+  .nav-menu { display: none; }
+}

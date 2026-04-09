@@ -101,15 +101,15 @@ class ApiService {
     
     final data = jsonDecode(response.body);
     if (data.containsKey('token')) {
-      await setToken(data['token']);
+      setToken(data['token']);
     }
     
     // DRASTIC AUTO-UPGRADE IN FRONTEND
     final uEmail = data['email'] ?? email;
     if (uEmail == 'mitorrgo@gmail.com' || uEmail == 'mtfitness2026@gmail.com') {
-      await setRole('ADMIN');
+      setRole('ADMIN');
     } else {
-      if (data.containsKey('role')) await setRole(data['role']);
+      if (data.containsKey('role')) setRole(data['role']);
     }
     
     _userId = data['id'];
