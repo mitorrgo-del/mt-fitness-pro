@@ -1530,6 +1530,15 @@ def seed_exercises():
 def debug_version():
     return "MT FITNESS PRO v1.2.8 LIVE"
 
+@app.route('/download_app')
+def download_app():
+    import os
+    try:
+        from flask import send_from_directory
+        return send_from_directory(app.static_folder, 'MT_Fitness_PRO_v1.2.4.apk', as_attachment=True)
+    except Exception as e:
+        return str(e), 404
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
 else:
