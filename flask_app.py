@@ -251,55 +251,45 @@ def init_db():
     conn_wrap.commit()
 
     
-    # MIGRACIÓN SEGURA: Añadir columnas si no existen
-    def column_exists(table, column):
-        try:
-            if conn_wrap.is_pg:
-                c_check = conn_wrap.cursor()
-                c_check.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}' AND column_name='{column}'")
-                res = c_check.fetchone()
-                return res is not None
-            else:
-                c_check = conn_wrap.cursor()
-                c_check.execute(f"PRAGMA table_info({table})")
-                cols = c_check.fetchall()
-                return any(col['name'] == column for col in cols)
-        except Exception as e:
-            print(f"Error checking column {column} in {table}: {e}")
-            return False
-
-    columns_to_add = [
-        ("user_exercises", "set_type", "TEXT DEFAULT 'NORMAL'"),
-        ("user_exercises", "combined_with", "INTEGER"),
-        ("user_exercises", "target_muscles", "TEXT"),
-        ("user_foods", "day_name", "TEXT DEFAULT 'Día 1'"),
-        ("users", "surname", "TEXT"),
-        ("users", "age", "INTEGER"),
-        ("users", "height", "REAL"),
-        ("users", "current_weight", "REAL"),
-        ("users", "objective", "TEXT"),
-        ("users", "profile_image", "TEXT"),
-        ("users", "biceps", "REAL"),
-        ("users", "thigh", "REAL"),
-        ("users", "hip", "REAL"),
-        ("users", "waist", "REAL"),
-        ("reports", "biceps", "REAL"),
-        ("reports", "thigh", "REAL"),
-        ("reports", "hip", "REAL"),
-        ("reports", "waist", "REAL"),
-        ("exercises", "icon_path", "TEXT"),
-    ]
-    for table, col, defn in columns_to_add:
-        if not column_exists(table, col):
+    # MIGRACIÓN SEGURA OPTIMIZADA
+    def run_migrations():
+        tables_to_check = ["user_exercises", "user_foods", "users", "reports", "exercises"]
+        existing_cols = {}
+        for table in tables_to_check:
             try:
-                print(f"MIGRATION: Adding column {col} to {table}...")
-                conn_wrap.execute(f"ALTER TABLE {table} ADD COLUMN {col} {defn}")
-                conn_wrap.commit()
-            except Exception as e:
-                print(f"Failed to add {col} to {table}: {e}")
-                if conn_wrap.is_pg: conn_wrap.conn.rollback()
-        else:
-            print(f"DEBUG: Column {col} already exists in {table}")
+                if conn_wrap.is_pg:
+                    c_check = conn_wrap.cursor()
+                    c_check.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}'")
+                    existing_cols[table] = [r['column_name'] for r in c_check.fetchall()]
+                else:
+                    c_check = conn_wrap.cursor()
+                    c_check.execute(f"PRAGMA table_info({table})")
+                    existing_cols[table] = [col['name'] for col in c_check.fetchall()]
+            except: existing_cols[table] = []
+
+        columns_to_add = [
+            ("user_exercises", "set_type", "TEXT DEFAULT 'NORMAL'"),
+            ("user_exercises", "combined_with", "INTEGER"),
+            ("user_exercises", "target_muscles", "TEXT"),
+            ("user_foods", "day_name", "TEXT DEFAULT 'Día 1'"),
+            ("users", "surname", "TEXT"),
+            ("users", "age", "INTEGER"), ("users", "height", "REAL"),
+            ("users", "current_weight", "REAL"), ("users", "objective", "TEXT"),
+            ("users", "profile_image", "TEXT"), ("users", "biceps", "REAL"),
+            ("users", "thigh", "REAL"), ("users", "hip", "REAL"), ("users", "waist", "REAL"),
+            ("reports", "biceps", "REAL"), ("reports", "thigh", "REAL"),
+            ("reports", "hip", "REAL"), ("reports", "waist", "REAL"),
+            ("exercises", "icon_path", "TEXT"),
+        ]
+        
+        for table, col, defn in columns_to_add:
+            if table in existing_cols and col not in existing_cols[table]:
+                try:
+                    conn_wrap.execute(f"ALTER TABLE {table} ADD COLUMN {col} {defn}")
+                    conn_wrap.commit()
+                except: pass
+
+    run_migrations()
 
     # PRO Meal Tracking
     conn_wrap.execute('''CREATE TABLE IF NOT EXISTS meal_logs (
