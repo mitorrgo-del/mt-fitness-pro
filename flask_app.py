@@ -1519,6 +1519,11 @@ def seed_exercises():
     sync_pro_exercises()
     return jsonify({"success": True, "message": "Ejercicios sincronizados"})
 
+
+@app.route('/debug_version')
+def debug_version():
+    return "MT FITNESS PRO v1.2.8 LIVE"
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
 else:
