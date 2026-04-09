@@ -1470,6 +1470,7 @@ def repair_db():
         return f"Error en reparación: {str(e)}"
     finally:
         conn.close()
+@app.route('/api/generate_marketing', methods=['GET', 'POST'], strict_slashes=False)
 def generate_marketing():
     data = request.json
     topic = data.get('topic')
