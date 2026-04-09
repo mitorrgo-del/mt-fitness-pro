@@ -28,10 +28,47 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     try {
       final workoutData = await ApiService().getWorkoutPlan();
       final statusData = await ApiService().getWorkoutStatus(DateTime.now());
+      final detailedLogs = await ApiService().getWorkoutLogsDetail(DateTime.now());
+
       setState(() {
         _exercises = workoutData;
         _completedAssignmentIds.clear();
         _completedAssignmentIds.addAll(statusData);
+        
+        // Populate pre-saved weights into controllers
+        _weightControllers.clear();
+        for (final ex in _exercises) {
+          final assignmentId = ex['id'] ?? 0;
+          String setsStr = ex['sets'].toString();
+          int setsCount = 1;
+          if (setsStr.contains('-')) {
+            setsCount = int.tryParse(setsStr.split('-').last.trim()) ?? 1;
+          } else {
+            setsCount = int.tryParse(setsStr) ?? 1;
+          }
+          
+          List<TextEditingController> controllers = List.generate(setsCount, (_) => TextEditingController());
+          
+          // Match filled logs
+          for (var log in detailedLogs) {
+             if (log['assignment_id'] == assignmentId) {
+                 int sIndex = (log['set_number'] ?? 1) - 1;
+                 if (sIndex >= 0 && sIndex < controllers.length) {
+                     // Parse double, if ends with .0, drop it for cleaner UI
+                     double? w = double.tryParse(log['weight_kg'].toString());
+                     if (w != null) {
+                         if (w == w.toInt()) {
+                             controllers[sIndex].text = w.toInt().toString();
+                         } else {
+                             controllers[sIndex].text = w.toString();
+                         }
+                     }
+                 }
+             }
+          }
+          _weightControllers[assignmentId] = controllers;
+        }
+        
         _isLoading = false;
       });
     } catch (e) {
@@ -165,18 +202,8 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           if (i > 0) prevIsSame = dayItems[i-1]['data']['set_type'] == ex['set_type'];
         }
 
-        // Initialize controllers for this assignment if not exists
-        if (!_weightControllers.containsKey(assignmentId)) {
-          String setsStr = ex['sets'].toString();
-          int setsCount = 1;
-          if (setsStr.contains('-')) {
-            setsCount = int.tryParse(setsStr.split('-').last.trim()) ?? 1;
-          } else {
-            setsCount = int.tryParse(setsStr) ?? 1;
-          }
-          _weightControllers[assignmentId] = List.generate(setsCount, (_) => TextEditingController());
-        }
-        final controllers = _weightControllers[assignmentId];
+        // Controllers are now pre-initialized during load
+        final controllers = _weightControllers[assignmentId] ?? [];
 
         children.add(Container(
           margin: EdgeInsets.symmetric(horizontal: isCombined ? 4 : 0),

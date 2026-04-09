@@ -136,12 +136,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ),
                                 // PROTECTED LOGO
                                 Image.asset(
-                                  'assets/images/logo.png',
+                                  'assets/images/logo_oro.png',
                                   height: 200,
                                   width: 200,
                                   fit: BoxFit.contain,
-                                  color: AppTheme.accent, // TINTING IT GOLD
-                                  colorBlendMode: BlendMode.srcATop,
                                   errorBuilder: (_, __, ___) => const Icon(LucideIcons.dumbbell, size: 100, color: AppTheme.primary),
                                 ),
                               ],

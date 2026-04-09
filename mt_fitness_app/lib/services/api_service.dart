@@ -210,6 +210,15 @@ class ApiService {
     return [];
   }
 
+  Future<List<dynamic>> getWorkoutLogsDetail(DateTime date) async {
+    final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
+    final response = await http.get(Uri.parse('${baseUrl}client/my_workout_logs?date=$dateStr'), headers: _headers);
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return [];
+  }
+
   Future<void> toggleWorkoutLog(int assignmentId, bool status, {List<Map<String, dynamic>>? logs}) async {
     if (status) {
       await http.post(
