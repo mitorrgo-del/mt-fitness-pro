@@ -1390,7 +1390,7 @@ def download_db():
 def download_app_v110():
     return send_from_directory(app.static_folder, 'MT_Fitness_PRO_v1.1.0.apk', as_attachment=True)
 
-@app.route('/uploads/<filename>')
+@app.route('/uploads/<path:filename>')
 def serve_uploads(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
