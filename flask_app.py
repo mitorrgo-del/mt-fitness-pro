@@ -1382,29 +1382,46 @@ def increment_visits():
         if res.status_code == 200:
             country = res.json().get('country', 'Desconocido')
     except: pass
+    
     conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('''CREATE TABLE IF NOT EXISTS metrics (key TEXT UNIQUE, value INTEGER)''')
-    cursor.execute('''CREATE TABLE IF NOT EXISTS visitor_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, ip TEXT, country TEXT)''')
-    cursor.execute('''INSERT OR IGNORE INTO metrics (key, value) VALUES ('total_visits', 0)''')
-    cursor.execute('''UPDATE metrics SET value = value + 1 WHERE key = 'total_visits' ''')
-    cursor.execute('''INSERT INTO visitor_logs (ip, country) VALUES (?, ?)''', (ip, country))
+    conn.execute('''CREATE TABLE IF NOT EXISTS metrics (key TEXT UNIQUE, value INTEGER)''')
+    conn.execute('''CREATE TABLE IF NOT EXISTS visitor_logs (id INTEGER PRIMARY KEY AUTOINCREMENT, timestamp DATETIME DEFAULT CURRENT_TIMESTAMP, ip TEXT, country TEXT)''')
+    
+    # Manejo seguro para INSERT en cualquier base de datos (Postgres o SQLite) sin requerir comandos OR IGNORE inseguros
+    check_metric = conn.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
+    if not conn.fetchone(check_metric):
+        conn.execute('''INSERT INTO metrics (key, value) VALUES ('total_visits', 0)''')
+        
+    conn.execute('''UPDATE metrics SET value = value + 1 WHERE key = 'total_visits' ''')
+    conn.execute('''INSERT INTO visitor_logs (ip, country) VALUES (?, ?)''', (ip, country))
     conn.commit()
-    cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
-    visits = cursor.fetchone()[0]
+    
+    result = conn.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
+    row = conn.fetchone(result)
+    visits = row['value'] if getattr(conn, 'is_pg', False) or (isinstance(row, dict)) else row[0]
     conn.close()
+    
     return jsonify({"visits": visits, "country": country})
 
 @app.route('/api/get_stats', methods=['GET'])
 def get_stats():
     conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute('''SELECT country, COUNT(*) as count FROM visitor_logs GROUP BY country ORDER BY count DESC''')
-    countries = [{"country": row[0], "count": row[1]} for row in cursor.fetchall()]
-    cursor.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
-    total = cursor.fetchone()[0] if cursor.fetchone() else 0
+    result_countries = conn.execute('''SELECT country, COUNT(*) as count FROM visitor_logs GROUP BY country ORDER BY count DESC''')
+    
+    countries_list = []
+    for row in conn.fetchall(result_countries):
+        c_name = row['country'] if isinstance(row, dict) else row[0]
+        c_count = row['count'] if isinstance(row, dict) else row[1]
+        countries_list.append({"country": c_name, "count": c_count})
+        
+    result_total = conn.execute('''SELECT value FROM metrics WHERE key = 'total_visits' ''')
+    row_t = conn.fetchone(result_total)
+    total = 0
+    if row_t:
+        total = row_t['value'] if isinstance(row_t, dict) else row_t[0]
+        
     conn.close()
-    return jsonify({"total_visits": total, "countries": countries})
+    return jsonify({"total_visits": total, "countries": countries_list})
 
 @app.route('/api/master/upload_db', methods=['POST'])
 def upload_db():
