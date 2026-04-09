@@ -210,12 +210,15 @@ class ApiService {
     return [];
   }
 
-  Future<void> toggleWorkoutLog(int assignmentId, bool status) async {
+  Future<void> toggleWorkoutLog(int assignmentId, bool status, {List<Map<String, dynamic>>? logs}) async {
     if (status) {
       await http.post(
         Uri.parse('${baseUrl}client/log_workout'),
         headers: _headers,
-        body: jsonEncode({'assignment_id': assignmentId}),
+        body: jsonEncode({
+          'assignment_id': assignmentId,
+          if (logs != null) 'logs': logs
+        }),
       );
     } else {
       await http.delete(

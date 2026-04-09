@@ -16,6 +16,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
   bool _isLoading = true;
   List<dynamic> _exercises = [];
   final Set<int> _completedAssignmentIds = {};
+  final Map<int, List<TextEditingController>> _weightControllers = {};
 
   @override
   void initState() {
@@ -38,9 +39,20 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
     }
   }
 
-  void _toggleComplete(int assignmentId) async {
+  void _toggleComplete(int assignmentId, dynamic ex) async {
      final bool currentlyDone = _completedAssignmentIds.contains(assignmentId);
      
+     List<Map<String, dynamic>> weightLogs = [];
+     if (!currentlyDone) {
+       final controllers = _weightControllers[assignmentId];
+       if (controllers != null) {
+         for (int i = 0; i < controllers.length; i++) {
+           final w = double.tryParse(controllers[i].text) ?? 0.0;
+           weightLogs.add({'set': i + 1, 'weight': w});
+         }
+       }
+     }
+
      setState(() {
        if (currentlyDone) {
          _completedAssignmentIds.remove(assignmentId);
@@ -50,7 +62,7 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
      });
 
      try {
-       await ApiService().toggleWorkoutLog(assignmentId, !currentlyDone);
+       await ApiService().toggleWorkoutLog(assignmentId, !currentlyDone, logs: weightLogs);
      } catch (e) {
        // Rollback on error
        setState(() {
@@ -153,6 +165,19 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
           if (i > 0) prevIsSame = dayItems[i-1]['data']['set_type'] == ex['set_type'];
         }
 
+        // Initialize controllers for this assignment if not exists
+        if (!_weightControllers.containsKey(assignmentId)) {
+          String setsStr = ex['sets'].toString();
+          int setsCount = 1;
+          if (setsStr.contains('-')) {
+            setsCount = int.tryParse(setsStr.split('-').last.trim()) ?? 1;
+          } else {
+            setsCount = int.tryParse(setsStr) ?? 1;
+          }
+          _weightControllers[assignmentId] = List.generate(setsCount, (_) => TextEditingController());
+        }
+        final controllers = _weightControllers[assignmentId];
+
         children.add(Container(
           margin: EdgeInsets.symmetric(horizontal: isCombined ? 4 : 0),
           decoration: isCombined ? BoxDecoration(
@@ -174,51 +199,57 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
             child: PremiumCard(
               padding: 0,
               margin: EdgeInsets.zero,
-              child: InkWell(
-                onTap: () => _showExerciseDetails(context, ex),
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDone ? Colors.green.withOpacity(0.05) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 60,
-                        height: 60,
+                child: Column(
+                  children: [
+                    InkWell(
+                      onTap: () => _showExerciseDetails(context, ex),
+                      child: Container(
+                        padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: isDone ? Colors.green.withOpacity(0.2) : AppTheme.primary.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
+                          color: isDone ? Colors.green.withOpacity(0.05) : Colors.transparent,
                         ),
-                        child: isDone
-                          ? const Icon(LucideIcons.check, color: Colors.green, size: 28)
-                          : ClipRRect(
-                              borderRadius: BorderRadius.circular(16),
-                              child: Image.asset(
-                                IconMapper.getExerciseImageUrl(ex['name'] ?? '', ex['muscle_group']) ?? 'assets/images/logo.png',
-                                height: 60,
-                                width: 60,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Center(
-                                  child: Text(
-                                    IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']),
-                                    style: const TextStyle(fontSize: 28)
-                                  ),
-                                ),
-                              ),
-                            ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+                        child: Row(
                           children: [
-                            Row(
-                              children: [
-                                Expanded(
-                                  child: Text(
+                            Container(
+                              width: 60,
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: isDone ? Colors.green.withOpacity(0.2) : AppTheme.primary.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: isDone
+                                ? const Icon(LucideIcons.check, color: Colors.green, size: 28)
+                                : ClipRRect(
+                                    borderRadius: BorderRadius.circular(16),
+                                    child: ex['icon_path'] != null 
+                                      ? Image.network(
+                                          '${ApiService.uploadsUrl}exercises/${ex['icon_path']}',
+                                          height: 60,
+                                          width: 60,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => Center(
+                                            child: Text(
+                                              IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']),
+                                              style: const TextStyle(fontSize: 28)
+                                            ),
+                                          ),
+                                        )
+                                      : Center(
+                                          child: Text(
+                                            IconMapper.getExerciseDrawing(ex['name'] ?? '', ex['muscle_group']),
+                                            style: const TextStyle(fontSize: 28)
+                                          ),
+                                        ),
+                                  ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
                                     ex['name'] ?? 'Ejercicio',
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold, 
@@ -227,49 +258,85 @@ class _WorkoutScreenState extends State<WorkoutScreen> {
                                       color: isDone ? AppTheme.textMuted : Colors.white,
                                     ),
                                   ),
-                                ),
-                                if (!isDone)
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(
-                                      color: AppTheme.primary.withOpacity(0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: AppTheme.primary.withOpacity(0.2))
-                                    ),
-                                    child: Text(
-                                      (ex['muscle_group'] ?? '').toString().toUpperCase(),
-                                      style: const TextStyle(color: AppTheme.primary, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 0.5),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                _buildInfoChip(LucideIcons.repeat, '${ex['sets']} sets'),
-                                const SizedBox(width: 12),
-                                _buildInfoChip(LucideIcons.zap, '${ex['reps']} reps'),
-                                if (ex['set_type'] != null && ex['set_type'] != 'NORMAL') ...[
-                                  const SizedBox(width: 12),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(color: AppTheme.primary, borderRadius: BorderRadius.circular(4)),
-                                    child: Text(ex['set_type'], style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w900, color: Colors.black)),
+                                  const SizedBox(height: 4),
+                                  Row(
+                                    children: [
+                                      _buildInfoChip(LucideIcons.repeat, '${ex['sets']} series'),
+                                      const SizedBox(width: 12),
+                                      _buildInfoChip(LucideIcons.zap, '${ex['reps']} reps'),
+                                    ],
                                   ),
                                 ],
-                              ],
+                              ),
+                            ),
+                            Checkbox(
+                              value: isDone, 
+                              onChanged: (v) => _toggleComplete(assignmentId, ex),
+                              activeColor: Colors.green,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
                             ),
                           ],
                         ),
                       ),
-                      Checkbox(
-                        value: isDone, 
-                        onChanged: (v) => _toggleComplete(assignmentId),
-                        activeColor: Colors.green,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text("REGISTRO DE PESOS POR SERIE", style: TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: AppTheme.primary, letterSpacing: 1.1)),
+                              if (isDone) const Text("COMPLETADO", style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.green)),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              children: List.generate(controllers!.length, (index) {
+                                return Container(
+                                  width: 75,
+                                  margin: const EdgeInsets.only(right: 10),
+                                  child: TextField(
+                                    controller: controllers[index],
+                                    keyboardType: TextInputType.number,
+                                    enabled: !isDone,
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      fontSize: 14, 
+                                      fontWeight: FontWeight.w900,
+                                      color: isDone ? Colors.green : Colors.white
+                                    ),
+                                    decoration: InputDecoration(
+                                      labelText: 'Serie ${index + 1}',
+                                      labelStyle: TextStyle(fontSize: 10, color: isDone ? Colors.green : AppTheme.primary),
+                                      hintText: '0',
+                                      suffixText: 'kg',
+                                      suffixStyle: const TextStyle(fontSize: 10, color: AppTheme.textMuted),
+                                      filled: true,
+                                      fillColor: isDone ? Colors.green.withOpacity(0.05) : Colors.white.withOpacity(0.03),
+                                      contentPadding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+                                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                      enabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12), 
+                                        borderSide: BorderSide(color: isDone ? Colors.green.withOpacity(0.3) : AppTheme.primary.withOpacity(0.2))
+                                      ),
+                                      disabledBorder: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(12), 
+                                        borderSide: BorderSide(color: Colors.green.withOpacity(0.5))
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              }),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

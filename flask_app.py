@@ -96,20 +96,58 @@ def get_db():
         return DbWrapper(conn, False)
 
 def sync_pro_exercises():
-    """Sincroniza el catálogo de ejercicios en español."""
+    """Sincroniza el catálogo de ejercicios con sus imágenes."""
     conn = get_db()
-    current = conn.execute("SELECT count(*) as count FROM exercises").fetchone()
-    count = current['count'] if isinstance(current, dict) else (current[0] if current else 0)
+    
+    import os
+    exercises_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'exercises')
+    available_files = []
+    if os.path.exists(exercises_dir):
+        available_files = os.listdir(exercises_dir)
 
-    # Los nombres ya están en español en exercises_data.py — resinsertar siempre para actualizar
-    force_sync = True
-    if count != len(exercises_data) or force_sync:
-        print(f"MIGRATION: Cargando {len(exercises_data)} ejercicios en español...")
-        conn.execute("DELETE FROM exercises")
-        conn.commit()
-        conn.executemany("INSERT INTO exercises (name, muscle_group) VALUES (?, ?)", exercises_data)
-        conn.commit()
-        print("MIGRATION: Ejercicios cargados correctamente.")
+    def find_icon(name, muscle):
+        # Lógica simplificada de mapeo
+        name_lower = name.lower()
+        # Intentar encontrar coincidencias por palabras clave
+        for fname in available_files:
+            # Limpiar nombre de archivo para comparar
+            clean_fname = fname.lower().replace('_', ' ').replace('.jpg', '').replace('.png', '')
+            # Si el nombre en español contiene palabras clave del inglés
+            if 'banca' in name_lower and 'bench press' in clean_fname: return fname
+            if 'mancuerna' in name_lower and 'dumbbell' in clean_fname:
+                if 'curl' in name_lower and 'curl' in clean_fname: return fname
+                if 'press' in name_lower and 'press' in clean_fname: return fname
+            if 'barra' in name_lower and 'barbell' in clean_fname:
+                if 'curl' in name_lower and 'curl' in clean_fname: return fname
+                if 'sentadilla' in name_lower and 'squat' in clean_fname: return fname
+            
+            # Fallback: si el nombre limpio del archivo está contenido en el nombre (poco probable por el idioma)
+            # O mejor: mapeo directo para los más comunes
+        
+        # Mapeo por defecto por grupo muscular si no hay foto exacta
+        muscle_icons = {
+            'Pecho': 'pecho_icon_1775126194087.png',
+            'Espalda': 'espalda_icon_1775126212481.png',
+            'Hombro': 'hombro_icon_1775126243283.png',
+            'Pierna': 'pierna_icon_1775126227797.png',
+            'Biceps': 'biceps_icon_1775126261867.png',
+            'Triceps': 'triceps_icon_1775126276135.png',
+            'Core': 'core_icon_1775126289413.png'
+        }
+        return muscle_icons.get(muscle, 'logo.png')
+
+    print(f"MIGRATION: Cargando {len(exercises_data)} ejercicios...")
+    conn.execute("DELETE FROM exercises")
+    conn.commit()
+    
+    prepared_data = []
+    for name, muscle in exercises_data:
+        icon = find_icon(name, muscle)
+        prepared_data.append((name, muscle, icon))
+        
+    conn.executemany("INSERT INTO exercises (name, muscle_group, icon_path) VALUES (?, ?, ?)", prepared_data)
+    conn.commit()
+    print("MIGRATION: Ejercicios e imágenes sincronizados.")
     conn.close()
 
 
@@ -139,7 +177,7 @@ def init_db():
     
     # PRO Exercises Catalog
     conn_wrap.execute('''CREATE TABLE IF NOT EXISTS exercises (
-        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, muscle_group TEXT
+        id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT, muscle_group TEXT, icon_path TEXT
     )''')
     
     # PRO Foods Catalog (per 100g)
@@ -216,6 +254,7 @@ def init_db():
         ("reports", "thigh", "REAL"),
         ("reports", "hip", "REAL"),
         ("reports", "waist", "REAL"),
+        ("exercises", "icon_path", "TEXT"),
     ]
     for table, col, defn in columns_to_add:
         if not column_exists(table, col):
@@ -908,7 +947,7 @@ def client_workout(user):
     conn = get_db()
     c = conn.cursor()
     c.execute('''
-        SELECT ue.id as assignment_id, e.name, e.muscle_group, ue.day_of_week, ue.sets, ue.reps, ue.rest, 
+        SELECT ue.id as assignment_id, e.name, e.muscle_group, e.icon_path, ue.day_of_week, ue.sets, ue.reps, ue.rest, 
                ue.target_muscles, ue.set_type, ue.combined_with
         FROM user_exercises ue
         JOIN exercises e ON ue.exercise_id = e.id
