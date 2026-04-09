@@ -173,15 +173,12 @@ def sync_pro_exercises():
     for name, muscle in exercises_data:
         icon = find_icon(name, muscle)
         try:
-            if conn.is_pg:
-                conn.execute("INSERT INTO exercises (name, muscle_group, icon_path) VALUES (%s, %s, %s) ON CONFLICT (name) DO NOTHING",
+            res = conn.execute("SELECT id FROM exercises WHERE name = " + ("%s" if conn.is_pg else "?"), (name,)).fetchone()
+            if not res:
+                conn.execute("INSERT INTO exercises (name, muscle_group, icon_path) VALUES (" + ("%s, %s, %s" if conn.is_pg else "?, ?, ?") + ")",
                              (name, muscle, icon))
-                conn.execute("UPDATE exercises SET icon_path = %s, muscle_group = %s WHERE name = %s",
-                             (icon, muscle, name))
             else:
-                conn.execute("INSERT OR IGNORE INTO exercises (name, muscle_group, icon_path) VALUES (?, ?, ?)",
-                             (name, muscle, icon))
-                conn.execute("UPDATE exercises SET icon_path = ?, muscle_group = ? WHERE name = ?",
+                conn.execute("UPDATE exercises SET icon_path = " + ("%s" if conn.is_pg else "?") + ", muscle_group = " + ("%s" if conn.is_pg else "?") + " WHERE name = " + ("%s" if conn.is_pg else "?"),
                              (icon, muscle, name))
         except Exception as e:
             print(f"Error syncing {name}: {e}")
