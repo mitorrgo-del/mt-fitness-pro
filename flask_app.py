@@ -173,20 +173,20 @@ def sync_pro_exercises():
     for name, muscle in exercises_data:
         icon = find_icon(name, muscle)
         try:
-            if conn_wrap.is_pg:
-                conn_wrap.execute("INSERT INTO exercises (name, muscle_group, icon_path) VALUES (%s, %s, %s) ON CONFLICT (name) DO NOTHING",
+            if conn.is_pg:
+                conn.execute("INSERT INTO exercises (name, muscle_group, icon_path) VALUES (%s, %s, %s) ON CONFLICT (name) DO NOTHING",
                              (name, muscle, icon))
-                conn_wrap.execute("UPDATE exercises SET icon_path = %s, muscle_group = %s WHERE name = %s",
+                conn.execute("UPDATE exercises SET icon_path = %s, muscle_group = %s WHERE name = %s",
                              (icon, muscle, name))
             else:
-                conn_wrap.execute("INSERT OR IGNORE INTO exercises (name, muscle_group, icon_path) VALUES (?, ?, ?)",
+                conn.execute("INSERT OR IGNORE INTO exercises (name, muscle_group, icon_path) VALUES (?, ?, ?)",
                              (name, muscle, icon))
-                conn_wrap.execute("UPDATE exercises SET icon_path = ?, muscle_group = ? WHERE name = ?",
+                conn.execute("UPDATE exercises SET icon_path = ?, muscle_group = ? WHERE name = ?",
                              (icon, muscle, name))
         except Exception as e:
             print(f"Error syncing {name}: {e}")
 
-    conn_wrap.commit()
+    conn.commit()
     
     conn.commit()
     print("MIGRATION: Ejercicios e imágenes sincronizados.")
