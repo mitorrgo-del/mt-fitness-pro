@@ -1564,7 +1564,9 @@ def download_app():
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
 else:
-    try:
-        init_db()
-    except Exception as e:
-        print(f"Error initializing DB: {e}")
+    # try:
+    #     init_db()
+    #     sync_pro_exercises()
+    # except Exception as e:
+    #     print(f"Error initializing DB: {e}")
+    pass
