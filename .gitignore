@@ -1,7 +1,39 @@
-*.zip
+# Python
 __pycache__/
-*.db
+*.pyc
+*.pyo
+*.pyd
 .env
-node_modules/
+*.db
+
+# Flutter / Dart
+mt_fitness_app/build/
+mt_fitness_app/.dart_tool/
+mt_fitness_app/.pub-cache/
+mt_fitness_app/.packages
+mt_fitness_app/.flutter-plugins
+mt_fitness_app/.flutter-plugins-dependencies
+mt_fitness_app/.metadata
+mt_fitness_app/*.app
+mt_fitness_app/*.ipa
+mt_fitness_app/*.apk
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Vercel / Build
+.vercel/
 dist/
 build/
+*.exe
+cloudflared
+ngrok
+
+# Others
+free_ex_db/
+backup_old/
+*.zip
+*.log
