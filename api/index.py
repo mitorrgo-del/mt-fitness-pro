@@ -1,5 +1,6 @@
 import os
 import sys
+# Deployment Timestamp: 2026-04-10 17:07
 
 # Añadimos el directorio raíz al path para que encuentre flask_app.py
 root_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
