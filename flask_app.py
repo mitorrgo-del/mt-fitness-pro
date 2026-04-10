@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from flask import Flask, request, jsonify, send_from_directory, redirect
 from flask_cors import CORS
 import sqlite3
@@ -18,42 +19,46 @@ from email.mime.multipart import MIMEMultipart
 
 # Buscar .env en raíz o en secrets de Render
 dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
-if not os.path.exists(dotenv_path):
-    dotenv_path = '/etc/secrets/.env'
 
-if os.path.exists(dotenv_path):
-    load_dotenv(dotenv_path)
-    print(f"DEBUG: Cargando variables desde {dotenv_path}")
+# Solo cargamos dotenv si no estamos en Vercel
+if not os.environ.get('VERCEL'):
+    if os.path.exists(dotenv_path):
+        load_dotenv(dotenv_path)
+        print(f"DEBUG: Cargando variables desde {dotenv_path}")
+    else:
+        load_dotenv()
+        print("DEBUG: Intentando cargar variables de entorno del sistema")
 else:
-    load_dotenv() # Fallback a env vars del S.O.
-    print("DEBUG: Intentando cargar variables de entorno del sistema")
+    print("DEBUG: Ejecutando en Vercel, usando variables de entorno nativas")
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "sk-proj-YOUR_API_KEY_HERE")
 
-app = Flask(__name__, static_folder='app')
+app = Flask(__name__, static_folder='app', static_url_path='')
 CORS(app)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_FILE = os.path.join(BASE_DIR, 'mtfitness.db')
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
-try:
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
-except Exception as e:
-    print(f"Aviso: No se pudo crear UPLOAD_FOLDER (entorno de solo lectura): {e}")
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+# La creación de carpetas se movió al bloque main para evitar errores en Vercel
 class DbWrapper:
-    def __init__(self, conn, is_pg):
+    def __init__(self, conn, is_pg, is_pg8000=False):
         self.conn = conn
         self.is_pg = is_pg
+        self.is_pg8000 = is_pg8000
     def cursor(self):
         return self.conn.cursor()
     def execute(self, query, params=()):
         if self.is_pg:
             query = query.replace('?', '%s').replace('DATETIME', 'TIMESTAMP')
-            query = query.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY').replace('DATETIME', 'TIMESTAMP')
-            cur = self.conn.cursor()
-            cur.execute(query, params)
-            return cur
+            query = query.replace('INTEGER PRIMARY KEY AUTOINCREMENT', 'SERIAL PRIMARY KEY')
+            if self.is_pg8000:
+                cur = self.conn.cursor()
+                cur.execute(query, params)
+                return cur
+            else:
+                cur = self.conn.cursor()
+                cur.execute(query, params)
+                return cur
         else:
             return self.conn.execute(query, params)
     def executemany(self, query, params=()):
@@ -70,6 +75,12 @@ class DbWrapper:
         self.conn.close()
     def fetchone(self, cur=None):
         if cur is None: return None
+        if self.is_pg8000:
+            res = cur.fetchone()
+            if res:
+                cols = [d[0].decode('utf-8') if isinstance(d[0], bytes) else d[0] for d in cur.description]
+                return dict(zip(cols, res))
+            return None
         if hasattr(cur, 'fetchone'):
             res = cur.fetchone()
         else:
@@ -77,6 +88,10 @@ class DbWrapper:
         return dict(res) if res and not isinstance(res, tuple) else res
     def fetchall(self, cur=None):
         if cur is None: return []
+        if self.is_pg8000:
+            res = cur.fetchall()
+            cols = [d[0].decode('utf-8') if isinstance(d[0], bytes) else d[0] for d in cur.description]
+            return [dict(zip(cols, r)) for r in res]
         if hasattr(cur, 'fetchall'):
             res = cur.fetchall()
         else:
@@ -86,10 +101,52 @@ class DbWrapper:
 def get_db():
     db_url = os.environ.get('DATABASE_URL')
     if db_url:
-        import psycopg2
-        from psycopg2.extras import RealDictCursor
-        conn = psycopg2.connect(db_url, sslmode='require', cursor_factory=RealDictCursor)
-        return DbWrapper(conn, True)
+        # Intentar con psycopg2 primero (más rápido)
+        try:
+            import psycopg2
+            from psycopg2.extras import RealDictCursor
+            conn = psycopg2.connect(db_url, sslmode='require', connect_timeout=5, cursor_factory=RealDictCursor)
+            return DbWrapper(conn, True)
+        except Exception as e_psycopg:
+            print(f"PSYCOPG2 ERROR: {e_psycopg}. Intentando fallback con pg8000...")
+            try:
+                import pg8000
+                import ssl
+                # Parsear el DATABASE_URL para pg8000
+                # postgresql://user:pass@host:port/dbname
+                url_clean = db_url.replace('postgresql://', '').replace('postgres://', '')
+                user_pass, host_port_db = url_clean.split('@')
+                user, password = user_pass.split(':')
+                host_port, dbname = host_port_db.split('/')
+                if ':' in host_port:
+                    host, port = host_port.split(':')
+                else:
+                    host, port = host_port, 5432
+                
+                # ssl_context = ssl.create_default_context()
+                conn = pg8000.connect(user=user, password=password, host=host, port=int(port), database=dbname, ssl_context=ssl.create_default_context())
+                
+                # Wrapper para que pg8000 se comporte como un cursor de dict
+                class Pg8000Wrapper:
+                    def __init__(self, c): self.c = c
+                    def execute(self, q, p): self.c.execute(q, p)
+                    def fetchone(self): 
+                        res = self.c.fetchone()
+                        if res:
+                            cols = [d[0] for d in self.c.description]
+                            return dict(zip(cols, res))
+                        return None
+                    def fetchall(self):
+                        res = self.c.fetchall()
+                        cols = [d[0] for d in self.c.description]
+                        return [dict(zip(cols, r)) for r in res]
+
+                # Adaptar DbWrapper para usar este pequeño puente si es necesario
+                # Pero por simplicidad, devolvemos el DbWrapper con un flag especial
+                return DbWrapper(conn, True, is_pg8000=True)
+            except Exception as e_pg8000:
+                print(f"PG8000 CRITICAL ERROR: {e_pg8000}")
+                raise e_pg8000
     else:
         conn = sqlite3.connect(DB_FILE)
         conn.row_factory = sqlite3.Row
@@ -343,7 +400,7 @@ def init_db():
         last_followup DATETIME
     )''')
 
-    sync_pro_exercises()
+    # sync_pro_exercises() # Removed from startup
 
     # Check if we have foods
     res_f = conn_wrap.execute("SELECT count(*) as count FROM foods")
@@ -470,7 +527,7 @@ def init_db():
     conn_wrap.commit()
     conn_wrap.close()
 
-init_db()
+# init_db() # Removed from global scope
 
 def require_auth(roles=None):
     def decorator(f):
@@ -737,18 +794,6 @@ def submit_report(user):
     conn.close()
     return jsonify({'message': 'Reporte semanal enviado correctamente. ¡Buen trabajo, sigues en el camino PRO!'})
 
-@app.route('/api/measurements', methods=['GET'])
-@require_auth(roles=['ADMIN', 'CLIENT'])
-def get_measurements(user):
-    target_id = request.args.get('user_id', user['id'])
-    # Security: Client can only see their own measurements. Admin can see any.
-    if user['role'] == 'CLIENT' and user['id'] != target_id:
-        return jsonify({'error': 'No autorizado'}), 403
-        
-    conn = get_db()
-    measurements = conn.execute("SELECT * FROM measurements WHERE user_id = ? ORDER BY date ASC", (target_id,)).fetchall()
-    conn.close()
-    return jsonify([dict(m) for m in measurements])
 
 @app.route('/api/reports/history/<user_id>', methods=['GET'])
 @require_auth(roles=['ADMIN', 'CLIENT'])
@@ -1364,201 +1409,6 @@ def agent_approve(post_id):
 @app.route('/api/agent/reject_post/<int:post_id>', methods=['POST'])
 def agent_reject(post_id):
     conn = get_db()
-    conn = get_db()
-    try:
-        conn.execute("INSERT OR REPLACE INTO marketing_leads (email, last_goal, status) VALUES (?, ?, 'COLD')", (email, goal))
-        conn.commit()
-    finally:
-        conn.close()
-    return jsonify({'message': 'Lead saved'})
-
-def send_coach_email_alert(client_name):
-    subject = f"ALERTA MT FITNESS: {client_name} necesita un Coach Humano"
-    body = f"El cliente {client_name} ha realizado una consulta que el Bot no puede resolver de forma automatizada. Entra a la App MT Fitness para tomar el control del chat."
-    send_admin_notification(subject, body)
-
-def generate_bot_response(message, client_name):
-    # --- MOTOR DE INTELIGENCIA MT FITNESS coach 4.2 ---
-    import unicodedata
-    def normalize(t):
-        return ''.join(c for c in unicodedata.normalize('NFD', t) if unicodedata.category(c) != 'Mn').lower()
-    
-    msg = normalize(message)
-    print(f"BOT THINKING: Processing '{msg}' for {client_name}")
-
-    # Prioridad: SALUD Y SEGURIDAD
-    if any(k in msg for k in ['dolor', 'lesion', 'hernia', 'punzada', 'hinchado', 'inflamado', 'asistencia', 'ayuda']):
-        return f"ALERTA DE SEGURIDAD: {client_name}, si sientes un dolor agudo o punzante, detén el ejercicio de inmediato. He avisado al Coach para que revise tu situación técnica."
-
-    # SALUDOS
-    if any(k in msg for k in ['hola', 'buenos dias', 'buenas tardes', 'que tal', 'hey', 'saludos']):
-        return f"¡Hola {client_name}! Soy tu Asistente de IA. ¿En qué área de tu plan 'Elevation' nos enfocamos hoy: técnica, nutrición o motivación?"
-
-    # CREATINA (ESPECÍFICO)
-    if 'creatina' in msg:
-        return "Sobre la Creatina: Toma 5g diarios. No necesitas fase de carga ni descansar de ella. Es segura y ayuda a la fuerza y recuperación. ¿Alguna otra duda sobre esto?"
-
-    # PROTEINA (ESPECÍFICO)
-    if any(k in msg for k in ['proteina', 'batido', 'suplemento', 'isopro', 'whey']):
-        return "Sobre la Proteína: Es una herramienta para llegar a tus macros de forma cómoda. Prioriza la comida sólida (pollo, pescado, huevos), pero usa el batido si te falta proteína al final del día. No es mágica, es comida."
-
-    # NUTRICIÓN Y HAMBRE
-    if any(k in msg for k in ['hambre', 'ansiedad', 'dieta', 'macros', 'calorias', 'comida', 'sustituir']):
-        return f"Consejo nutricional {client_name}: Si tienes hambre, prioriza vegetales y agua. El plan está diseñado para tu objetivo; la disciplina en los gramos es lo que trae el resultado."
-
-    # ENTRENAMIENTO
-    if any(k in msg for k in ['tecnica', 'forma', 'sentadilla', 'press', 'entrenar', 'ejercicio']):
-        return "Sobre entrenamiento: La ejecución es sagrada. Controla la bajada y no sacrifiques técnica por peso. Puedes subir un vídeo para que el Coach te corrija."
-
-    # FALLBACK
-    return f"He captado tu duda sobre '{message[:20]}'. He avisado al Coach para que te dé una respuesta técnica detallada. Mientras tanto, ¡seguimos con el plan!"
-
-@app.route('/api/chat', methods=['GET', 'POST'])
-@require_auth(roles=['ADMIN', 'CLIENT'])
-def manage_chat(user):
-    conn = get_db()
-    target_id = request.args.get('user_id', user['id'])
-    if user['role'] != 'ADMIN' and target_id != user['id']: target_id = user['id']
-
-    if request.method == 'POST':
-        data = request.json
-        user_msg = data.get('message')
-        if not user_msg: return jsonify({'error': 'No message'}), 400
-        
-        try:
-            conn.execute("INSERT INTO chat_messages (user_id, sender_role, message) VALUES (?, ?, ?)",
-                         (target_id, user['role'], user_msg))
-            conn.commit()
-        except Exception as e:
-            print(f"DATABASE ERROR: {e}")
-            return jsonify({'error': 'Error guardando mensaje'}), 500
-
-        conn.close()
-        return jsonify({'status': 'ok', 'message': 'Mensaje enviado'})
-    else:
-        msgs = conn.execute("SELECT * FROM chat_messages WHERE user_id = ? ORDER BY timestamp ASC", (target_id,)).fetchall()
-        # compatibility with Flutter/Web
-        is_flutter = 'flutter' in request.headers.get('User-Agent', '').lower() or request.args.get('format') == 'list'
-        if is_flutter:
-            conn.close()
-            return jsonify([dict(m) for m in msgs])
-
-        conn.close()
-        return jsonify({'messages': [dict(m) for m in msgs], 'bot_active': 0})
-
-@app.route('/api/chat/clear', methods=['POST'])
-@require_auth(roles=['ADMIN', 'CLIENT'])
-def clear_chat(user):
-    conn = get_db()
-    target_id = request.args.get('user_id', user['id'])
-    if user['role'] != 'ADMIN' and target_id != user['id']: target_id = user['id']
-    
-    conn.execute("DELETE FROM chat_messages WHERE user_id = ?", (target_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({'status': 'ok', 'message': 'Chat cleared'})
-
-@app.route('/api/client/toggle_bot', methods=['POST'])
-@require_auth(roles=['ADMIN', 'CLIENT'])
-def toggle_bot(user):
-    print(f"TOGGLE LOG: Request from {user['name']} ({user['role']})")
-    try:
-        conn = get_db()
-        target_id = request.args.get('user_id', user['id'])
-        if user['role'] != 'ADMIN' and target_id != user['id']: target_id = user['id']
-        
-        print(f"TOGGLE LOG: Targeting user_id {target_id}")
-        current = conn.execute("SELECT bot_active, name FROM users WHERE id = ?", (target_id,)).fetchone()
-        if not current:
-            print(f"TOGGLE ERROR: User {target_id} not found")
-            conn.close()
-            return jsonify({'error': 'User not found'}), 404
-
-        # Toggle: 1 -> 0, 0 -> 1
-        try:
-            curr_val = int(current['bot_active']) if current['bot_active'] is not None else 0
-        except:
-            curr_val = 0
-            
-        new_status = 0 if curr_val == 1 else 1
-        print(f"TOGGLE LOG: Changing {current['name']} bot from {curr_val} to {new_status}")
-        
-        conn.execute("UPDATE users SET bot_active = ? WHERE id = ?", (new_status, target_id))
-        conn.commit(); conn.close()
-        return jsonify({'bot_active': int(new_status)})
-    except Exception as e:
-        print(f"TOGGLE CRITICAL ERROR: {e}")
-        return jsonify({'error': str(e)}), 500
-
-# --- AGENT COMMAND CENTER ENDPOINTS ---
-
-@app.route('/api/agent/chat', methods=['POST'])
-def agent_chat():
-    data = request.json
-    user_prompt = data.get('message', '').lower()
-    
-    conn = get_db()
-    try:
-        # --- LOCAL SIMULATED BRAIN (GRATUITO) ---
-        import random
-        
-        # Inteligencia de palabras clave para elegir el mejor copy
-        if 'pierna' in user_prompt or 'gluteo' in user_prompt:
-            caption = "💥 El 90% de la gente se salta su día de tren inferior porque duele.\n\nEsa es exactamente la razón por la que tú deberías hacerlo el doble de fuerte. Las piernas son la base de tu templo. No construyas una mansión sobre gelatina. 🏛️🔥\n\n¿Estás listo para mutar? Únete al equipo PRO en el link."
-            hashtags = "#DiaDePierna #LegDay #CreceONada #MTFitnessPRO #HipertrofiaReal"
-        elif 'comida' in user_prompt or 'nutricion' in user_prompt or 'desayuno' in user_prompt:
-            caption = "🍳 Abs are made in the kitchen! Puedes entrenar 3 horas al día, pero si tu nutrición es un desastre, solo estás perdiendo gasolina.\n\nEl secreto no es comer menos, es comer con ESTRATEGIA. Te enseño cómo mis atletas están recomponiendo su cuerpo sin pasar hambre. 🥑🥩\n\n👉🏻 Toca el link de mi bio para ver el plan."
-            hashtags = "#NutricionFitness #ComidaReal #DietaFlexible #MTFitnessPRO #RecomposicionCorporal"
-        elif 'motivacion' in user_prompt or 'empezar' in user_prompt:
-            caption = "🚀 'Empiezo el lunes'. ¿Cuántas veces te has dicho eso?\n\nEl tiempo va a pasar de todas formas. Dentro de 6 meses desearás haber empezado HOY. No necesitas estar motivado todos los días, necesitas ser DISCIPLINADO. 💪🏻🔥\n\nNo esperes a estar listo. Empieza y te harás listo por el camino. Únete a mi equipo hoy."
-            hashtags = "#MotivacionGym #DisciplinaFitness #CambioFisico #MTFitnessPRO #NoExcuses"
-        else:
-            caption = "🔥 Hay dos tipos de personas en el gimnasio: las que levantan peso para cansarse y las que entrenan para TRANSFORMARSE.\n\nSi llevas meses estancado, tu cuerpo se ha adaptado. La clave del crecimiento es entrenar INTELIGENTE. Yo te digo exactamente qué hacer repetición a repetición. 🧬⚡\n\n👉🏻 Link en bio para empezar tu transformación."
-            hashtags = "#EntrenamientoInteligente #FitnessEspaña #CrecimientoMuscular #MTFitnessPRO"
-        
-        conn.execute('''INSERT INTO social_media_posts (title, caption, image_url, status) 
-                     VALUES (?, ?, ?, 'DRAFT')''',
-                  (user_prompt[:50], caption, "https://mtfitness.es/ai_demo.png"))
-        conn.commit()
-    except Exception as e:
-        print("Local AI Error:", e)
-        return jsonify({"error": str(e)}), 500
-    finally:
-        conn.close()
-        
-    return jsonify({"status": "ok"})
-
-@app.route('/api/agent/pending_posts', methods=['GET'])
-def agent_pending():
-    conn = get_db()
-    cur = conn.execute("SELECT * FROM social_media_posts WHERE status = 'DRAFT' ORDER BY id DESC")
-    posts = conn.fetchall(cur)
-    conn.close()
-    
-    formatted = []
-    for p in posts:
-        formatted.append({
-            "id": p['id'],
-            "target": "Instagram",
-            "imageUrl": p['image_url'] or "https://mtfitness.es/ai_demo.png",
-            "caption": p['caption'],
-            "hashtags": "",
-            "status": "A la espera de tu aprobación",
-            "created_at": p['created_at']
-        })
-    return jsonify(formatted)
-
-@app.route('/api/agent/approve_post/<int:post_id>', methods=['POST'])
-def agent_approve(post_id):
-    conn = get_db()
-    conn.execute("UPDATE social_media_posts SET status = 'PENDING' WHERE id = ?", (post_id,))
-    conn.commit()
-    conn.close()
-    return jsonify({"status": "approved"})
-
-@app.route('/api/agent/reject_post/<int:post_id>', methods=['POST'])
-def agent_reject(post_id):
-    conn = get_db()
     conn.execute("UPDATE social_media_posts SET status = 'REJECTED' WHERE id = ?", (post_id,))
     conn.commit()
     conn.close()
@@ -1576,7 +1426,7 @@ def admin_sync_data(admin):
 
 @app.route('/')
 def index():
-    return send_from_directory(app.static_folder, 'index.html')
+    return app.send_static_file('index.html')
 
 @app.route('/manifest.json')
 def serve_manifest():
@@ -1654,9 +1504,6 @@ def download_db():
 def download_app_v110():
     return send_from_directory(app.static_folder, 'MT_Fitness_PRO_v1.1.0.apk', as_attachment=True)
 
-@app.route('/uploads/<path:filename>')
-def serve_uploads(filename):
-    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/<path:path>')
 def serve_static(path):
@@ -1749,7 +1596,7 @@ def contact():
 
 @app.route('/api/seed_exercises', methods=['GET'])
 def seed_exercises():
-    sync_pro_exercises()
+    # sync_pro_exercises() # Removed from startup
     return jsonify({"success": True, "message": "Ejercicios sincronizados"})
 
 
@@ -1767,11 +1614,14 @@ def download_app():
         return str(e), 404
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
-else:
     try:
-        # Solo inicializar tablas básicas al arranque. 
-        # La sincronización pesada se hace vía ruta de mantenimiento.
+        if not os.path.exists(UPLOAD_FOLDER):
+            os.makedirs(UPLOAD_FOLDER)
         init_db()
     except Exception as e:
-        print(f"Error initializing DB: {e}")
+        print(f"Local Init Error: {e}")
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
+else:
+    # En producción (Vercel/Render), no inicializamos nada al arranque para evitar timeouts.
+    # El administrador debe usar la ruta /api/admin/maintenance/sync una vez desplegado.
+    pass

@@ -1,39 +1,81 @@
-# Excluir todo lo pesado y no web
+# Vercel Deployment Ignore
 mt_fitness_app/
-build/
-dist/
+mt_fitness_app/**
+**/node_modules/
+**/__pycache__/
+.git/
+.env
+*.exe
+mtfitness.db
 backup_old/
 free_ex_db/
 scratch/
-social_media_posts/
-__pycache__/
-*.exe
-ngrok.exe
-Agente MT Fitness PRO.exe
+assets/
+build/
+dist/
 *.pyc
 *.pyo
-*.pyd
-.db
-mtfitness.db
+agente_automata.py
+marketing_bot.py
+social_media_agent.py
+telegram_agent.py
+cloudflared.exe
+ngrok.exe
+Agente MT Fitness PRO.exe
+public/MT_Fitness_PRO_v1.2.2.apk
+public/MT_Fitness_PRO_v1.2.4.apk
+public/MT_Fitness_PRO_v1.2.7.apk
 agent_errors.txt
 agent_logs.txt
 ngrok_err.txt
 ngrok_out.txt
+flask_logs.txt
+flask_errors.txt
+telegram_errors.txt
+telegram_logs.txt
+automata_logs.txt
 pinggy_err.txt
 pinggy_out.txt
 serveo_err.txt
 serveo_out.txt
+cloudflare_err.txt
+cloudflare_out.txt
+cloudflare_url.txt
+out_pg.txt
+out_pg_utf8.txt
+out_pg_final.txt
+out_pg_final_utf8.txt
+out_code_check.txt
+out_code_check_utf8.txt
 sync_out.txt
 sync_out_utf8.txt
-telegram_errors.txt
-telegram_logs.txt
-tunnel_logs.txt
 test_out.txt
 test_out_utf8.txt
-
-# Mantener solo lo esencial
-# flask_app.py
-# app/
-# api/
-# requirements.txt
-# vercel.json
+test_session.py
+test_postgres.py
+test_code.py
+test_master.py
+debug_bot.py
+migrate_v14.py
+update_exercises_v2.py
+seed_db.py
+bulk_exercises.sql
+check_db.py
+check_braces.py
+check_social_table.py
+dump_hex.py
+extract_images.py
+build_icon_mapper.py
+process_logo.py
+generate_articles.py
+expand_data.py
+final_expansion.py
+instagram_uploader.py
+MT_FITNESS_PORTABLE_GUIDE.md
+MT_MARKETING_PRO.py
+MT_COACH_MASTER_PC.py
+MT_ANALYTICS_MASTER.py
+agent_maestro.py
+deploy_helper.html
+full_list.txt
+exercise_names.txt
