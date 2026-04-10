@@ -78,25 +78,31 @@ class DbWrapper:
         if self.is_pg8000:
             res = cur.fetchone()
             if res:
-                cols = [d[0].decode('utf-8') if isinstance(d[0], bytes) else d[0] for d in cur.description]
+                # pg8000 returns tuples, we must map them to dict using cursor description
+                cols = [d[0].decode('utf-8') if isinstance(d[0], bytes) else str(d[0]) for d in cur.description]
                 return dict(zip(cols, res))
             return None
         if hasattr(cur, 'fetchone'):
             res = cur.fetchone()
         else:
             res = cur
-        return dict(res) if res and not isinstance(res, tuple) else res
+        
+        if res and not isinstance(res, dict) and not isinstance(res, tuple):
+            try: return dict(res)
+            except: return res
+        return res
+
     def fetchall(self, cur=None):
         if cur is None: return []
         if self.is_pg8000:
             res = cur.fetchall()
-            cols = [d[0].decode('utf-8') if isinstance(d[0], bytes) else d[0] for d in cur.description]
+            cols = [d[0].decode('utf-8') if isinstance(d[0], bytes) else str(d[0]) for d in cur.description]
             return [dict(zip(cols, r)) for r in res]
         if hasattr(cur, 'fetchall'):
             res = cur.fetchall()
         else:
             res = cur
-        return [dict(r) if not isinstance(r, tuple) else r for r in res]
+        return [dict(r) if (r and not isinstance(r, dict) and not isinstance(r, tuple)) else r for r in res]
 
 def get_db():
     db_url = os.environ.get('DATABASE_URL')
@@ -230,7 +236,8 @@ def sync_pro_exercises():
     for name, muscle in exercises_data:
         icon = find_icon(name, muscle)
         try:
-            res = conn.execute("SELECT id FROM exercises WHERE name = " + ("%s" if conn.is_pg else "?"), (name,)).fetchone()
+            cur_ex = conn.execute("SELECT id FROM exercises WHERE name = " + ("%s" if conn.is_pg else "?"), (name,))
+            res = conn.fetchone(cur_ex)
             if not res:
                 conn.execute("INSERT INTO exercises (name, muscle_group, icon_path) VALUES (" + ("%s, %s, %s" if conn.is_pg else "?, ?, ?") + ")",
                              (name, muscle, icon))
@@ -332,13 +339,11 @@ def init_db():
         for table in tables_to_check:
             try:
                 if conn_wrap.is_pg:
-                    c_check = conn_wrap.cursor()
-                    c_check.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}'")
-                    existing_cols[table] = [r['column_name'] for r in c_check.fetchall()]
+                    c_check = conn_wrap.execute(f"SELECT column_name FROM information_schema.columns WHERE table_name='{table}'")
+                    existing_cols[table] = [r['column_name'] for r in conn_wrap.fetchall(c_check)]
                 else:
-                    c_check = conn_wrap.cursor()
-                    c_check.execute(f"PRAGMA table_info({table})")
-                    existing_cols[table] = [col['name'] for col in c_check.fetchall()]
+                    c_check = conn_wrap.execute(f"PRAGMA table_info({table})")
+                    existing_cols[table] = [col['name'] for col in conn_wrap.fetchall(c_check)]
             except: existing_cols[table] = []
 
         columns_to_add = [
@@ -537,12 +542,13 @@ def require_auth(roles=None):
             if not t: return jsonify({'error': 'Faltan credenciales.'}), 401
             t = t.replace('Bearer ', '')
             conn = get_db()
-            user = conn.execute("SELECT * FROM users WHERE token = ?", (t,)).fetchone()
+            cur = conn.execute("SELECT * FROM users WHERE token = ?", (t,))
+            user = conn.fetchone(cur)
             conn.close()
             if not user: return jsonify({'error': 'Token inválido'}), 401
             if user['status'] != 'APPROVED': return jsonify({'error': 'Cuenta pendiente.'}), 403
             if roles and user['role'] not in roles: return jsonify({'error': 'Rango Denegado.'}), 403
-            return f(dict(user), *args, **kwargs)
+            return f(user, *args, **kwargs)
         return decorated
     return decorator
 
@@ -551,7 +557,8 @@ def require_auth(roles=None):
 def register():
     data = request.json
     conn = get_db()
-    if conn.execute("SELECT id FROM users WHERE email = ?", (data.get('email'),)).fetchone():
+    cur_check = conn.execute("SELECT id FROM users WHERE email = ?", (data.get('email'),))
+    if conn.fetchone(cur_check):
         conn.close(); return jsonify({'error': 'El email ya existe'}), 400
         
     uid = str(uuid.uuid4())
@@ -612,10 +619,11 @@ def send_registration_email(client_name, client_email):
 def login():
     data = request.json
     conn = get_db()
-    user_row = conn.execute("SELECT * FROM users WHERE email = ? AND password = ?", (data.get('email'), data.get('password'))).fetchone()
+    cur = conn.execute("SELECT * FROM users WHERE email = ? AND password = ?", (data.get('email'), data.get('password')))
+    user_row = conn.fetchone(cur)
     conn.close()
     if user_row:
-        user = dict(user_row)
+        user = user_row
         
         # AUTO-UPGRADE TO ADMIN IF COACH EMAIL
         coach_emails = ['mitorrgo@gmail.com', 'mtfitness2026@gmail.com']
@@ -749,7 +757,8 @@ def submit_report(user):
     # --- REGLA DE 1 VEZ POR DÍA ---
     conn = get_db()
     today_str = now.strftime('%Y-%m-%d')
-    existing = conn.execute("SELECT id FROM reports WHERE user_id = ? AND date(date) = ?", (user['id'], today_str)).fetchone()
+    cur_check = conn.execute("SELECT id FROM reports WHERE user_id = ? AND date(date) = ?", (user['id'], today_str))
+    existing = conn.fetchone(cur_check)
     if existing:
         conn.close()
         return jsonify({'error': 'Ya has enviado tu reporte de hoy.'}), 403
@@ -878,7 +887,8 @@ def admin_add_subscription(admin, target_id):
     days = data.get('days', 30)
     
     # Check current access
-    u = conn.execute("SELECT access_until FROM users WHERE id = ?", (target_id,)).fetchone()
+    cur_u = conn.execute("SELECT access_until FROM users WHERE id = ?", (target_id,))
+    u = conn.fetchone(cur_u)
     base_date = datetime.datetime.now()
     if u and u['access_until']:
         curr_exp = datetime.datetime.strptime(u['access_until'], '%Y-%m-%d')
@@ -893,7 +903,8 @@ def admin_add_subscription(admin, target_id):
 @require_auth(roles=['ADMIN'])
 def admin_toggle_bot(admin, target_id):
     conn = get_db()
-    u = conn.execute("SELECT bot_active FROM users WHERE id = ?", (target_id,)).fetchone()
+    cur_u = conn.execute("SELECT bot_active FROM users WHERE id = ?", (target_id,))
+    u = conn.fetchone(cur_u)
     if u:
         new_val = 0 if u['bot_active'] else 1
         conn.execute("UPDATE users SET bot_active = ? WHERE id = ?", (new_val, target_id))
@@ -1165,9 +1176,10 @@ def manage_profile(user):
         return jsonify({'message': 'Perfil actualizado'})
         
     else: # GET
-        u = conn.execute("SELECT name, email, phone, objective_weight, routine_weeks, access_until FROM users WHERE id = ?", (user['id'],)).fetchone()
+        cur = conn.execute("SELECT name, email, phone, objective_weight, routine_weeks, access_until FROM users WHERE id = ?", (user['id'],))
+        u = conn.fetchone(cur)
         conn.close()
-        return jsonify(dict(u) if u else {})
+        return jsonify(u if u else {})
 
 
 # ---- CHAT SYSTEM WITH AI BOT ----
@@ -1318,7 +1330,8 @@ def toggle_bot(user):
         if user['role'] != 'ADMIN' and target_id != user['id']: target_id = user['id']
         
         print(f"TOGGLE LOG: Targeting user_id {target_id}")
-        current = conn.execute("SELECT bot_active, name FROM users WHERE id = ?", (target_id,)).fetchone()
+        cur = conn.execute("SELECT bot_active, name FROM users WHERE id = ?", (target_id,))
+        current = conn.fetchone(cur)
         if not current:
             print(f"TOGGLE ERROR: User {target_id} not found")
             conn.close()
@@ -1622,6 +1635,8 @@ if __name__ == "__main__":
         print(f"Local Init Error: {e}")
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
 else:
-    # En producción (Vercel/Render), no inicializamos nada al arranque para evitar timeouts.
-    # El administrador debe usar la ruta /api/admin/maintenance/sync una vez desplegado.
-    pass
+    # En producción (Vercel/Render), inicializamos las tablas pero NO los datos pesados para evitar timeouts.
+    try:
+        init_db()
+    except Exception as e:
+        print(f"Production Init Error (Ignored): {e}")
