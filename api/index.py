@@ -93,6 +93,10 @@ def get_db():
 def index_root():
     return send_from_directory(app.static_folder, 'index.html')
 
+@app.route('/assets/<path:path>')
+def serve_assets(path):
+    return send_from_directory(os.path.join(app.static_folder, 'assets'), path)
+
 @app.route('/<path:path>')
 def serve_static(path):
     return send_from_directory(app.static_folder, path)

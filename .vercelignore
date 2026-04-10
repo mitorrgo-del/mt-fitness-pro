@@ -10,9 +10,8 @@ mtfitness.db
 backup_old/
 free_ex_db/
 scratch/
-assets/
-build/
-dist/
+# build/
+# dist/
 *.pyc
 *.pyo
 agente_automata.py
