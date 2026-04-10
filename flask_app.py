@@ -864,18 +864,16 @@ def log_meal(user):
     status = data.get('status', True) # True to check, False to uncheck
     
     conn = get_db()
-    c = conn.cursor()
-    
     if status:
         # Check if already logged to avoid dupes
-        exists = c.execute("SELECT 1 FROM meal_logs WHERE user_id = ? AND date = ? AND meal_name = ?", (user['id'], date_str, meal_name)).fetchone()
+        cur = conn.execute("SELECT 1 FROM meal_logs WHERE user_id = ? AND date = ? AND meal_name = ?", (user['id'], date_str, meal_name))
+        exists = conn.fetchone(cur)
         if not exists:
-            c.execute("INSERT INTO meal_logs (user_id, date, meal_name) VALUES (?, ?, ?)", (user['id'], date_str, meal_name))
+            conn.execute("INSERT INTO meal_logs (user_id, date, meal_name) VALUES (?, ?, ?)", (user['id'], date_str, meal_name))
             conn.commit()
     else:
-        c.execute("DELETE FROM meal_logs WHERE user_id = ? AND date = ? AND meal_name = ?", (user['id'], date_str, meal_name))
+        conn.execute("DELETE FROM meal_logs WHERE user_id = ? AND date = ? AND meal_name = ?", (user['id'], date_str, meal_name))
         conn.commit()
-        
     conn.close()
     return jsonify({'message': 'Registro de comida actualizado', 'status': status})
 
@@ -1301,8 +1299,6 @@ def agent_chat():
     user_prompt = data.get('message', '').lower()
     
     conn = get_db()
-    c = conn.cursor()
-    
     try:
         # --- LOCAL SIMULATED BRAIN (GRATUITO) ---
         import random
@@ -1321,7 +1317,7 @@ def agent_chat():
             caption = "🔥 Hay dos tipos de personas en el gimnasio: las que levantan peso para cansarse y las que entrenan para TRANSFORMARSE.\n\nSi llevas meses estancado, tu cuerpo se ha adaptado. La clave del crecimiento es entrenar INTELIGENTE. Yo te digo exactamente qué hacer repetición a repetición. 🧬⚡\n\n👉🏻 Link en bio para empezar tu transformación."
             hashtags = "#EntrenamientoInteligente #FitnessEspaña #CrecimientoMuscular #MTFitnessPRO"
         
-        c.execute('''INSERT INTO social_media_posts (title, caption, image_url, status) 
+        conn.execute('''INSERT INTO social_media_posts (title, caption, image_url, status) 
                      VALUES (?, ?, ?, 'DRAFT')''',
                   (user_prompt[:50], caption, "https://mtfitness.es/ai_demo.png"))
         conn.commit()
@@ -1336,9 +1332,8 @@ def agent_chat():
 @app.route('/api/agent/pending_posts', methods=['GET'])
 def agent_pending():
     conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM social_media_posts WHERE status = 'DRAFT' ORDER BY id DESC")
-    posts = [dict(r) for r in c.fetchall()]
+    cur = conn.execute("SELECT * FROM social_media_posts WHERE status = 'DRAFT' ORDER BY id DESC")
+    posts = conn.fetchall(cur)
     conn.close()
     
     formatted = []
