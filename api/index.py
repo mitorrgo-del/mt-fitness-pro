@@ -17,8 +17,10 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
-# Buscar .env en raÃ­z o en secrets de Render
-dotenv_path = os.path.join(os.path.dirname(__file__), '.env')
+# Buscar .env en raíz o en secrets de Render
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
+dotenv_path = os.path.join(ROOT_DIR, '.env')
 
 # Solo cargamos dotenv si no estamos en Vercel
 if not os.environ.get('VERCEL'):
@@ -33,11 +35,10 @@ else:
 
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY", "sk-proj-YOUR_API_KEY_HERE")
 
-app = Flask(__name__, static_folder='app', static_url_path='')
+app = Flask(__name__, static_folder=os.path.join(ROOT_DIR, 'app'), static_url_path='')
 CORS(app)
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_FILE = os.path.join(BASE_DIR, 'mtfitness.db')
-UPLOAD_FOLDER = os.path.join(BASE_DIR, 'uploads')
+DB_FILE = os.path.join(ROOT_DIR, 'mtfitness.db')
+UPLOAD_FOLDER = os.path.join(ROOT_DIR, 'uploads')
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 # La creaciÃ³n de carpetas se moviÃ³ al bloque main para evitar errores en Vercel
 class DbWrapper:
@@ -157,7 +158,7 @@ def sync_pro_exercises():
     conn = get_db()
     
     import os
-    exercises_dir = os.path.join(os.path.dirname(__file__), 'uploads', 'exercises')
+    exercises_dir = os.path.join(ROOT_DIR, 'uploads', 'exercises')
     available_files = []
     if os.path.exists(exercises_dir):
         available_files = os.listdir(exercises_dir)
