@@ -1364,10 +1364,215 @@ def agent_approve(post_id):
 @app.route('/api/agent/reject_post/<int:post_id>', methods=['POST'])
 def agent_reject(post_id):
     conn = get_db()
+    conn = get_db()
+    try:
+        conn.execute("INSERT OR REPLACE INTO marketing_leads (email, last_goal, status) VALUES (?, ?, 'COLD')", (email, goal))
+        conn.commit()
+    finally:
+        conn.close()
+    return jsonify({'message': 'Lead saved'})
+
+def send_coach_email_alert(client_name):
+    subject = f"ALERTA MT FITNESS: {client_name} necesita un Coach Humano"
+    body = f"El cliente {client_name} ha realizado una consulta que el Bot no puede resolver de forma automatizada. Entra a la App MT Fitness para tomar el control del chat."
+    send_admin_notification(subject, body)
+
+def generate_bot_response(message, client_name):
+    # --- MOTOR DE INTELIGENCIA MT FITNESS coach 4.2 ---
+    import unicodedata
+    def normalize(t):
+        return ''.join(c for c in unicodedata.normalize('NFD', t) if unicodedata.category(c) != 'Mn').lower()
+    
+    msg = normalize(message)
+    print(f"BOT THINKING: Processing '{msg}' for {client_name}")
+
+    # Prioridad: SALUD Y SEGURIDAD
+    if any(k in msg for k in ['dolor', 'lesion', 'hernia', 'punzada', 'hinchado', 'inflamado', 'asistencia', 'ayuda']):
+        return f"ALERTA DE SEGURIDAD: {client_name}, si sientes un dolor agudo o punzante, detén el ejercicio de inmediato. He avisado al Coach para que revise tu situación técnica."
+
+    # SALUDOS
+    if any(k in msg for k in ['hola', 'buenos dias', 'buenas tardes', 'que tal', 'hey', 'saludos']):
+        return f"¡Hola {client_name}! Soy tu Asistente de IA. ¿En qué área de tu plan 'Elevation' nos enfocamos hoy: técnica, nutrición o motivación?"
+
+    # CREATINA (ESPECÍFICO)
+    if 'creatina' in msg:
+        return "Sobre la Creatina: Toma 5g diarios. No necesitas fase de carga ni descansar de ella. Es segura y ayuda a la fuerza y recuperación. ¿Alguna otra duda sobre esto?"
+
+    # PROTEINA (ESPECÍFICO)
+    if any(k in msg for k in ['proteina', 'batido', 'suplemento', 'isopro', 'whey']):
+        return "Sobre la Proteína: Es una herramienta para llegar a tus macros de forma cómoda. Prioriza la comida sólida (pollo, pescado, huevos), pero usa el batido si te falta proteína al final del día. No es mágica, es comida."
+
+    # NUTRICIÓN Y HAMBRE
+    if any(k in msg for k in ['hambre', 'ansiedad', 'dieta', 'macros', 'calorias', 'comida', 'sustituir']):
+        return f"Consejo nutricional {client_name}: Si tienes hambre, prioriza vegetales y agua. El plan está diseñado para tu objetivo; la disciplina en los gramos es lo que trae el resultado."
+
+    # ENTRENAMIENTO
+    if any(k in msg for k in ['tecnica', 'forma', 'sentadilla', 'press', 'entrenar', 'ejercicio']):
+        return "Sobre entrenamiento: La ejecución es sagrada. Controla la bajada y no sacrifiques técnica por peso. Puedes subir un vídeo para que el Coach te corrija."
+
+    # FALLBACK
+    return f"He captado tu duda sobre '{message[:20]}'. He avisado al Coach para que te dé una respuesta técnica detallada. Mientras tanto, ¡seguimos con el plan!"
+
+@app.route('/api/chat', methods=['GET', 'POST'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def manage_chat(user):
+    conn = get_db()
+    target_id = request.args.get('user_id', user['id'])
+    if user['role'] != 'ADMIN' and target_id != user['id']: target_id = user['id']
+
+    if request.method == 'POST':
+        data = request.json
+        user_msg = data.get('message')
+        if not user_msg: return jsonify({'error': 'No message'}), 400
+        
+        try:
+            conn.execute("INSERT INTO chat_messages (user_id, sender_role, message) VALUES (?, ?, ?)",
+                         (target_id, user['role'], user_msg))
+            conn.commit()
+        except Exception as e:
+            print(f"DATABASE ERROR: {e}")
+            return jsonify({'error': 'Error guardando mensaje'}), 500
+
+        conn.close()
+        return jsonify({'status': 'ok', 'message': 'Mensaje enviado'})
+    else:
+        msgs = conn.execute("SELECT * FROM chat_messages WHERE user_id = ? ORDER BY timestamp ASC", (target_id,)).fetchall()
+        # compatibility with Flutter/Web
+        is_flutter = 'flutter' in request.headers.get('User-Agent', '').lower() or request.args.get('format') == 'list'
+        if is_flutter:
+            conn.close()
+            return jsonify([dict(m) for m in msgs])
+
+        conn.close()
+        return jsonify({'messages': [dict(m) for m in msgs], 'bot_active': 0})
+
+@app.route('/api/chat/clear', methods=['POST'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def clear_chat(user):
+    conn = get_db()
+    target_id = request.args.get('user_id', user['id'])
+    if user['role'] != 'ADMIN' and target_id != user['id']: target_id = user['id']
+    
+    conn.execute("DELETE FROM chat_messages WHERE user_id = ?", (target_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({'status': 'ok', 'message': 'Chat cleared'})
+
+@app.route('/api/client/toggle_bot', methods=['POST'])
+@require_auth(roles=['ADMIN', 'CLIENT'])
+def toggle_bot(user):
+    print(f"TOGGLE LOG: Request from {user['name']} ({user['role']})")
+    try:
+        conn = get_db()
+        target_id = request.args.get('user_id', user['id'])
+        if user['role'] != 'ADMIN' and target_id != user['id']: target_id = user['id']
+        
+        print(f"TOGGLE LOG: Targeting user_id {target_id}")
+        current = conn.execute("SELECT bot_active, name FROM users WHERE id = ?", (target_id,)).fetchone()
+        if not current:
+            print(f"TOGGLE ERROR: User {target_id} not found")
+            conn.close()
+            return jsonify({'error': 'User not found'}), 404
+
+        # Toggle: 1 -> 0, 0 -> 1
+        try:
+            curr_val = int(current['bot_active']) if current['bot_active'] is not None else 0
+        except:
+            curr_val = 0
+            
+        new_status = 0 if curr_val == 1 else 1
+        print(f"TOGGLE LOG: Changing {current['name']} bot from {curr_val} to {new_status}")
+        
+        conn.execute("UPDATE users SET bot_active = ? WHERE id = ?", (new_status, target_id))
+        conn.commit(); conn.close()
+        return jsonify({'bot_active': int(new_status)})
+    except Exception as e:
+        print(f"TOGGLE CRITICAL ERROR: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# --- AGENT COMMAND CENTER ENDPOINTS ---
+
+@app.route('/api/agent/chat', methods=['POST'])
+def agent_chat():
+    data = request.json
+    user_prompt = data.get('message', '').lower()
+    
+    conn = get_db()
+    try:
+        # --- LOCAL SIMULATED BRAIN (GRATUITO) ---
+        import random
+        
+        # Inteligencia de palabras clave para elegir el mejor copy
+        if 'pierna' in user_prompt or 'gluteo' in user_prompt:
+            caption = "💥 El 90% de la gente se salta su día de tren inferior porque duele.\n\nEsa es exactamente la razón por la que tú deberías hacerlo el doble de fuerte. Las piernas son la base de tu templo. No construyas una mansión sobre gelatina. 🏛️🔥\n\n¿Estás listo para mutar? Únete al equipo PRO en el link."
+            hashtags = "#DiaDePierna #LegDay #CreceONada #MTFitnessPRO #HipertrofiaReal"
+        elif 'comida' in user_prompt or 'nutricion' in user_prompt or 'desayuno' in user_prompt:
+            caption = "🍳 Abs are made in the kitchen! Puedes entrenar 3 horas al día, pero si tu nutrición es un desastre, solo estás perdiendo gasolina.\n\nEl secreto no es comer menos, es comer con ESTRATEGIA. Te enseño cómo mis atletas están recomponiendo su cuerpo sin pasar hambre. 🥑🥩\n\n👉🏻 Toca el link de mi bio para ver el plan."
+            hashtags = "#NutricionFitness #ComidaReal #DietaFlexible #MTFitnessPRO #RecomposicionCorporal"
+        elif 'motivacion' in user_prompt or 'empezar' in user_prompt:
+            caption = "🚀 'Empiezo el lunes'. ¿Cuántas veces te has dicho eso?\n\nEl tiempo va a pasar de todas formas. Dentro de 6 meses desearás haber empezado HOY. No necesitas estar motivado todos los días, necesitas ser DISCIPLINADO. 💪🏻🔥\n\nNo esperes a estar listo. Empieza y te harás listo por el camino. Únete a mi equipo hoy."
+            hashtags = "#MotivacionGym #DisciplinaFitness #CambioFisico #MTFitnessPRO #NoExcuses"
+        else:
+            caption = "🔥 Hay dos tipos de personas en el gimnasio: las que levantan peso para cansarse y las que entrenan para TRANSFORMARSE.\n\nSi llevas meses estancado, tu cuerpo se ha adaptado. La clave del crecimiento es entrenar INTELIGENTE. Yo te digo exactamente qué hacer repetición a repetición. 🧬⚡\n\n👉🏻 Link en bio para empezar tu transformación."
+            hashtags = "#EntrenamientoInteligente #FitnessEspaña #CrecimientoMuscular #MTFitnessPRO"
+        
+        conn.execute('''INSERT INTO social_media_posts (title, caption, image_url, status) 
+                     VALUES (?, ?, ?, 'DRAFT')''',
+                  (user_prompt[:50], caption, "https://mtfitness.es/ai_demo.png"))
+        conn.commit()
+    except Exception as e:
+        print("Local AI Error:", e)
+        return jsonify({"error": str(e)}), 500
+    finally:
+        conn.close()
+        
+    return jsonify({"status": "ok"})
+
+@app.route('/api/agent/pending_posts', methods=['GET'])
+def agent_pending():
+    conn = get_db()
+    cur = conn.execute("SELECT * FROM social_media_posts WHERE status = 'DRAFT' ORDER BY id DESC")
+    posts = conn.fetchall(cur)
+    conn.close()
+    
+    formatted = []
+    for p in posts:
+        formatted.append({
+            "id": p['id'],
+            "target": "Instagram",
+            "imageUrl": p['image_url'] or "https://mtfitness.es/ai_demo.png",
+            "caption": p['caption'],
+            "hashtags": "",
+            "status": "A la espera de tu aprobación",
+            "created_at": p['created_at']
+        })
+    return jsonify(formatted)
+
+@app.route('/api/agent/approve_post/<int:post_id>', methods=['POST'])
+def agent_approve(post_id):
+    conn = get_db()
+    conn.execute("UPDATE social_media_posts SET status = 'PENDING' WHERE id = ?", (post_id,))
+    conn.commit()
+    conn.close()
+    return jsonify({"status": "approved"})
+
+@app.route('/api/agent/reject_post/<int:post_id>', methods=['POST'])
+def agent_reject(post_id):
+    conn = get_db()
     conn.execute("UPDATE social_media_posts SET status = 'REJECTED' WHERE id = ?", (post_id,))
     conn.commit()
     conn.close()
     return jsonify({"status": "rejected"})
+
+@app.route('/api/admin/maintenance/sync')
+@require_auth(roles=['ADMIN'])
+def admin_sync_data(admin):
+    try:
+        init_db()
+        sync_pro_exercises()
+        return jsonify({'message': 'Sincronización de base de datos completada'})
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @app.route('/')
 def index():
@@ -1564,9 +1769,9 @@ def download_app():
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)
 else:
-    # try:
-    #     init_db()
-    #     sync_pro_exercises()
-    # except Exception as e:
-    #     print(f"Error initializing DB: {e}")
-    pass
+    try:
+        # Solo inicializar tablas básicas al arranque. 
+        # La sincronización pesada se hace vía ruta de mantenimiento.
+        init_db()
+    except Exception as e:
+        print(f"Error initializing DB: {e}")
