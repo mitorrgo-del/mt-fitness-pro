@@ -1,12 +1,14 @@
 {
   "version": 2,
   "builds": [
-    { "src": "flask_app.py", "use": "@vercel/python" }
+    { "src": "flask_app.py", "use": "@vercel/python" },
+    { "src": "public/*.apk", "use": "@vercel/static" }
   ],
-  "rewrites": [
-    { "source": "/(.*)", "destination": "flask_app.py" }
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "flask_app.py" }
   ],
   "env": {
-    "FORCE_REBUILD": "2026-04-09-V8"
+    "FORCE_REBUILD": "2026-04-10-STATIC-FIX"
   }
 }
