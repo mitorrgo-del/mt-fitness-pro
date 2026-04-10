@@ -1425,9 +1425,20 @@ def admin_sync_data(admin):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+# Servir archivos estáticos de la carpeta app
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory(app.static_folder, path)
+
+# Servir imágenes de ejercicios desde la carpeta raíz /uploads
+@app.route('/uploads/<path:path>')
+def serve_uploads(path):
+    uploads_dir = os.path.join(ROOT_DIR, 'uploads')
+    return send_from_directory(uploads_dir, path)
+
 @app.route('/')
-def index():
-    return app.send_static_file('index.html')
+def index_root():
+    return send_from_directory(app.static_folder, 'index.html')
 
 @app.route('/manifest.json')
 def serve_manifest():
