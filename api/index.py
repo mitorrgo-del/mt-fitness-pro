@@ -57,4 +57,14 @@ def proxy(path):
         except Exception as e:
             return jsonify({"error": "RUNTIME_DISPATCH_ERROR", "msg": str(e)}), 500
 
+@app.route('/api/diag')
+def diag():
+    return jsonify({
+        "status": "diag_mode",
+        "cwd": os.getcwd(),
+        "files": os.listdir('.'),
+        "env_db": bool(os.environ.get('DATABASE_URL')),
+        "python": sys.version
+    })
+
 from flask import request
