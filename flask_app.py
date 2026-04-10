@@ -241,7 +241,11 @@ def init_db():
     for col in ['biceps', 'thigh', 'hip', 'waist']:
         try:
             conn_wrap.execute(f"ALTER TABLE reports ADD COLUMN {col} REAL")
-        except: pass
+            conn_wrap.commit()
+        except:
+            if db_url: # Postgres needs rollback after error
+                try: conn_wrap.conn.rollback()
+                except: pass
 
     # PRO Assigned Food Plans (Admin -> Client)
     conn_wrap.execute('''CREATE TABLE IF NOT EXISTS user_foods (
