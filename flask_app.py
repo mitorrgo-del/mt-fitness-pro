@@ -233,8 +233,15 @@ def init_db():
     conn_wrap.execute('''CREATE TABLE IF NOT EXISTS reports (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         user_id TEXT, date TEXT DEFAULT CURRENT_TIMESTAMP,
-        weight REAL, photo_front TEXT, photo_side TEXT, photo_back TEXT
+        weight REAL, photo_front TEXT, photo_side TEXT, photo_back TEXT,
+        biceps REAL, thigh REAL, hip REAL, waist REAL
     )''')
+
+    # Add missing columns to reports safely
+    for col in ['biceps', 'thigh', 'hip', 'waist']:
+        try:
+            conn_wrap.execute(f"ALTER TABLE reports ADD COLUMN {col} REAL")
+        except: pass
 
     # PRO Assigned Food Plans (Admin -> Client)
     conn_wrap.execute('''CREATE TABLE IF NOT EXISTS user_foods (
@@ -670,18 +677,21 @@ def admin_approve_user(admin, target_id):
 @app.route('/api/reports/submit', methods=['POST'])
 @require_auth(roles=['CLIENT', 'ADMIN'])
 def submit_report(user):
-    # --- REGLA DE VIERNES ---
+    # --- REGLA DE VIERNES O INICIO DE MES ---
     now = datetime.datetime.now()
-    if now.weekday() != 4: # 4 es Viernes
-        return jsonify({'error': 'Los reportes solo pueden enviarse los Viernes (00:00 - 23:59).'}), 403
+    is_friday = now.weekday() == 4
+    is_start_of_month = now.day == 1
     
-    # --- REGLA DE 1 VEZ POR SEMANA ---
+    if not is_friday and not is_start_of_month:
+        return jsonify({'error': 'Los reportes solo pueden enviarse los Viernes o el día 1 de cada mes.'}), 403
+    
+    # --- REGLA DE 1 VEZ POR DÍA ---
     conn = get_db()
     today_str = now.strftime('%Y-%m-%d')
     existing = conn.execute("SELECT id FROM reports WHERE user_id = ? AND date(date) = ?", (user['id'], today_str)).fetchone()
     if existing:
         conn.close()
-        return jsonify({'error': 'Ya has enviado tu recorte de esta semana.'}), 403
+        return jsonify({'error': 'Ya has enviado tu reporte de hoy.'}), 403
 
     weight = request.form.get('weight')
     biceps = request.form.get('biceps')
@@ -974,8 +984,7 @@ def admin_remove_food(admin, id):
 def client_workout(user):
     target_id = request.args.get('user_id', user['id'])
     conn = get_db()
-    c = conn.cursor()
-    c.execute('''
+    cur = conn.execute('''
         SELECT ue.id as assignment_id, e.name, e.muscle_group, e.icon_path, ue.day_of_week, ue.sets, ue.reps, ue.rest, 
                ue.target_muscles, ue.set_type, ue.combined_with
         FROM user_exercises ue
@@ -983,15 +992,14 @@ def client_workout(user):
         WHERE ue.user_id = ?
         ORDER BY ue.day_of_week, ue.id
     ''', (target_id,))
-    data = [dict(r) for r in c.fetchall()]
+    data = conn.fetchall(cur)
     conn.close()
     return jsonify(data)
 
 def _get_diet_data_logic(user):
     target_id = request.args.get('user_id', user['id'])
     conn = get_db()
-    c = conn.cursor()
-    c.execute('''
+    cur = conn.execute('''
         SELECT uf.id as assignment_id, f.name, f.category, f.kcal, f.protein, f.carbs, f.fat, 
                uf.meal_name, uf.grams, uf.day_name,
                (f.kcal * uf.grams / 100) as calc_kcal,
@@ -1003,7 +1011,7 @@ def _get_diet_data_logic(user):
         WHERE uf.user_id = ?
         ORDER BY uf.day_name, uf.meal_name
     ''', (target_id,))
-    data = [dict(r) for r in c.fetchall()]
+    data = conn.fetchall(cur)
     conn.close()
     return jsonify(data)
 
@@ -1038,8 +1046,6 @@ def log_workout(user):
         return jsonify({'error': 'Missing assignment_id'}), 400
         
     conn = get_db()
-    c = conn.cursor()
-    
     if request.method == 'POST':
         # Accept single weight/reps or a list of logs
         weight = data.get('weight')
@@ -1048,7 +1054,7 @@ def log_workout(user):
         
         if weight is not None and reps is not None:
             # Single log entry
-            c.execute('''
+            conn.execute('''
                 INSERT INTO workout_logs (user_id, assignment_id, set_number, weight_kg, date)
                 VALUES (?, ?, ?, ?, ?)
             ''', (user['id'], assignment_id, set_num, float(weight), date_str))
@@ -1056,13 +1062,13 @@ def log_workout(user):
             # List of logs fallback
             logs = data.get('logs', [])
             for log in logs:
-                c.execute('''
+                conn.execute('''
                     INSERT INTO workout_logs (user_id, assignment_id, set_number, weight_kg, date)
                     VALUES (?, ?, ?, ?, ?)
                 ''', (user['id'], assignment_id, log.get('set', 1), float(log.get('weight', 0)), date_str))
         conn.commit()
     else: # DELETE
-        c.execute("DELETE FROM workout_logs WHERE user_id = ? AND assignment_id = ? AND date = ?", (user['id'], assignment_id, date_str))
+        conn.execute("DELETE FROM workout_logs WHERE user_id = ? AND assignment_id = ? AND date = ?", (user['id'], assignment_id, date_str))
         conn.commit()
         
     conn.close()
@@ -1105,8 +1111,7 @@ def manage_profile(user):
     
     if request.method == 'PUT':
         data = request.json
-        c = conn.cursor()
-        c.execute("UPDATE users SET phone = ?, objective_weight = ? WHERE id = ?", 
+        conn.execute("UPDATE users SET phone = ?, objective_weight = ? WHERE id = ?", 
                  (data.get('phone'), data.get('objective_weight'), user['id']))
         conn.commit()
         conn.close()

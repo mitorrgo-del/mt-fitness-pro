@@ -25,8 +25,13 @@ class _ReportScreenState extends State<ReportScreen> {
   File? _photoBack;
   bool _isSubmitting = false;
 
-  bool _isFriday() {
-    return DateTime.now().weekday == DateTime.friday;
+  bool _isAvailable() {
+    final now = DateTime.now();
+    return now.weekday == DateTime.friday || now.day == 1;
+  }
+
+  bool _isMonthStart() {
+    return DateTime.now().day == 1;
   }
 
   Future<void> _pickImage(int type) async {
@@ -42,8 +47,8 @@ class _ReportScreenState extends State<ReportScreen> {
   }
 
   Future<void> _submit() async {
-    if (!_isFriday()) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Los reportes solo pueden enviarse los Viernes.')));
+    if (!_isAvailable()) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Los reportes solo pueden enviarse los Viernes o el día 1 de cada mes.')));
       return;
     }
 
@@ -75,7 +80,8 @@ class _ReportScreenState extends State<ReportScreen> {
 
   @override
   Widget build(BuildContext context) {
-    bool available = _isFriday();
+    bool available = _isAvailable();
+    bool monthly = _isMonthStart();
 
     return Scaffold(
       appBar: AppBar(
@@ -96,7 +102,7 @@ class _ReportScreenState extends State<ReportScreen> {
             Text(
               available 
                 ? 'Completa tus datos para que el Coach pueda ajustar tu plan.' 
-                : 'Vuelve el Viernes para enviar tu reporte semanal obligatorio.',
+                : 'Vuelve el Viernes (o el día 1 de mes) para tu reporte obligatorio.',
               textAlign: TextAlign.center,
               style: const TextStyle(color: AppTheme.textMuted),
             ),
@@ -133,7 +139,10 @@ class _ReportScreenState extends State<ReportScreen> {
               ),
               
               const SizedBox(height: 32),
-              const Text('FOTOS DE PROGRESO (Obligatorio)', style: TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)),
+              Text(
+                monthly ? 'FOTOS DE PROGRESO (Obligatorio hoy)' : 'FOTOS DE PROGRESO (Opcional hoy)', 
+                style: const TextStyle(fontWeight: FontWeight.bold, color: AppTheme.primary)
+              ),
               const SizedBox(height: 16),
               
               Row(
@@ -167,7 +176,7 @@ class _ReportScreenState extends State<ReportScreen> {
               const Icon(LucideIcons.calendar, size: 80, color: AppTheme.textMuted),
               const SizedBox(height: 20),
               const Text(
-                'Solo los Viernes (00:00 - 23:59)',
+                'Viernes o día 1 de Mes',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppTheme.primary),
               ),
             ],
